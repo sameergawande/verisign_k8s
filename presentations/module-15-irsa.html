@@ -3,17 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< HEAD
     <title>IRSA &mdash; IAM Roles for Service Accounts | Intermediate Kubernetes</title>
-=======
-    <title>Module 15: IAM Roles for Service Accounts (IRSA) | Intermediate Kubernetes</title>
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reset.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/white.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/plugin/highlight/monokai.css">
     <style>
-<<<<<<< HEAD
         :root { --heading-color: #1a365d; --accent-color: #2b6cb0; --success-color: #2f855a; --warning-color: #c05621; --danger-color: #c53030; --text-color: #2d3748; }
         .reveal { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--text-color); font-size: 28px; }
         .reveal .slides section { text-align: left; padding: 20px 40px; }
@@ -57,286 +52,17 @@
         .reveal li { margin-bottom: 0.5em; line-height: 1.5; font-size: 0.9em; }
         .reveal p { line-height: 1.6; }
         .reveal pre code { font-size: 0.7em; line-height: 1.4; max-height: 500px; border-radius: 8px; }
-=======
-        :root {
-            --heading-color: #1a365d;
-            --accent-color: #2b6cb0;
-            --success-color: #2f855a;
-            --warning-color: #c05621;
-            --danger-color: #c53030;
-            --text-color: #2d3748;
-        }
-
-        .reveal {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: var(--text-color);
-            font-size: 28px;
-        }
-
-        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
-            color: var(--heading-color);
-            font-weight: 700;
-            text-transform: none;
-        }
-
-        .reveal h1 { font-size: 2.2em; }
-        .reveal h2 { font-size: 1.6em; }
-        .reveal h3 { font-size: 1.3em; }
-
-        /* Title Slide */
-        .title-slide h1 {
-            color: #ffffff;
-            font-size: 2.4em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            margin-bottom: 0.3em;
-        }
-        .title-slide h2 {
-            color: #e2e8f0;
-            font-size: 1.4em;
-            font-weight: 400;
-            margin-bottom: 0.2em;
-        }
-        .title-slide h3 {
-            color: #cbd5e0;
-            font-size: 1.1em;
-            font-weight: 300;
-        }
-
-        /* Section Divider */
-        .section-divider h2 {
-            color: #ffffff;
-            font-size: 2.0em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        .section-divider h3 {
-            color: #e2e8f0;
-            font-size: 1.2em;
-            font-weight: 400;
-        }
-
-        /* Highlight Boxes */
-        .highlight-box {
-            background: #ebf8ff;
-            border-left: 4px solid var(--accent-color);
-            padding: 20px 25px;
-            border-radius: 0 8px 8px 0;
-            margin: 15px 0;
-            text-align: left;
-        }
-        .highlight-box.success {
-            background: #f0fff4;
-            border-left-color: var(--success-color);
-        }
-        .highlight-box.warning {
-            background: #fffaf0;
-            border-left-color: var(--warning-color);
-        }
-        .highlight-box.danger {
-            background: #fff5f5;
-            border-left-color: var(--danger-color);
-        }
-
-        /* Two Columns */
-        .two-columns {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            align-items: start;
-            text-align: left;
-        }
-
-        /* Three Columns */
-        .three-columns {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-            align-items: start;
-            text-align: left;
-        }
-
-        /* Card */
-        .card {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0;
-            text-align: left;
-        }
-        .card h3, .card h4 {
-            margin-top: 0;
-            color: var(--accent-color);
-        }
-
-        /* Concept Box */
-        .concept-box {
-            background: linear-gradient(135deg, #ebf8ff 0%, #e2e8f0 100%);
-            border-radius: 12px;
-            padding: 25px;
-            margin: 15px 0;
-            border: 1px solid #bee3f8;
-            text-align: left;
-        }
-        .concept-box h3, .concept-box h4 {
-            color: var(--heading-color);
-            margin-top: 0;
-        }
-
-        /* Emoji Header */
-        .emoji-header {
-            font-size: 1.8em;
-            margin-bottom: 0.5em;
-        }
-
-        /* Key Point */
-        .key-point {
-            background: #ebf8ff;
-            border: 2px solid var(--accent-color);
-            border-radius: 12px;
-            padding: 20px 25px;
-            margin: 15px 0;
-            text-align: left;
-            font-size: 0.95em;
-        }
-        .key-point strong {
-            color: var(--accent-color);
-        }
-
-        /* Lab Callout */
-        .lab-callout h2 {
-            color: #ffffff;
-            font-size: 1.8em;
-            margin-bottom: 0.3em;
-        }
-        .lab-callout h3 {
-            color: #90cdf4;
-            font-size: 1.3em;
-            font-weight: 400;
-        }
-        .lab-callout p {
-            color: #e2e8f0;
-            font-size: 1.0em;
-        }
-        .lab-callout ul {
-            color: #e2e8f0;
-            text-align: left;
-            display: inline-block;
-        }
-        .lab-callout .highlight-box {
-            background: rgba(255,255,255,0.1);
-            border-left-color: #90cdf4;
-            color: #e2e8f0;
-        }
-
-        /* Questions Slide */
-        .questions-slide h2 {
-            color: #ffffff;
-            font-size: 2.2em;
-        }
-        .questions-slide p {
-            color: #e2e8f0;
-            font-size: 1.2em;
-        }
-
-        /* Takeaway List */
-        .takeaway-list {
-            text-align: left;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .takeaway-list li {
-            margin-bottom: 12px;
-            line-height: 1.6;
-            list-style: none;
-            padding-left: 10px;
-        }
-
-        /* Module Progress */
-        .module-progress {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 20px;
-        }
-        .module-progress .step {
-            width: 30px;
-            height: 6px;
-            border-radius: 3px;
-            background: #cbd5e0;
-        }
-        .module-progress .step.active {
-            background: var(--accent-color);
-        }
-        .module-progress .step.completed {
-            background: var(--success-color);
-        }
-
-        /* Table Styles */
-        .reveal table {
-            border-collapse: collapse;
-            width: 100%;
-            font-size: 0.75em;
-            margin: 15px 0;
-        }
-        .reveal table th {
-            background: var(--heading-color);
-            color: #ffffff;
-            padding: 12px 16px;
-            text-align: left;
-            font-weight: 600;
-        }
-        .reveal table td {
-            padding: 10px 16px;
-            border-bottom: 1px solid #e2e8f0;
-            text-align: left;
-        }
-        .reveal table tr:nth-child(even) {
-            background: #f7fafc;
-        }
-        .reveal table tr:hover {
-            background: #ebf8ff;
-        }
-
-        /* General list styling */
-        .reveal ul, .reveal ol {
-            text-align: left;
-            display: block;
-            margin-left: 1em;
-        }
-        .reveal li {
-            margin-bottom: 0.5em;
-            line-height: 1.5;
-            font-size: 0.9em;
-        }
-
-        .reveal p {
-            line-height: 1.6;
-        }
-
-        .reveal .small-text {
-            font-size: 0.7em;
-            color: #718096;
-        }
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
     </style>
 </head>
 <body>
     <div class="reveal">
         <div class="slides">
 
-<<<<<<< HEAD
             <!-- Slide 1: Title -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="title-slide">
                 <h1>&#128272; IRSA &mdash; IAM Roles for Service Accounts</h1>
                 <h2>Fine-Grained AWS Permissions for Pods &mdash; Module 15 of 16</h2>
                 <h3>Verisign EKS Platform</h3>
-=======
-            <!-- Title Slide -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="title-slide">
-                <h1>IAM Roles for Service Accounts (IRSA)</h1>
-                <h2>Fine-Grained AWS Permissions for Kubernetes Pods</h2>
-                <h3>Intermediate Kubernetes &mdash; Module 15 of 16</h3>
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 <div class="module-progress">
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -355,7 +81,6 @@
                     <div class="step active"></div>
                     <div class="step"></div>
                 </div>
-<<<<<<< HEAD
                 <aside class="notes">Module 15 tackles one of the most critical EKS security topics: how pods authenticate to AWS services. IRSA lets us assign fine-grained IAM permissions to individual Kubernetes service accounts, eliminating the dangerous practice of sharing node-level IAM roles across all pods.</aside>
             </section>
 
@@ -533,308 +258,23 @@ eksctl utils associate-iam-oidc-provider \
                 <h2>&#128220; Trust Policy Anatomy</h2>
                 <p>The IAM role's trust policy determines <em>which</em> service accounts can assume it.</p>
                 <pre><code class="json">{
-=======
-                <aside class="notes">
-                    Module 15 covers one of the most critical security integrations in EKS: IRSA. This is how pods securely access AWS services without long-lived credentials. The Verisign platform already uses IRSA for cert-manager and external-dns, so students will recognize these patterns from their own infrastructure.
-                </aside>
-            </section>
-
-            <!-- Module Objectives -->
-            <section>
-                <h2>&#127919; Module Objectives</h2>
-                <div class="concept-box">
-                    <h4>By the end of this module, you will be able to:</h4>
-                    <ul>
-                        <li class="fragment fade-up">Explain the <strong>problem IRSA solves</strong> and why older approaches are insufficient</li>
-                        <li class="fragment fade-up">Describe the <strong>OIDC trust chain</strong> that connects Kubernetes ServiceAccounts to IAM Roles</li>
-                        <li class="fragment fade-up">Configure <strong>IRSA for application workloads</strong> on EKS</li>
-                        <li class="fragment fade-up">Apply <strong>least-privilege principles</strong> for AWS access from pods</li>
-                        <li class="fragment fade-up">Debug common IRSA configuration issues</li>
-                    </ul>
-                </div>
-                <aside class="notes">
-                    IRSA is a must-know for any developer deploying to EKS. Even if the platform team sets up the roles, developers need to understand how IRSA works to debug issues and request appropriate permissions. Emphasize that this is not just an ops concern.
-                </aside>
-            </section>
-
-            <!-- Section Divider: The Problem -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128274; The Problem: Pods and AWS Access</h2>
-                <h3>How do containers running in Kubernetes access AWS services?</h3>
-                <aside class="notes">
-                    Before explaining IRSA, we need to understand the problem space. Pods frequently need to talk to AWS services — S3, DynamoDB, SQS, Route53, etc. The question is: how do they authenticate?
-                </aside>
-            </section>
-
-            <!-- The Problem: Old Approaches -->
-            <section>
-                <h2>&#9888;&#65039; Pre-IRSA Approaches</h2>
-                <div class="three-columns">
-                    <div class="card">
-                        <h4>Node-Level IAM Roles</h4>
-                        <ul>
-                            <li class="fragment fade-up">Every pod on the node gets the <strong>same permissions</strong></li>
-                            <li class="fragment fade-up">Overly broad access</li>
-                            <li class="fragment fade-up">Violates least-privilege</li>
-                            <li class="fragment fade-up">One compromised pod = full node permissions</li>
-                        </ul>
-                    </div>
-                    <div class="card">
-                        <h4>Hardcoded Credentials</h4>
-                        <ul>
-                            <li class="fragment fade-up">AWS access keys stored in Secrets</li>
-                            <li class="fragment fade-up">Long-lived credentials</li>
-                            <li class="fragment fade-up">Rotation nightmare</li>
-                            <li class="fragment fade-up">Risk of leaking into logs or repos</li>
-                        </ul>
-                    </div>
-                    <div class="card">
-                        <h4>kube2iam / kiam</h4>
-                        <ul>
-                            <li class="fragment fade-up">Third-party, community tools</li>
-                            <li class="fragment fade-up">Added network latency (proxy-based)</li>
-                            <li class="fragment fade-up">Complex setup and failure modes</li>
-                            <li class="fragment fade-up">Race conditions on pod startup</li>
-                        </ul>
-                    </div>
-                </div>
-                <aside class="notes">
-                    Walk through each approach and its weaknesses. Node-level roles are the most common "easy" path and the most dangerous — a logging sidecar has the same AWS access as the main application. Hardcoded credentials are an anti-pattern in any cloud-native environment. kube2iam/kiam were clever community solutions but introduced their own operational burden.
-                </aside>
-            </section>
-
-            <!-- Why Each is Problematic -->
-            <section>
-                <h2>&#128683; Why These Approaches Fail</h2>
-                <div class="highlight-box danger">
-                    <p style="margin:0;"><strong>Node-Level Roles:</strong> If a pod running a web frontend is compromised, the attacker inherits permissions meant for backend services &mdash; including access to production databases and secrets.</p>
-                </div>
-                <div class="highlight-box warning" style="margin-top: 10px;">
-                    <p style="margin:0;"><strong>Static Credentials:</strong> AWS access keys in Kubernetes Secrets are only base64-encoded (not encrypted by default). They never expire unless manually rotated. One leaked key = persistent unauthorized access.</p>
-                </div>
-                <div class="highlight-box" style="margin-top: 10px;">
-                    <p style="margin:0;"><strong>kube2iam/kiam:</strong> These tools intercept the EC2 metadata endpoint. Under load, credential requests can time out or return stale tokens. AWS does not officially support these tools.</p>
-                </div>
-                <div class="key-point fragment fade-up" style="margin-top: 15px;">
-                    <strong>What we need:</strong> Per-pod, fine-grained IAM permissions with short-lived credentials and no stored secrets.
-                </div>
-                <aside class="notes">
-                    Reinforce the security implications. The node-level role scenario is especially important — in a multi-tenant cluster, this is a critical vulnerability. The key insight is that we need identity at the pod level, not the node level.
-                </aside>
-            </section>
-
-            <!-- Section Divider: IRSA Solution -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#9989; IRSA: The Solution</h2>
-                <h3>Fine-grained, per-pod AWS IAM permissions</h3>
-                <aside class="notes">
-                    Now we introduce IRSA as the AWS-native, officially supported solution to this problem. It was introduced at re:Invent 2019 and has become the standard for EKS workloads.
-                </aside>
-            </section>
-
-            <!-- IRSA Overview -->
-            <section>
-                <h2>&#128273; What is IRSA?</h2>
-                <div class="concept-box">
-                    <h4>IAM Roles for Service Accounts</h4>
-                    <p>IRSA associates an <strong>AWS IAM Role</strong> with a <strong>Kubernetes ServiceAccount</strong>, enabling pods to assume that role and receive <strong>temporary, scoped AWS credentials</strong>.</p>
-                </div>
-                <div class="two-columns" style="margin-top: 15px;">
-                    <div class="card">
-                        <h4>Key Properties</h4>
-                        <ul>
-                            <li class="fragment fade-up"><strong>Per-pod granularity</strong> &mdash; each SA gets its own role</li>
-                            <li class="fragment fade-up"><strong>No stored credentials</strong> &mdash; tokens are projected and short-lived</li>
-                            <li class="fragment fade-up"><strong>AWS-native</strong> &mdash; uses STS AssumeRoleWithWebIdentity</li>
-                            <li class="fragment fade-up"><strong>Automatic</strong> &mdash; AWS SDKs handle token exchange transparently</li>
-                        </ul>
-                    </div>
-                    <div class="card">
-                        <h4>Benefits</h4>
-                        <ul>
-                            <li class="fragment fade-up">Least-privilege per workload</li>
-                            <li class="fragment fade-up">No credential rotation needed</li>
-                            <li class="fragment fade-up">Auditable via CloudTrail</li>
-                            <li class="fragment fade-up">Works with existing IAM policies</li>
-                        </ul>
-                    </div>
-                </div>
-                <aside class="notes">
-                    Emphasize that IRSA is built into EKS — no third-party components. The AWS SDK credential chain automatically picks up the projected token, so application code typically does not need any changes. This is a huge advantage over kube2iam where the application had to be aware of the metadata proxy.
-                </aside>
-            </section>
-
-            <!-- Section Divider: Trust Chain -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128279; How IRSA Works</h2>
-                <h3>The OIDC Trust Chain</h3>
-                <aside class="notes">
-                    This is the most important conceptual section. Understanding the trust chain is essential for debugging IRSA issues. Walk through it step by step.
-                </aside>
-            </section>
-
-            <!-- IRSA Trust Chain: The Flow -->
-            <section>
-                <h2>&#128260; The IRSA Trust Chain</h2>
-                <div class="highlight-box">
-                    <p style="text-align:center; font-size:0.85em; margin: 0;">
-                        <strong>EKS OIDC Provider</strong> &rarr; <strong>IAM Trust Policy</strong> &rarr; <strong>ServiceAccount Annotation</strong> &rarr; <strong>Pod Token Projection</strong> &rarr; <strong>STS Token Exchange</strong>
-                    </p>
-                </div>
-                <div style="margin-top: 15px;">
-                    <ol>
-                        <li class="fragment fade-up"><strong>EKS cluster has an OIDC provider</strong> &mdash; acts as an identity issuer for ServiceAccount tokens</li>
-                        <li class="fragment fade-up"><strong>IAM Role has a trust policy</strong> &mdash; trusts tokens from this specific OIDC provider for a specific ServiceAccount</li>
-                        <li class="fragment fade-up"><strong>ServiceAccount is annotated</strong> &mdash; with <code>eks.amazonaws.com/role-arn</code> pointing to the IAM Role</li>
-                        <li class="fragment fade-up"><strong>Pod uses the ServiceAccount</strong> &mdash; EKS mutating webhook injects a projected token volume and AWS env vars</li>
-                        <li class="fragment fade-up"><strong>AWS SDK exchanges the token</strong> &mdash; calls <code>STS AssumeRoleWithWebIdentity</code> to get temporary credentials</li>
-                    </ol>
-                </div>
-                <aside class="notes">
-                    Draw this on a whiteboard if possible. The key insight is that there is a bidirectional link: the IAM Role trusts the ServiceAccount (via the trust policy condition), and the ServiceAccount references the IAM Role (via the annotation). Both must be correct for IRSA to work.
-                </aside>
-            </section>
-
-            <!-- IRSA Trust Chain: Visual Diagram -->
-            <section>
-                <h2>&#128208; Trust Chain Detail</h2>
-                <div class="two-columns">
-                    <div class="card">
-                        <h4>Kubernetes Side</h4>
-                        <ul>
-                            <li class="fragment fade-up">EKS OIDC provider issues <strong>signed JWT tokens</strong> for ServiceAccounts</li>
-                            <li class="fragment fade-up">Token projected into pod at a known path</li>
-                            <li class="fragment fade-up">Token contains: <code>iss</code> (OIDC URL), <code>sub</code> (system:serviceaccount:NS:SA)</li>
-                            <li class="fragment fade-up">Token is <strong>short-lived</strong> (default 24h, refreshed automatically)</li>
-                        </ul>
-                    </div>
-                    <div class="card">
-                        <h4>AWS Side</h4>
-                        <ul>
-                            <li class="fragment fade-up">IAM OIDC Identity Provider registered for the cluster</li>
-                            <li class="fragment fade-up">IAM Role trust policy validates the token <strong>issuer</strong> and <strong>subject</strong></li>
-                            <li class="fragment fade-up">STS validates the JWT signature against the OIDC provider&rsquo;s public keys</li>
-                            <li class="fragment fade-up">Returns <strong>temporary credentials</strong> (access key, secret key, session token)</li>
-                        </ul>
-                    </div>
-                </div>
-                <aside class="notes">
-                    The JWT token is the bridge between Kubernetes identity and AWS identity. STS never contacts the EKS cluster directly — it validates the token using the OIDC provider's public key endpoint. This is why the OIDC provider must be publicly accessible.
-                </aside>
-            </section>
-
-            <!-- Section Divider: OIDC Provider -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128272; OIDC Provider Setup</h2>
-                <h3>The foundation of the IRSA trust chain</h3>
-                <aside class="notes">
-                    The OIDC provider is the first piece of infrastructure needed for IRSA. In the Verisign environment, this is already configured by Terraform. Let's see how to verify and understand it.
-                </aside>
-            </section>
-
-            <!-- OIDC Provider Details -->
-            <section>
-                <h2>&#128269; Verifying the OIDC Provider</h2>
-                <div class="highlight-box">
-                    <p style="margin:0;"><strong>Every EKS cluster</strong> has an OIDC issuer URL. The OIDC Identity Provider in IAM must be registered to enable IRSA.</p>
-                </div>
-                <div style="margin-top: 15px;">
-                    <h4>Get the OIDC issuer URL:</h4>
-                    <pre><code class="language-bash"># Get the OIDC issuer URL for the cluster
-aws eks describe-cluster \
-  --name platform-lab \
-  --query "cluster.identity.oidc.issuer" \
-  --output text
-
-# Example output:
-# https://oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE</code></pre>
-                </div>
-                <div class="fragment fade-up" style="margin-top: 15px;">
-                    <h4>List registered OIDC providers in IAM:</h4>
-                    <pre><code class="language-bash"># Verify the provider is registered in IAM
-aws iam list-open-id-connect-providers
-
-# Output includes the ARN:
-# arn:aws:iam::123456789012:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLE</code></pre>
-                </div>
-                <aside class="notes">
-                    In the Verisign environment, the Terraform modules create the OIDC provider automatically when provisioning the EKS cluster. Students should verify it exists. The OIDC issuer URL is unique per cluster and region.
-                </aside>
-            </section>
-
-            <!-- Terraform OIDC Setup -->
-            <section>
-                <h2>&#9881;&#65039; Terraform OIDC Provider Setup</h2>
-                <div class="key-point">
-                    <strong>Verisign Context:</strong> The platform team's Terraform modules handle OIDC provider creation. Here is how it works under the hood.
-                </div>
-                <pre class="fragment fade-up"><code class="language-hcl"># Terraform creates the OIDC provider for EKS
-data "tls_certificate" "eks" {
-  url = aws_eks_cluster.platform.identity[0].oidc[0].issuer
-}
-
-resource "aws_iam_openid_connect_provider" "eks" {
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
-  url             = aws_eks_cluster.platform.identity[0].oidc[0].issuer
-
-  tags = {
-    Environment = "platform-lab"
-    ManagedBy   = "terraform"
-  }
-}</code></pre>
-                <div class="highlight-box fragment fade-up" style="margin-top: 10px;">
-                    <p style="margin:0;"><strong>Note:</strong> The <code>client_id_list</code> must include <code>sts.amazonaws.com</code> &mdash; this is the audience that STS expects when validating tokens.</p>
-                </div>
-                <aside class="notes">
-                    The thumbprint was historically required to verify the OIDC provider's TLS certificate. AWS now manages this automatically for EKS OIDC providers, but Terraform still requires the field. The client_id_list is critical — sts.amazonaws.com must be included or token exchange will fail.
-                </aside>
-            </section>
-
-            <!-- Section Divider: Creating IAM Role -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128220; Creating an IAM Role for IRSA</h2>
-                <h3>Trust policies and permission boundaries</h3>
-                <aside class="notes">
-                    Now we get into the hands-on configuration. The IAM Role is where you define both who can assume it (trust policy) and what it can do (permissions policy). Getting the trust policy right is the most common source of IRSA issues.
-                </aside>
-            </section>
-
-            <!-- IAM Trust Policy -->
-            <section>
-                <h2>&#128220; IAM Trust Policy for IRSA</h2>
-                <div class="highlight-box">
-                    <p style="margin:0;">The trust policy tells IAM: <em>"Allow the OIDC provider to vouch for a specific Kubernetes ServiceAccount to assume this role."</em></p>
-                </div>
-                <pre class="fragment fade-up"><code class="language-json">{
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
       "Principal": {
-<<<<<<< HEAD
         "Federated": "arn:aws:iam::111122223333:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE"
-=======
-        "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/oidc.eks.REGION.amazonaws.com/id/OIDC_ID"
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-<<<<<<< HEAD
           "oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE:aud": "sts.amazonaws.com",
           "oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE:sub": "system:serviceaccount:my-namespace:my-sa"
-=======
-          "oidc.eks.REGION.amazonaws.com/id/OIDC_ID:aud": "sts.amazonaws.com",
-          "oidc.eks.REGION.amazonaws.com/id/OIDC_ID:sub": "system:serviceaccount:NAMESPACE:SA_NAME"
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
         }
       }
     }
   ]
 }</code></pre>
-<<<<<<< HEAD
                 <ul>
                     <li class="fragment"><strong>Principal.Federated</strong> &mdash; your cluster's OIDC provider ARN</li>
                     <li class="fragment"><strong>:aud</strong> condition &mdash; must be <code>sts.amazonaws.com</code></li>
@@ -877,252 +317,20 @@ aws iam list-open-id-connect-providers | \
                 <h2>&#128221; Creating the IAM Policy</h2>
                 <p>Define <strong>least-privilege</strong> permissions for your workload.</p>
                 <pre><code class="json">{
-=======
-                <aside class="notes">
-                    Walk through every field. The Principal is the OIDC provider ARN — this is who is asserting the identity. The Condition block is critical: it restricts which ServiceAccount can assume this role. The aud condition verifies the token audience, and the sub condition verifies the specific namespace and ServiceAccount name. Miss either of these and IRSA will silently fail.
-                </aside>
-            </section>
-
-            <!-- Condition Keys: StringEquals vs StringLike -->
-            <section>
-                <h2>&#128273; Condition Keys: Scoping Access</h2>
-                <div class="two-columns">
-                    <div class="card">
-                        <h4>StringEquals (Recommended)</h4>
-                        <pre><code class="language-json">"Condition": {
-  "StringEquals": {
-    "...OIDC_ID:sub":
-      "system:serviceaccount:prod:my-app"
-  }
-}</code></pre>
-                        <ul>
-                            <li class="fragment fade-up">Exact match on namespace + SA</li>
-                            <li class="fragment fade-up">Most restrictive, most secure</li>
-                            <li class="fragment fade-up">Use for production workloads</li>
-                        </ul>
-                    </div>
-                    <div class="card">
-                        <h4>StringLike (Wildcard)</h4>
-                        <pre><code class="language-json">"Condition": {
-  "StringLike": {
-    "...OIDC_ID:sub":
-      "system:serviceaccount:dev:*"
-  }
-}</code></pre>
-                        <ul>
-                            <li class="fragment fade-up">Wildcard match with <code>*</code></li>
-                            <li class="fragment fade-up">Less restrictive &mdash; any SA in namespace</li>
-                            <li class="fragment fade-up">Use sparingly, only for dev/test</li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="highlight-box warning fragment fade-up" style="margin-top: 15px;">
-                    <p style="margin:0;"><strong>Best Practice:</strong> Always use <code>StringEquals</code> with the exact namespace and ServiceAccount name in production. Wildcards expand the blast radius of a compromised ServiceAccount.</p>
-                </div>
-                <aside class="notes">
-                    This is a security-critical decision. StringLike with a wildcard on the ServiceAccount means any ServiceAccount in that namespace can assume the role. If an attacker can create a ServiceAccount in that namespace, they get the AWS permissions. Always prefer StringEquals in production.
-                </aside>
-            </section>
-
-            <!-- Terraform IAM Role Example -->
-            <section>
-                <h2>&#9881;&#65039; Terraform: IRSA Role</h2>
-                <pre><code class="language-hcl">resource "aws_iam_role" "app_irsa_role" {
-  name = "platform-lab-my-app-irsa"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Federated = aws_iam_openid_connect_provider.eks.arn
-      }
-      Action = "sts:AssumeRoleWithWebIdentity"
-      Condition = {
-        StringEquals = {
-          "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud" = "sts.amazonaws.com"
-          "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:my-namespace:my-app"
-        }
-      }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "app_s3_policy" {
-  role       = aws_iam_role.app_irsa_role.name
-  policy_arn = aws_iam_policy.app_s3_read.arn
-}</code></pre>
-                <aside class="notes">
-                    The replace function strips the https:// prefix from the OIDC URL because IAM condition keys use the hostname format, not the full URL. This is a common gotcha in Terraform. Note how the Condition uses the dynamic OIDC provider reference rather than hardcoded values — this makes the module portable across clusters.
-                </aside>
-            </section>
-
-            <!-- Section Divider: ServiceAccount Annotation -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128196; Annotating the ServiceAccount</h2>
-                <h3>Linking Kubernetes identity to AWS identity</h3>
-                <aside class="notes">
-                    The ServiceAccount annotation is the Kubernetes-side link. Without it, the pod will not receive the projected token or the AWS environment variables. This is the other half of the bidirectional trust.
-                </aside>
-            </section>
-
-            <!-- ServiceAccount YAML -->
-            <section>
-                <h2>&#128196; ServiceAccount with IRSA Annotation</h2>
-                <div class="two-columns">
-                    <div>
-                        <h4>Declarative YAML</h4>
-                        <pre><code class="language-yaml">apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: my-app
-  namespace: my-namespace
-  annotations:
-    eks.amazonaws.com/role-arn: |-
-      arn:aws:iam::123456789012:role/
-      platform-lab-my-app-irsa</code></pre>
-                    </div>
-                    <div>
-                        <h4>Imperative kubectl</h4>
-                        <pre><code class="language-bash"># Annotate an existing SA
-kubectl annotate serviceaccount \
-  my-app \
-  -n my-namespace \
-  eks.amazonaws.com/role-arn=\
-arn:aws:iam::123456789012:role/\
-platform-lab-my-app-irsa</code></pre>
-                    </div>
-                </div>
-                <div class="key-point fragment fade-up" style="margin-top: 15px;">
-                    <strong>Important:</strong> Pods must be <strong>restarted</strong> after annotating the ServiceAccount. Existing pods will not pick up the new annotation &mdash; the mutating webhook only runs at pod creation time.
-                </div>
-                <aside class="notes">
-                    The annotation key eks.amazonaws.com/role-arn is watched by the EKS pod identity mutating webhook. When a pod is created with a ServiceAccount that has this annotation, the webhook injects the projected token volume and the AWS environment variables. Emphasize: existing pods must be restarted.
-                </aside>
-            </section>
-
-            <!-- Section Divider: Inside the Pod -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128270; What Happens Inside the Pod</h2>
-                <h3>Projected tokens and environment variables</h3>
-                <aside class="notes">
-                    Now let's look at what the mutating webhook actually injects into the pod. Understanding these internals is essential for debugging.
-                </aside>
-            </section>
-
-            <!-- Inside the Pod -->
-            <section>
-                <h2>&#128270; Inside an IRSA-Enabled Pod</h2>
-                <div class="concept-box">
-                    <h4>The EKS mutating webhook automatically injects:</h4>
-                    <ul>
-                        <li class="fragment fade-up">A <strong>projected service account token</strong> volume mounted at:<br><code>/var/run/secrets/eks.amazonaws.com/serviceaccount/token</code></li>
-                        <li class="fragment fade-up">Environment variable: <code>AWS_ROLE_ARN</code> &mdash; the IAM Role ARN to assume</li>
-                        <li class="fragment fade-up">Environment variable: <code>AWS_WEB_IDENTITY_TOKEN_FILE</code> &mdash; path to the projected token</li>
-                    </ul>
-                </div>
-                <div class="fragment fade-up" style="margin-top: 15px;">
-                    <h4>Verify from inside the pod:</h4>
-                    <pre><code class="language-bash"># Check environment variables
-kubectl exec -it my-pod -n my-namespace -- env | grep AWS
-
-# AWS_ROLE_ARN=arn:aws:iam::123456789012:role/platform-lab-my-app-irsa
-# AWS_WEB_IDENTITY_TOKEN_FILE=/var/run/secrets/eks.amazonaws.com/serviceaccount/token
-
-# Verify the token file exists
-kubectl exec -it my-pod -n my-namespace -- \
-  cat /var/run/secrets/eks.amazonaws.com/serviceaccount/token
-
-# Verify identity
-kubectl exec -it my-pod -n my-namespace -- aws sts get-caller-identity</code></pre>
-                </div>
-                <aside class="notes">
-                    The AWS SDK credential chain automatically detects these environment variables and performs the STS AssumeRoleWithWebIdentity call transparently. Application code does not need to be modified — it just works with the standard SDK credential provider chain. The token is a signed JWT that gets refreshed automatically before expiration.
-                </aside>
-            </section>
-
-            <!-- Section Divider: Verisign Examples -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#127968; Verisign IRSA in Practice</h2>
-                <h3>cert-manager and external-dns</h3>
-                <aside class="notes">
-                    Now let's look at real IRSA configurations from the Verisign platform stack. These are running in production and students will interact with them in the lab.
-                </aside>
-            </section>
-
-            <!-- Verisign: cert-manager IRSA -->
-            <section>
-                <h2>&#128274; cert-manager IRSA Role</h2>
-                <div class="highlight-box">
-                    <p style="margin:0;"><strong>Purpose:</strong> cert-manager needs Route53 access to perform DNS-01 ACME challenges for TLS certificate issuance.</p>
-                </div>
-                <div class="fragment fade-up" style="margin-top: 15px;">
-                    <h4>IAM Policy (Scoped to Route53)</h4>
-                    <pre><code class="language-json">{
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": [
-<<<<<<< HEAD
-        "s3:GetObject",
-        "s3:ListBucket"
-      ],
+      "Action": ["s3:GetObject", "s3:ListBucket"],
       "Resource": [
         "arn:aws:s3:::my-app-bucket",
         "arn:aws:s3:::my-app-bucket/*"
       ]
-=======
-        "route53:GetChange",
-        "route53:ListHostedZones",
-        "route53:ListResourceRecordSets"
-      ],
-      "Resource": "*"
     },
     {
       "Effect": "Allow",
-      "Action": "route53:ChangeResourceRecordSets",
-      "Resource": "arn:aws:route53:::hostedzone/ZONE_ID"
-    }
-  ]
-}</code></pre>
-                </div>
-                <div class="key-point fragment fade-up" style="margin-top: 10px;">
-                    <strong>Least Privilege:</strong> <code>ChangeResourceRecordSets</code> is scoped to the specific hosted zone. Read actions like <code>ListHostedZones</code> use <code>*</code> because Route53 does not support resource-level scoping for list operations.
-                </div>
-                <aside class="notes">
-                    cert-manager creates TXT records in Route53 to prove domain ownership for Let's Encrypt. Without IRSA, you would need to give the entire node permissions to modify DNS records — a significant security risk. With IRSA, only the cert-manager pods get this access. Note the split between read and write permissions.
-                </aside>
-            </section>
-
-            <!-- Verisign: external-dns IRSA -->
-            <section>
-                <h2>&#127760; external-dns IRSA Role</h2>
-                <div class="highlight-box">
-                    <p style="margin:0;"><strong>Purpose:</strong> external-dns synchronizes Kubernetes Service/Ingress resources with Route53 DNS records.</p>
-                </div>
-                <div class="fragment fade-up" style="margin-top: 15px;">
-                    <h4>IAM Policy</h4>
-                    <pre><code class="language-json">{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "route53:ChangeResourceRecordSets"
-      ],
-      "Resource": "arn:aws:route53:::hostedzone/ZONE_ID"
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-<<<<<<< HEAD
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes"
-      ],
+      "Action": ["sqs:ReceiveMessage", "sqs:DeleteMessage",
+                  "sqs:GetQueueAttributes"],
       "Resource": "arn:aws:sqs:us-east-1:111122223333:my-queue"
     }
   ]
@@ -1194,21 +402,17 @@ metadata:
 spec:
   replicas: 2
   selector:
-    matchLabels:
-      app: my-app
+    matchLabels: { app: my-app }
   template:
     metadata:
-      labels:
-        app: my-app
+      labels: { app: my-app }
     spec:
-      serviceAccountName: my-app-sa
+      serviceAccountName: my-app-sa   # <-- IRSA-annotated SA
       containers:
       - name: my-app
         image: my-app:latest
         resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi</code></pre>
+          requests: { cpu: 100m, memory: 128Mi }</code></pre>
                 <div class="highlight-box success fragment">
                     <strong>No code changes required:</strong> AWS SDKs (boto3, aws-sdk-go, etc.) automatically detect IRSA environment variables.
                 </div>
@@ -1314,7 +518,7 @@ kubectl exec -n my-namespace deploy/my-app -- \
             <section>
                 <h2>&#9881;&#65039; IRSA with Helm Charts</h2>
                 <p>Most production Helm charts support IRSA via <code>values.yaml</code> configuration.</p>
-                <pre><code class="yaml"># values.yaml for a typical Helm chart
+                <pre><code class="yaml"># values.yaml — typical Helm chart IRSA pattern
 serviceAccount:
   create: true
   name: my-release-sa
@@ -1324,16 +528,10 @@ serviceAccount:
 # Example: AWS Load Balancer Controller
 aws-load-balancer-controller:
   serviceAccount:
-    create: true
     name: aws-lb-controller-sa
     annotations:
       eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/alb-controller-role
-
-# Example: External DNS
-external-dns:
-  serviceAccount:
-    annotations:
-      eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/external-dns-role</code></pre>
+# ... same pattern for external-dns, cluster-autoscaler, etc.</code></pre>
                 <div class="key-point fragment">
                     <strong>Pattern:</strong> Check the chart's <code>values.yaml</code> for <code>serviceAccount.annotations</code> &mdash; most well-maintained charts support this.
                 </div>
@@ -1377,240 +575,6 @@ aws eks create-pod-identity-association \
             <!-- Slide 24: Pod Identity vs IRSA Comparison -->
             <section>
                 <h2>&#9878;&#65039; Pod Identity vs IRSA</h2>
-=======
-        "route53:ListHostedZones",
-        "route53:ListResourceRecordSets"
-      ],
-      "Resource": "*"
-    }
-  ]
-}</code></pre>
-                </div>
-                <div class="fragment fade-up" style="margin-top: 10px;">
-                    <h4>Helm Chart Reference:</h4>
-                    <pre><code class="language-yaml"># In the external-dns Helm values
-serviceAccount:
-  create: true
-  name: external-dns
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/platform-lab-external-dns</code></pre>
-                </div>
-                <aside class="notes">
-                    external-dns watches for Service and Ingress resources and automatically creates/updates DNS records. The Helm chart values show how the ServiceAccount annotation is configured declaratively. Both cert-manager and external-dns follow the same IRSA pattern but with different IAM policies tailored to their specific needs.
-                </aside>
-            </section>
-
-            <!-- Terraform: How Verisign Creates IRSA Roles -->
-            <section>
-                <h2>&#9881;&#65039; Terraform: Verisign IRSA Modules</h2>
-                <pre><code class="language-hcl"># cert-manager IRSA role
-module "cert_manager_irsa" {
-  source = "./modules/irsa"
-
-  role_name          = "${var.cluster_name}-cert-manager"
-  oidc_provider_arn  = module.eks.oidc_provider_arn
-  oidc_provider_url  = module.eks.oidc_provider_url
-  namespace          = "cert-manager"
-  service_account    = "cert-manager"
-  policy_arns        = [aws_iam_policy.cert_manager_route53.arn]
-}
-
-# external-dns IRSA role
-module "external_dns_irsa" {
-  source = "./modules/irsa"
-
-  role_name          = "${var.cluster_name}-external-dns"
-  oidc_provider_arn  = module.eks.oidc_provider_arn
-  oidc_provider_url  = module.eks.oidc_provider_url
-  namespace          = "external-dns"
-  service_account    = "external-dns"
-  policy_arns        = [aws_iam_policy.external_dns_route53.arn]
-}</code></pre>
-                <div class="key-point fragment fade-up" style="margin-top: 10px;">
-                    <strong>Pattern:</strong> A reusable Terraform module encapsulates the IRSA role creation. Each workload gets its own module call with specific namespace, ServiceAccount, and policy bindings.
-                </div>
-                <aside class="notes">
-                    The Verisign platform team has abstracted IRSA role creation into a reusable module. This ensures consistency across all IRSA roles — same trust policy structure, same tagging, same naming convention. When developers need a new IRSA role, they add a module call with their specific parameters.
-                </aside>
-            </section>
-
-            <!-- Section Divider: Security Best Practices -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128737;&#65039; Security Best Practices</h2>
-                <h3>Hardening IRSA configurations</h3>
-                <aside class="notes">
-                    IRSA is only as secure as its configuration. Let's cover the practices that make the difference between a secure setup and a false sense of security.
-                </aside>
-            </section>
-
-            <!-- Security Best Practices -->
-            <section>
-                <h2>&#128737;&#65039; IRSA Security Best Practices</h2>
-                <div class="two-columns">
-                    <div>
-                        <ul>
-                            <li class="fragment fade-up"><strong>Least privilege:</strong> Scope IAM policies to specific resources and actions</li>
-                            <li class="fragment fade-up"><strong>Exact conditions:</strong> Use <code>StringEquals</code> to lock roles to specific namespace:serviceaccount pairs</li>
-                            <li class="fragment fade-up"><strong>Avoid wildcard actions:</strong> Never use <code>"Action": "*"</code> or <code>"Resource": "*"</code> without justification</li>
-                            <li class="fragment fade-up"><strong>One role per workload:</strong> Do not share IRSA roles across different applications</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <ul>
-                            <li class="fragment fade-up"><strong>Audit with CloudTrail:</strong> Monitor <code>AssumeRoleWithWebIdentity</code> events for unexpected access patterns</li>
-                            <li class="fragment fade-up"><strong>Verify identity:</strong> Use <code>aws sts get-caller-identity</code> from inside pods to confirm the assumed role</li>
-                            <li class="fragment fade-up"><strong>No credential rotation needed:</strong> Tokens are short-lived; rotate the <em>role</em> if compromised, not credentials</li>
-                            <li class="fragment fade-up"><strong>Namespace isolation:</strong> IRSA respects namespace boundaries &mdash; leverage this for multi-tenancy</li>
-                        </ul>
-                    </div>
-                </div>
-                <aside class="notes">
-                    Walk through each practice. Emphasize that IRSA eliminates the need for credential rotation (a huge operational win), but you still need to design policies carefully. CloudTrail is your friend for auditing — every AssumeRoleWithWebIdentity call is logged, including the ServiceAccount that assumed the role.
-                </aside>
-            </section>
-
-            <!-- Section Divider: Common Pitfalls -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#9888;&#65039; Common Pitfalls</h2>
-                <h3>What goes wrong with IRSA and how to avoid it</h3>
-                <aside class="notes">
-                    IRSA configuration has several moving parts and multiple places where things can go wrong. Let's cover the most common issues students and teams encounter.
-                </aside>
-            </section>
-
-            <!-- Common Pitfalls -->
-            <section>
-                <h2>&#9888;&#65039; Common IRSA Pitfalls</h2>
-                <div class="highlight-box danger">
-                    <p style="margin:0;"><strong>1. OIDC Provider Thumbprint Mismatch</strong><br>
-                    If the OIDC provider's TLS certificate changes (e.g., AWS rotates it), the thumbprint in IAM may become stale. AWS now auto-manages this for EKS, but older clusters may still have this issue.</p>
-                </div>
-                <div class="highlight-box warning fragment fade-up" style="margin-top: 10px;">
-                    <p style="margin:0;"><strong>2. Missing ServiceAccount Annotation</strong><br>
-                    The IAM Role exists and the trust policy is correct, but the ServiceAccount was never annotated with <code>eks.amazonaws.com/role-arn</code>. The pod starts without AWS credentials.</p>
-                </div>
-                <div class="highlight-box warning fragment fade-up" style="margin-top: 10px;">
-                    <p style="margin:0;"><strong>3. Trust Policy Condition Mismatch</strong><br>
-                    Typo in namespace or ServiceAccount name in the trust policy condition. STS returns <code>AccessDenied</code> with a cryptic error.</p>
-                </div>
-                <aside class="notes">
-                    These are the top three issues. The thumbprint issue is mostly historical now, but students should know about it. The annotation and condition mismatch issues are by far the most common — they are pure configuration errors that are easy to make and hard to spot without knowing what to look for.
-                </aside>
-            </section>
-
-            <!-- More Pitfalls -->
-            <section>
-                <h2>&#9888;&#65039; More IRSA Pitfalls</h2>
-                <div class="highlight-box warning">
-                    <p style="margin:0;"><strong>4. AWS SDK Version Too Old</strong><br>
-                    The AWS SDK must support <code>WebIdentityTokenCredentialProvider</code>. Older SDKs (pre-2019) do not understand the <code>AWS_WEB_IDENTITY_TOKEN_FILE</code> environment variable and fall back to the instance metadata service.</p>
-                </div>
-                <div class="highlight-box warning fragment fade-up" style="margin-top: 10px;">
-                    <p style="margin:0;"><strong>5. Pod Not Restarted After SA Change</strong><br>
-                    The mutating webhook only runs at pod creation. If you annotate an existing ServiceAccount, running pods must be <strong>deleted and recreated</strong> to pick up the projected token.</p>
-                </div>
-                <div class="highlight-box fragment fade-up" style="margin-top: 10px;">
-                    <p style="margin:0;"><strong>6. Multiple Containers in a Pod</strong><br>
-                    All containers in the pod share the same ServiceAccount and IRSA role. Sidecars get the same AWS permissions as the main container &mdash; design accordingly.</p>
-                </div>
-                <aside class="notes">
-                    The SDK version issue catches people who use custom-built containers with older dependencies. The pod restart issue is the most common "it does not work" complaint after configuring IRSA. The sidecar issue is subtle — if you have a logging sidecar that does not need AWS access, it still gets it.
-                </aside>
-            </section>
-
-            <!-- Section Divider: Debugging -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128270; Debugging IRSA</h2>
-                <h3>Systematic troubleshooting approach</h3>
-                <aside class="notes">
-                    When IRSA is not working, you need a systematic approach to identify where the chain is broken. Let's walk through the debugging steps.
-                </aside>
-            </section>
-
-            <!-- Debugging IRSA -->
-            <section>
-                <h2>&#128270; Debugging IRSA: Step by Step</h2>
-                <div style="font-size: 0.9em;">
-                    <div class="fragment fade-up">
-                        <h4>1. Check the pod for projected token volume</h4>
-                        <pre><code class="language-bash">kubectl describe pod my-pod -n my-namespace | grep -A5 "Volumes" | grep "eks.amazonaws.com"
-# Look for: aws-iam-token projected volume</code></pre>
-                    </div>
-                    <div class="fragment fade-up" style="margin-top: 10px;">
-                        <h4>2. Verify environment variables inside the pod</h4>
-                        <pre><code class="language-bash">kubectl exec my-pod -n my-namespace -- env | grep AWS
-# Must see: AWS_ROLE_ARN and AWS_WEB_IDENTITY_TOKEN_FILE</code></pre>
-                    </div>
-                    <div class="fragment fade-up" style="margin-top: 10px;">
-                        <h4>3. Test identity from inside the pod</h4>
-                        <pre><code class="language-bash">kubectl exec my-pod -n my-namespace -- aws sts get-caller-identity
-# Should show the IRSA role ARN, not the node role</code></pre>
-                    </div>
-                    <div class="fragment fade-up" style="margin-top: 10px;">
-                        <h4>4. Check CloudTrail for STS failures</h4>
-                        <pre><code class="language-bash"># Filter CloudTrail for AssumeRoleWithWebIdentity errors
-aws cloudtrail lookup-events \
-  --lookup-attributes AttributeKey=EventName,AttributeValue=AssumeRoleWithWebIdentity \
-  --max-results 10</code></pre>
-                    </div>
-                </div>
-                <aside class="notes">
-                    Follow these steps in order. If the projected token volume is missing, the ServiceAccount annotation is wrong or missing. If the env vars are missing, the mutating webhook did not fire — possibly the pod was created before the annotation was added. If sts get-caller-identity fails, check the trust policy conditions in IAM. CloudTrail gives you the definitive answer on why STS rejected the token.
-                </aside>
-            </section>
-
-            <!-- Debugging: Common Error Messages -->
-            <section>
-                <h2>&#128270; Common IRSA Error Messages</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Error</th>
-                            <th>Likely Cause</th>
-                            <th>Fix</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="fragment fade-up">
-                            <td><code>An error occurred (AccessDenied) when calling AssumeRoleWithWebIdentity</code></td>
-                            <td>Trust policy condition mismatch</td>
-                            <td>Verify namespace:SA in trust policy matches actual SA</td>
-                        </tr>
-                        <tr class="fragment fade-up">
-                            <td><code>Unable to locate credentials</code></td>
-                            <td>No projected token / old SDK</td>
-                            <td>Check SA annotation, restart pod, update SDK</td>
-                        </tr>
-                        <tr class="fragment fade-up">
-                            <td><code>InvalidIdentityToken</code></td>
-                            <td>OIDC provider not registered or thumbprint invalid</td>
-                            <td>Verify OIDC provider in IAM, check thumbprint</td>
-                        </tr>
-                        <tr class="fragment fade-up">
-                            <td><code>ExpiredTokenException</code></td>
-                            <td>Token not refreshed (kubelet issue)</td>
-                            <td>Restart pod, check kubelet health</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <aside class="notes">
-                    Keep this table as a reference. The AccessDenied error is by far the most common — it almost always means the trust policy condition does not match the actual ServiceAccount. The InvalidIdentityToken error is rarer but more confusing — it means the OIDC provider itself is misconfigured.
-                </aside>
-            </section>
-
-            <!-- Section Divider: IRSA vs Pod Identity -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128260; IRSA vs EKS Pod Identity</h2>
-                <h3>Understanding the newer alternative</h3>
-                <aside class="notes">
-                    AWS introduced EKS Pod Identity in late 2023 as a simpler alternative to IRSA. It is important to understand both approaches, even though the Verisign platform currently uses IRSA.
-                </aside>
-            </section>
-
-            <!-- IRSA vs Pod Identity -->
-            <section>
-                <h2>&#128260; IRSA vs EKS Pod Identity</h2>
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 <table>
                     <thead>
                         <tr>
@@ -1620,7 +584,6 @@ aws cloudtrail lookup-events \
                         </tr>
                     </thead>
                     <tbody>
-<<<<<<< HEAD
                         <tr class="fragment">
                             <td>Setup complexity</td>
                             <td>OIDC provider + trust policies</td>
@@ -1647,29 +610,10 @@ aws cloudtrail lookup-events \
                             <td>EKS only</td>
                         </tr>
                         <tr class="fragment">
-=======
-                        <tr class="fragment fade-up">
-                            <td>Setup Complexity</td>
-                            <td>OIDC provider + trust policies</td>
-                            <td>EKS Pod Identity Agent addon</td>
-                        </tr>
-                        <tr class="fragment fade-up">
-                            <td>Trust Policy</td>
-                            <td>Per-role OIDC condition</td>
-                            <td>EKS service principal (simpler)</td>
-                        </tr>
-                        <tr class="fragment fade-up">
-                            <td>Cross-Account</td>
-                            <td>Supported (complex)</td>
-                            <td>Supported (simpler)</td>
-                        </tr>
-                        <tr class="fragment fade-up">
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                             <td>Maturity</td>
                             <td>GA since 2019, widely adopted</td>
                             <td>GA since 2023, growing adoption</td>
                         </tr>
-<<<<<<< HEAD
                     </tbody>
                 </table>
                 <aside class="notes">Both solutions are production-ready. IRSA has the advantage of maturity and broader ecosystem support (works on self-managed Kubernetes with OIDC). Pod Identity wins on operational simplicity, especially at scale with many clusters. For new projects, consider Pod Identity first; for existing deployments, IRSA continues to work well.</aside>
@@ -1837,89 +781,6 @@ kubectl logs -n kube-system -l app=pod-identity-webhook  # Webhook logs</code></
                     <div class="step"></div>
                 </div>
                 <aside class="notes">Open the floor for questions. Common topics: how IRSA interacts with pod security policies, performance implications of token rotation, and strategies for auditing IRSA usage across clusters. Next module covers the final topic in the course.</aside>
-=======
-                        <tr class="fragment fade-up">
-                            <td>Cluster Dependency</td>
-                            <td>OIDC provider per cluster</td>
-                            <td>Pod Identity Agent per cluster</td>
-                        </tr>
-                        <tr class="fragment fade-up">
-                            <td>Verisign Status</td>
-                            <td><strong>Currently in use</strong></td>
-                            <td>Evaluating for future migration</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div class="key-point fragment fade-up" style="margin-top: 15px;">
-                    <strong>Verisign uses IRSA</strong> because it was established before Pod Identity was available. Pod Identity is simpler to configure but IRSA is battle-tested and fully functional for all current workloads. Both achieve the same security goal.
-                </div>
-                <aside class="notes">
-                    Pod Identity simplifies the trust policy — instead of per-OIDC-provider conditions, it uses a single EKS service principal. This makes cross-account and multi-cluster setups easier. However, IRSA is the established standard and there is no urgency to migrate. Students should know both exist.
-                </aside>
-            </section>
-
-            <!-- Lab Callout -->
-            <section data-background-color="#1a365d" class="lab-callout">
-                <h2>&#128248; Lab 15</h2>
-                <h3>Configuring IRSA</h3>
-                <div class="highlight-box" style="margin-top:20px;">
-                    <p style="margin:0;"><strong>Objective:</strong> Verify OIDC configuration, create an IRSA role, annotate a ServiceAccount, and validate AWS access from inside a pod.</p>
-                </div>
-                <ul style="margin-top:20px;">
-                    <li class="fragment fade-up">Examine existing IRSA configurations (cert-manager, external-dns)</li>
-                    <li class="fragment fade-up">Create an IAM policy and IRSA role with a trust policy</li>
-                    <li class="fragment fade-up">Deploy a pod with an annotated ServiceAccount</li>
-                    <li class="fragment fade-up">Verify identity and permissions from inside the pod</li>
-                    <li class="fragment fade-up">Test permission boundaries and debug intentional misconfigurations</li>
-                </ul>
-                <aside class="notes">
-                    This lab takes 40-50 minutes. Students will work through the full IRSA lifecycle including deliberately breaking the configuration to understand error messages. Ensure the lab IAM policy and OIDC provider are pre-configured before the lab begins.
-                </aside>
-            </section>
-
-            <!-- Key Takeaways -->
-            <section>
-                <h2>&#128218; Key Takeaways</h2>
-                <ul class="takeaway-list">
-                    <li class="fragment fade-up">&#9989; IRSA provides <strong>fine-grained, per-pod AWS permissions</strong> without storing credentials in the cluster</li>
-                    <li class="fragment fade-up">&#9989; The trust chain flows: <strong>OIDC Provider &rarr; IAM Trust Policy &rarr; ServiceAccount Annotation &rarr; Projected Token &rarr; STS</strong></li>
-                    <li class="fragment fade-up">&#9989; Always use <strong>StringEquals</strong> conditions to lock roles to specific namespace:serviceaccount pairs</li>
-                    <li class="fragment fade-up">&#9989; Pods must be <strong>restarted</strong> after ServiceAccount annotation changes</li>
-                    <li class="fragment fade-up">&#9989; Debug with: <code>kubectl describe pod</code>, <code>env | grep AWS</code>, <code>aws sts get-caller-identity</code>, and <strong>CloudTrail</strong></li>
-                    <li class="fragment fade-up">&#9989; Verisign uses IRSA for <strong>cert-manager</strong> and <strong>external-dns</strong> with scoped Route53 permissions</li>
-                </ul>
-                <aside class="notes">
-                    Summarize the module. Reinforce the trust chain as the mental model — if students can draw the trust chain from memory, they can debug any IRSA issue. The key commands list should be their go-to reference.
-                </aside>
-            </section>
-
-            <!-- Security Checklist -->
-            <section>
-                <h2>&#128737;&#65039; IRSA Security Checklist</h2>
-                <div class="concept-box">
-                    <ul>
-                        <li class="fragment fade-up">&#9745;&#65039; IAM policies scoped to specific actions and resources</li>
-                        <li class="fragment fade-up">&#9745;&#65039; Trust policy uses <code>StringEquals</code> with exact namespace:SA</li>
-                        <li class="fragment fade-up">&#9745;&#65039; One IRSA role per workload (no sharing)</li>
-                        <li class="fragment fade-up">&#9745;&#65039; No wildcard <code>Action</code> or <code>Resource</code> in policies</li>
-                        <li class="fragment fade-up">&#9745;&#65039; CloudTrail monitoring for <code>AssumeRoleWithWebIdentity</code></li>
-                        <li class="fragment fade-up">&#9745;&#65039; <code>aws sts get-caller-identity</code> verified from inside production pods</li>
-                        <li class="fragment fade-up">&#9745;&#65039; OIDC provider registered and active in IAM</li>
-                    </ul>
-                </div>
-                <aside class="notes">
-                    This checklist can be used as a review for any IRSA configuration. Teams should run through these checks when setting up new IRSA roles and periodically as part of security audits. Consider adding this to your team's deployment checklist or pull request template.
-                </aside>
-            </section>
-
-            <!-- Questions Slide -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="questions-slide">
-                <h2>&#10067; Questions?</h2>
-                <p>Before we move on to Module 16</p>
-                <aside class="notes">
-                    Open the floor for questions. Common questions: "Can we use Pod Identity instead?" (Yes, but IRSA is what's currently deployed), "How do we request a new IRSA role?" (Platform team PR using the Terraform module), "What happens if the OIDC provider goes down?" (Existing credentials continue until they expire, new token exchanges fail).
-                </aside>
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
             </section>
 
         </div>

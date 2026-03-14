@@ -167,28 +167,19 @@ metadata:
   name: api-server-policy
   namespace: production
 spec:
-  podSelector:              # Which pods this policy applies to
-    matchLabels:
-      app: api-server
-  policyTypes:              # Ingress, Egress, or both
-    - Ingress
-    - Egress
-  ingress:                  # Allowed inbound traffic
+  podSelector:                # Which pods this policy applies to
+    matchLabels: { app: api-server }
+  policyTypes: [Ingress, Egress]
+  ingress:                    # Allowed inbound traffic
     - from:
         - podSelector:
-            matchLabels:
-              app: frontend
-      ports:
-        - protocol: TCP
-          port: 8080
-  egress:                   # Allowed outbound traffic
+            matchLabels: { app: frontend }
+      ports: [{ protocol: TCP, port: 8080 }]
+  egress:                     # Allowed outbound traffic
     - to:
         - podSelector:
-            matchLabels:
-              app: database
-      ports:
-        - protocol: TCP
-          port: 5432</code></pre>
+            matchLabels: { app: database }
+      ports: [{ protocol: TCP, port: 5432 }]</code></pre>
                 <aside class="notes">This is the complete structure. The podSelector targets which pods are governed. policyTypes declares whether ingress, egress, or both are controlled. Once a policy selects a pod, all traffic not explicitly allowed by a rule is denied — this is the key to understand. Policies are additive, meaning multiple policies combine their allow rules.</aside>
             </section>
 
@@ -256,25 +247,19 @@ spec:
   - to:
       - namespaceSelector: {}
     ports:
-      - protocol: UDP
-        port: 53
-      - protocol: TCP
-        port: 53
+      - { protocol: UDP, port: 53 }
+      - { protocol: TCP, port: 53 }
   # Allow traffic to database pods
   - to:
       - podSelector:
-          matchLabels:
-            app: postgres
+          matchLabels: { app: postgres }
     ports:
-      - protocol: TCP
-        port: 5432
+      - { protocol: TCP, port: 5432 }
   # Allow external API calls
   - to:
-      - ipBlock:
-          cidr: 203.0.113.0/24
+      - ipBlock: { cidr: 203.0.113.0/24 }
     ports:
-      - protocol: TCP
-        port: 443</code></pre>
+      - { protocol: TCP, port: 443 }</code></pre>
                 <div class="highlight-box danger fragment fade-up">
                     <strong>Never forget DNS!</strong> If you restrict egress, you must explicitly allow UDP/TCP port 53 or your pods cannot resolve service names.
                 </div>
@@ -354,9 +339,16 @@ spec:
     - Egress
   # No egress rules = deny all outbound traffic</code></pre>
                 <div class="highlight-box warning fragment fade-up">
-                    <strong>Caution:</strong> Denying all egress breaks DNS resolution. Pair this with an explicit DNS allow policy:
+                    <strong>Caution:</strong> Denying all egress breaks DNS resolution. Always pair with a DNS allow policy (next slide).
                 </div>
-                <pre class="fragment fade-up"><code class="language-yaml">apiVersion: networking.k8s.io/v1
+                <aside class="notes">Egress deny is equally important but requires more care. You must pair it with a DNS allow policy or nothing in the namespace will work.</aside>
+            </section>
+
+            <!-- Slide 14b: DNS Allow Policy -->
+            <section>
+                <h2>&#128683; Companion: Allow DNS with Egress Deny</h2>
+                <pre><code class="language-yaml"># Always deploy alongside default-deny-egress
+apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-dns
@@ -369,11 +361,12 @@ spec:
     - to:
         - namespaceSelector: {}
       ports:
-        - protocol: UDP
-          port: 53
-        - protocol: TCP
-          port: 53</code></pre>
-                <aside class="notes">Egress deny is equally important but requires more care. You must pair it with a DNS allow policy or nothing in the namespace will work. Some teams scope the DNS rule to the kube-system namespace where CoreDNS runs, but allowing any namespace is safer for custom DNS setups.</aside>
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }</code></pre>
+                <div class="key-point fragment fade-up">
+                    <strong>Best Practice:</strong> Some teams scope DNS to <code>kube-system</code> only, but allowing any namespace is safer for custom DNS setups.
+                </div>
+                <aside class="notes">This DNS allow policy must accompany a default-deny-egress policy. Without it, pods cannot resolve service names and will fail silently. Some teams scope the DNS rule to the kube-system namespace where CoreDNS runs, but allowing any namespace is safer for custom DNS setups.</aside>
             </section>
 
             <!-- Slide 15: Allow Specific Namespace Communication -->
@@ -444,29 +437,20 @@ metadata:
   namespace: production
 spec:
   podSelector:
-    matchLabels:
-      app: postgres
-      tier: database
-  policyTypes:
-    - Ingress
-    - Egress
+    matchLabels: { app: postgres, tier: database }
+  policyTypes: [Ingress, Egress]
   ingress:
     - from:
         - podSelector:
-            matchLabels:
-              tier: api
-      ports:
-        - protocol: TCP
-          port: 5432
+            matchLabels: { tier: api }
+      ports: [{ protocol: TCP, port: 5432 }]
   egress:
     # DNS only — database should not initiate connections
     - to:
         - namespaceSelector: {}
       ports:
-        - protocol: UDP
-          port: 53
-        - protocol: TCP
-          port: 53</code></pre>
+      - { protocol: UDP, port: 53 }
+      - { protocol: TCP, port: 53 }</code></pre>
                 <div class="highlight-box danger fragment fade-up">
                     <strong>Critical:</strong> Databases should have both ingress AND egress restrictions. A compromised database that can make outbound connections enables data exfiltration.
                 </div>

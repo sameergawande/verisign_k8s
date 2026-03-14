@@ -292,8 +292,7 @@ metadata:
   namespace: amazon-cloudwatch
 spec:
   selector:
-    matchLabels:
-      app: fluent-bit
+    matchLabels: { app: fluent-bit }
   template:
     spec:
       serviceAccountName: fluent-bit
@@ -301,17 +300,11 @@ spec:
       - name: fluent-bit
         image: amazon/aws-for-fluent-bit:2.31.12
         volumeMounts:
-        - name: varlog
-          mountPath: /var/log
-        - name: config
-          mountPath: /fluent-bit/etc/
+        - { name: varlog, mountPath: /var/log }
+        - { name: config, mountPath: /fluent-bit/etc/ }
       volumes:
-      - name: varlog
-        hostPath:
-          path: /var/log
-      - name: config
-        configMap:
-          name: fluent-bit-config</code></pre>
+      - { name: varlog, hostPath: { path: /var/log } }
+      - { name: config, configMap: { name: fluent-bit-config } }</code></pre>
                 <aside class="notes">This is the standard Fluent Bit DaemonSet for EKS. It mounts /var/log from the host to read container logs. The AWS-provided image includes output plugins for CloudWatch, Kinesis, and S3. The configuration is loaded from a ConfigMap, making it easy to adjust parsing and routing rules without rebuilding the image.</aside>
             </section>
 
@@ -634,36 +627,27 @@ aws eks create-addon --cluster-name verisign-prod \
             <!-- Slide 25: OTel Collector Configuration -->
             <section>
                 <h2>&#128295; OTel Collector Pipeline</h2>
-                <pre><code class="yaml">apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: otel-collector-config
-data:
-  config.yaml: |
-    receivers:
-      otlp:
-        protocols:
-          grpc:
-            endpoint: 0.0.0.0:4317
-          http:
-            endpoint: 0.0.0.0:4318
-    processors:
-      batch:
-        timeout: 5s
-        send_batch_size: 1024
-      memory_limiter:
-        limit_mib: 512
-    exporters:
-      awsxray:
-        region: us-east-1
-      prometheus:
-        endpoint: 0.0.0.0:8889
-    service:
-      pipelines:
-        traces:
-          receivers: [otlp]
-          processors: [memory_limiter, batch]
-          exporters: [awsxray]</code></pre>
+                <pre><code class="yaml"># OTel Collector config.yaml
+receivers:
+  otlp:
+    protocols:
+      grpc: { endpoint: 0.0.0.0:4317 }
+      http: { endpoint: 0.0.0.0:4318 }
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+  memory_limiter:
+    limit_mib: 512
+exporters:
+  awsxray: { region: us-east-1 }
+  prometheus: { endpoint: 0.0.0.0:8889 }
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [awsxray]</code></pre>
                 <aside class="notes">The OTel Collector config defines pipelines with three stages: receivers accept data, processors transform it, and exporters send it to backends. This example receives traces over OTLP gRPC and HTTP, applies memory limiting and batching, then exports to AWS X-Ray. You can have multiple pipelines — one for traces to X-Ray, another for metrics to Prometheus. The memory limiter is critical to prevent the collector from consuming unbounded memory under load.</aside>
             </section>
 
@@ -752,18 +736,13 @@ route:
   - match:
       severity: warning
     receiver: slack-platform
-  - match_re:
-      namespace: "production|staging"
-    receiver: team-leads
+    # ... additional routes for namespace matching
 
 receivers:
 - name: pagerduty-oncall
   pagerduty_configs:
   - service_key_file: /etc/alertmanager/secrets/pd-key
-- name: slack-platform
-  slack_configs:
-  - channel: '#platform-alerts'
-    send_resolved: true</code></pre>
+  # ... slack, email, and other receiver configs</code></pre>
                 <aside class="notes">Alertmanager routes alerts based on label matching. The route tree is hierarchical — more specific matches override the default. group_by batches related alerts into a single notification to reduce noise. group_wait delays the first notification slightly to catch related alerts that fire around the same time. Critical severity goes to PagerDuty for immediate response; warnings go to Slack for awareness. The send_resolved flag sends a recovery notification when the alert clears.</aside>
             </section>
 

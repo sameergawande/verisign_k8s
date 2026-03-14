@@ -3,11 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< HEAD
     <title>Lab 4: Services and Service Discovery | Intermediate Kubernetes</title>
-=======
-    <title>Lab 4: Services and Service Discovery</title>
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reset.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/white.css">
@@ -252,7 +248,6 @@
             background: #ebf8ff;
         }
 
-<<<<<<< HEAD
         /* Code Blocks */
         .reveal pre code {
             font-size: 0.65em;
@@ -260,27 +255,6 @@
             overflow-y: auto;
             line-height: 1.4;
             border-radius: 8px;
-=======
-        /* General list styling */
-        .reveal ul, .reveal ol {
-            text-align: left;
-            display: block;
-            margin-left: 1em;
-        }
-        .reveal li {
-            margin-bottom: 0.5em;
-            line-height: 1.5;
-            font-size: 0.9em;
-        }
-
-        .reveal p {
-            line-height: 1.6;
-        }
-
-        .reveal .small-text {
-            font-size: 0.7em;
-            color: #718096;
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
         }
     </style>
 </head>
@@ -289,7 +263,6 @@
         <div class="slides">
 
             <!-- Title Slide -->
-<<<<<<< HEAD
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2f855a 100%)" class="title-slide">
                 <h1>Lab 4: Services and Service Discovery</h1>
                 <h2>ClusterIP, NodePort, LoadBalancer, and DNS-Based Discovery</h2>
@@ -352,52 +325,10 @@
                 <h3>Deploy a Multi-Tier Application</h3>
                 <aside class="notes">
                     Students will deploy a simple two-tier application consisting of a frontend (nginx) and a backend (httpbin). This mirrors common microservice patterns where a frontend proxies requests to backend APIs.
-=======
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="title-slide">
-                <h1>&#128300; Lab 4</h1>
-                <h2>Services and Service Discovery</h2>
-                <h3>Intermediate Kubernetes &mdash; Hands-On Lab</h3>
-                <aside class="notes">
-                    This lab covers all Kubernetes Service types and DNS-based service discovery. Students will create ClusterIP, NodePort, LoadBalancer, Headless, and ExternalName services. They will also explore cross-namespace discovery. Allow 45-60 minutes.
-                </aside>
-            </section>
-
-            <!-- Lab Overview -->
-            <section>
-                <h2>&#128203; Lab Overview</h2>
-                <div class="highlight-box">
-                    <p style="margin:0;"><strong>Duration:</strong> 45&ndash;60 minutes</p>
-                </div>
-                <div class="concept-box" style="margin-top:15px;">
-                    <h4>Objectives</h4>
-                    <ul>
-                        <li class="fragment fade-up">Deploy a multi-tier application with labeled components</li>
-                        <li class="fragment fade-up">Create and test all Kubernetes Service types</li>
-                        <li class="fragment fade-up">Understand DNS-based service discovery and FQDN structure</li>
-                        <li class="fragment fade-up">Perform cross-namespace service discovery</li>
-                        <li class="fragment fade-up">Configure ExternalName services for external endpoints</li>
-                    </ul>
-                </div>
-                <div class="highlight-box warning fragment fade-up">
-                    <p style="margin:0;"><strong>Prerequisites:</strong> Cluster access verified, <code>kubectl</code> configured, familiarity with Pods and Deployments.</p>
-                </div>
-                <aside class="notes">
-                    Ensure all students have working kubectl access before starting. This lab builds on concepts from Modules 1-4. The multi-tier app provides a realistic context for service discovery.
-                </aside>
-            </section>
-
-            <!-- Step 1: Deploy a Multi-Tier Application -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128640; Step 1</h2>
-                <h3>Deploy a Multi-Tier Application</h3>
-                <aside class="notes">
-                    We start by creating a namespace and deploying both a backend and frontend tier. This gives us something to connect with services.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <section>
-<<<<<<< HEAD
                 <h2>&#128640; Step 1: Create the Namespace and Backend</h2>
                 <p>Set up the lab namespace and deploy the backend tier:</p>
                 <pre><code class="language-bash" data-trim>
@@ -411,50 +342,20 @@ kind: Deployment
 metadata:
   name: backend
   namespace: lab-services
-=======
-                <h2>&#128640; Step 1: Create the Namespace</h2>
-                <p>Create a dedicated namespace for this lab:</p>
-                <pre class="fragment fade-up"><code class="language-bash">kubectl create namespace lab04
-kubectl config set-context --current --namespace=lab04</code></pre>
-                <aside class="notes">
-                    Setting the namespace context avoids having to add -n lab04 to every command. Remind students they can always override with -n.
-                </aside>
-            </section>
-
-            <section>
-                <h2>&#128640; Step 1: Deploy the Backend</h2>
-                <p>Create <code>backend-deploy.yaml</code>:</p>
-                <pre><code class="language-yaml">apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: backend
-  namespace: lab04
-  labels:
-    app: myapp
-    tier: backend
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
 spec:
   replicas: 3
   selector:
-    matchLabels:
-<<<<<<< HEAD
-      app: backend
-      tier: api
+    matchLabels: { app: backend, tier: api }
   template:
     metadata:
-      labels:
-        app: backend
-        tier: api
+      labels: { app: backend, tier: api }
     spec:
       containers:
         - name: backend
           image: kennethreitz/httpbin:latest
-          ports:
-            - containerPort: 80
+          ports: [{ containerPort: 80 }]
           readinessProbe:
-            httpGet:
-              path: /health
-              port: 80
+            httpGet: { path: /health, port: 80 }
             initialDelaySeconds: 5
             periodSeconds: 10
                 </code></pre>
@@ -464,32 +365,10 @@ $ kubectl get pods -n lab-services -l tier=api -w
                 </code></pre>
                 <aside class="notes">
                     The backend uses httpbin, a well-known HTTP testing service that echoes request details. It has three replicas to demonstrate load balancing later. The readiness probe ensures only healthy pods receive traffic. Wait until all three replicas show Ready before proceeding.
-=======
-      app: myapp
-      tier: backend
-  template:
-    metadata:
-      labels:
-        app: myapp
-        tier: backend
-    spec:
-      containers:
-      - name: echo
-        image: hashicorp/http-echo:0.2.3
-        args:
-        - "-text=Hello from the backend!"
-        - "-listen=:8080"
-        ports:
-        - containerPort: 8080</code></pre>
-                <pre class="fragment fade-up"><code class="language-bash">kubectl apply -f backend-deploy.yaml</code></pre>
-                <aside class="notes">
-                    The http-echo image is lightweight and returns a configurable text response. Three replicas let us demonstrate load balancing later. Note the two labels: app and tier.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <section>
-<<<<<<< HEAD
                 <h2>&#128640; Step 1: Deploy the Frontend Tier</h2>
                 <p>Deploy the frontend that will communicate with the backend:</p>
                 <pre><code class="language-yaml" data-trim>
@@ -502,14 +381,10 @@ metadata:
 spec:
   replicas: 2
   selector:
-    matchLabels:
-      app: frontend
-      tier: web
+    matchLabels: { app: frontend, tier: web }
   template:
     metadata:
-      labels:
-        app: frontend
-        tier: web
+      labels: { app: frontend, tier: web }
     spec:
       containers:
         - name: frontend
@@ -518,9 +393,7 @@ spec:
             - containerPort: 80
             - containerPort: 443
           readinessProbe:
-            httpGet:
-              path: /
-              port: 80
+            httpGet: { path: /, port: 80 }
             initialDelaySeconds: 3
             periodSeconds: 5
                 </code></pre>
@@ -544,54 +417,10 @@ $ kubectl get pods -n lab-services -o wide
                 <h3>Create a ClusterIP Service for the Backend</h3>
                 <aside class="notes">
                     ClusterIP is the default and most common Service type. It creates an internal virtual IP that load-balances traffic across all matching pods. This is how microservices communicate within the cluster.
-=======
-                <h2>&#128640; Step 1: Deploy the Frontend</h2>
-                <p>Create <code>frontend-deploy.yaml</code>:</p>
-                <pre><code class="language-yaml">apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: frontend
-  namespace: lab04
-  labels:
-    app: myapp
-    tier: frontend
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: myapp
-      tier: frontend
-  template:
-    metadata:
-      labels:
-        app: myapp
-        tier: frontend
-    spec:
-      containers:
-      - name: curl
-        image: curlimages/curl:latest
-        command: ["sleep", "3600"]</code></pre>
-                <pre class="fragment fade-up"><code class="language-bash">kubectl apply -f frontend-deploy.yaml</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <p style="margin:0;"><strong>Verify:</strong> <code>kubectl get pods -l app=myapp</code> &mdash; you should see 4 pods (3 backend + 1 frontend).</p>
-                </div>
-                <aside class="notes">
-                    The frontend uses a curl-capable image that sleeps indefinitely, giving us a shell we can exec into for testing. This simulates a client pod.
-                </aside>
-            </section>
-
-            <!-- Step 2: Create a ClusterIP Service -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128268; Step 2</h2>
-                <h3>Create a ClusterIP Service</h3>
-                <aside class="notes">
-                    ClusterIP is the default service type. It provides a stable internal IP for pod-to-pod communication within the cluster.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <section>
-<<<<<<< HEAD
                 <h2>&#128279; Step 2: Create a ClusterIP Service</h2>
                 <p>Create an internal Service for the backend:</p>
                 <pre><code class="language-yaml" data-trim>
@@ -640,37 +469,10 @@ backend-svc   ClusterIP   10.100.45.120   &lt;none&gt;        80/TCP    5s
                 <h3>Test DNS-Based Service Discovery</h3>
                 <aside class="notes">
                     DNS is the primary service discovery mechanism in Kubernetes. Students will exec into a frontend pod and use DNS to find and communicate with the backend Service. This is how real applications discover their dependencies.
-=======
-                <h2>&#128268; Step 2: ClusterIP Service YAML</h2>
-                <p>Create <code>backend-clusterip-svc.yaml</code>:</p>
-                <pre><code class="language-yaml">apiVersion: v1
-kind: Service
-metadata:
-  name: backend-svc
-  namespace: lab04
-  labels:
-    app: myapp
-    tier: backend
-spec:
-  type: ClusterIP
-  selector:
-    app: myapp
-    tier: backend
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 8080
-    name: http</code></pre>
-                <pre class="fragment fade-up"><code class="language-bash">kubectl apply -f backend-clusterip-svc.yaml
-kubectl get svc backend-svc</code></pre>
-                <aside class="notes">
-                    Point out that port 80 is the service port clients use, while targetPort 8080 matches the container port. The selector must match the backend pod labels exactly.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <section>
-<<<<<<< HEAD
                 <h2>&#128270; Step 3: DNS-Based Discovery</h2>
                 <p>Exec into a frontend pod and discover the backend via DNS:</p>
                 <pre><code class="language-bash" data-trim>
@@ -714,38 +516,10 @@ $ kubectl exec $FRONTEND_POD -n lab-services -- curl -s backend-svc/ip
                 <h3>Examine DNS Records in Detail</h3>
                 <aside class="notes">
                     Students will explore the full DNS hierarchy that Kubernetes creates for Services. Understanding the FQDN format is essential for cross-namespace communication.
-=======
-                <h2>&#128268; Step 2: Test from the Frontend Pod</h2>
-                <p>Use <code>kubectl exec</code> to test connectivity:</p>
-                <pre class="fragment fade-up"><code class="language-bash"># Get the frontend pod name
-FRONTEND=$(kubectl get pod -l tier=frontend \
-  -o jsonpath='{.items[0].metadata.name}')
-
-# Test using the service name
-kubectl exec $FRONTEND -- curl -s http://backend-svc</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <p style="margin:0;"><strong>Expected output:</strong> <code>Hello from the backend!</code></p>
-                </div>
-                <div class="key-point fragment fade-up">
-                    <strong>Key insight:</strong> The service name <code>backend-svc</code> resolves automatically within the same namespace. No IP addresses needed.
-                </div>
-                <aside class="notes">
-                    Run the curl command several times to show that requests are load-balanced across the 3 backend replicas (the response is the same here, but the concept applies). You can also show kubectl get endpoints backend-svc to see all pod IPs.
-                </aside>
-            </section>
-
-            <!-- Step 3: DNS-Based Discovery -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128270; Step 3</h2>
-                <h3>DNS-Based Discovery</h3>
-                <aside class="notes">
-                    CoreDNS in Kubernetes provides automatic DNS entries for every service. This step explores how DNS resolution works.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <section>
-<<<<<<< HEAD
                 <h2>&#128209; Step 4: Examine DNS Records</h2>
                 <p>Explore the DNS hierarchy for Services:</p>
                 <pre><code class="language-bash" data-trim>
@@ -799,35 +573,10 @@ options ndots:5
                                 <td>Fully qualified</td>
                                 <td><code>backend-svc.lab-services.svc.cluster.local</code></td>
                             </tr>
-=======
-                <h2>&#128270; Step 3: Explore DNS Resolution</h2>
-                <p>From the frontend pod, test DNS lookups:</p>
-                <pre class="fragment fade-up"><code class="language-bash"># Short name (same namespace)
-kubectl exec $FRONTEND -- nslookup backend-svc
-
-# Fully qualified domain name (FQDN)
-kubectl exec $FRONTEND -- nslookup \
-  backend-svc.lab04.svc.cluster.local</code></pre>
-                <div class="concept-box fragment fade-up">
-                    <h4>FQDN Structure</h4>
-                    <p style="text-align:center; font-size:1.1em; margin:0;">
-                        <code>&lt;service&gt;.&lt;namespace&gt;.svc.cluster.local</code>
-                    </p>
-                    <table style="margin-top:15px;">
-                        <thead>
-                            <tr><th>Component</th><th>Value</th><th>Description</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr><td><code>backend-svc</code></td><td>Service name</td><td>The metadata.name of the Service</td></tr>
-                            <tr><td><code>lab04</code></td><td>Namespace</td><td>The namespace the Service lives in</td></tr>
-                            <tr><td><code>svc</code></td><td>Resource type</td><td>Always "svc" for Services</td></tr>
-                            <tr><td><code>cluster.local</code></td><td>Cluster domain</td><td>Default cluster DNS suffix</td></tr>
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                         </tbody>
                     </table>
                 </div>
                 <aside class="notes">
-<<<<<<< HEAD
                     The resolv.conf file shows the DNS search domains. Because of these search domains and the ndots:5 setting, short names like backend-svc are resolved by appending each search domain in order. For cross-namespace communication, you must include at least the namespace in the DNS name. The FQDN ending with a dot (cluster.local.) avoids all search domain lookups and is the most efficient form for production configurations.
                 </aside>
             </section>
@@ -838,23 +587,10 @@ kubectl exec $FRONTEND -- nslookup \
                 <h3>Create a NodePort Service</h3>
                 <aside class="notes">
                     NodePort exposes a Service on a static port on every node in the cluster. While not commonly used in production EKS environments (LoadBalancer is preferred), understanding NodePort is important because it is the building block that LoadBalancer Services use internally.
-=======
-                    The short name works because pods in the same namespace have a search domain configured via /etc/resolv.conf. Show students: kubectl exec $FRONTEND -- cat /etc/resolv.conf to see the search domains.
-                </aside>
-            </section>
-
-            <!-- Step 4: Create a NodePort Service -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#127760; Step 4</h2>
-                <h3>Create a NodePort Service</h3>
-                <aside class="notes">
-                    NodePort exposes the service on a static port on every node. This is one way to make services accessible from outside the cluster.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <section>
-<<<<<<< HEAD
                 <h2>&#127760; Step 5: Create a NodePort Service</h2>
                 <p>Expose the frontend externally via NodePort:</p>
                 <pre><code class="language-yaml" data-trim>
@@ -908,34 +644,10 @@ $ curl http://&lt;NODE-EXTERNAL-IP&gt;:30080
                 <h3>Create a LoadBalancer Service</h3>
                 <aside class="notes">
                     LoadBalancer is the standard way to expose Services externally in EKS. It provisions an AWS Network Load Balancer (NLB) or Application Load Balancer (ALB) that routes traffic to the Service. This is the production pattern used at Verisign.
-=======
-                <h2>&#127760; Step 4: NodePort Service YAML</h2>
-                <p>Create <code>backend-nodeport-svc.yaml</code>:</p>
-                <pre><code class="language-yaml">apiVersion: v1
-kind: Service
-metadata:
-  name: backend-nodeport
-  namespace: lab04
-spec:
-  type: NodePort
-  selector:
-    app: myapp
-    tier: backend
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 8080
-    nodePort: 30080</code></pre>
-                <pre class="fragment fade-up"><code class="language-bash">kubectl apply -f backend-nodeport-svc.yaml
-kubectl get svc backend-nodeport</code></pre>
-                <aside class="notes">
-                    nodePort must be in the range 30000-32767. If you omit nodePort, Kubernetes assigns one randomly. In EKS, node security groups must allow inbound traffic on this port.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <section>
-<<<<<<< HEAD
                 <h2>&#9889; Step 6: Create a LoadBalancer Service</h2>
                 <p>Expose the frontend via an AWS Load Balancer:</p>
                 <pre><code class="language-yaml" data-trim>
@@ -974,63 +686,10 @@ $ kubectl get svc frontend-lb -n lab-services -w
                 </div>
                 <aside class="notes">
                     The annotations are specific to the AWS Load Balancer Controller. The nlb-target-type: ip routes directly to pod IPs (bypassing NodePort), which is more efficient. The scheme: internet-facing creates a public-facing NLB. For internal services, use internal instead. The provisioning takes 1-3 minutes as AWS creates the NLB, registers targets, and performs health checks. Students should wait until the EXTERNAL-IP is populated before testing.
-=======
-                <h2>&#127760; Step 4: Test NodePort Access</h2>
-                <p>Access the service via a node IP:</p>
-                <pre class="fragment fade-up"><code class="language-bash"># Get node internal IPs
-kubectl get nodes -o wide
-
-# Test from a pod (or from your workstation if network allows)
-NODE_IP=$(kubectl get nodes -o jsonpath=\
-'{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-
-kubectl exec $FRONTEND -- curl -s http://$NODE_IP:30080</code></pre>
-                <div class="highlight-box warning fragment fade-up">
-                    <p style="margin:0;"><strong>EKS note:</strong> Direct NodePort access depends on your VPC security group rules. In production, prefer LoadBalancer or Ingress for external access.</p>
-                </div>
-                <aside class="notes">
-                    In EKS, nodes are in private subnets by default. The curl from within the cluster will work, but external access requires security group changes. This is intentional - demonstrate why LoadBalancer is preferred.
-                </aside>
-            </section>
-
-            <!-- Step 5: Create a LoadBalancer Service -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#9881;&#65039; Step 5</h2>
-                <h3>Create a LoadBalancer Service</h3>
-                <aside class="notes">
-                    LoadBalancer is the most common way to expose services externally on EKS. It provisions an AWS Elastic Load Balancer automatically.
                 </aside>
             </section>
 
             <section>
-                <h2>&#9881;&#65039; Step 5: LoadBalancer Service YAML</h2>
-                <p>Create <code>backend-lb-svc.yaml</code>:</p>
-                <pre><code class="language-yaml">apiVersion: v1
-kind: Service
-metadata:
-  name: backend-lb
-  namespace: lab04
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
-    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-spec:
-  type: LoadBalancer
-  selector:
-    app: myapp
-    tier: backend
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 8080</code></pre>
-                <pre class="fragment fade-up"><code class="language-bash">kubectl apply -f backend-lb-svc.yaml</code></pre>
-                <aside class="notes">
-                    The annotations are EKS-specific. The nlb type provisions a Network Load Balancer, which is faster and cheaper than the Classic LB. The internet-facing scheme makes it publicly accessible.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
-                </aside>
-            </section>
-
-            <section>
-<<<<<<< HEAD
                 <h2>&#9889; Step 6: Test the Load Balancer</h2>
                 <p>Verify the LoadBalancer is routing traffic:</p>
                 <pre><code class="language-bash" data-trim>
@@ -1064,38 +723,10 @@ $ kubectl describe svc frontend-lb -n lab-services
                 <h3>Explore Endpoints and EndpointSlices</h3>
                 <aside class="notes">
                     Endpoints and EndpointSlices are the mechanism by which Services track which pods should receive traffic. Understanding these resources is essential for debugging Service connectivity issues.
-=======
-                <h2>&#9881;&#65039; Step 5: Watch the Load Balancer Provision</h2>
-                <p>Watch the EXTERNAL-IP field populate:</p>
-                <pre class="fragment fade-up"><code class="language-bash"># Watch until EXTERNAL-IP appears (Ctrl+C to stop)
-kubectl get svc backend-lb -w</code></pre>
-                <div class="highlight-box fragment fade-up">
-                    <p style="margin:0;"><strong>EKS provisioning:</strong> It takes 2&ndash;4 minutes for the NLB to become active. The EXTERNAL-IP will show an AWS hostname like <code>a1b2c3-xyz.elb.us-east-1.amazonaws.com</code>.</p>
-                </div>
-                <pre class="fragment fade-up"><code class="language-bash"># Once available, test it
-LB_HOST=$(kubectl get svc backend-lb \
-  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-curl -s http://$LB_HOST</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <p style="margin:0;"><strong>Expected output:</strong> <code>Hello from the backend!</code></p>
-                </div>
-                <aside class="notes">
-                    If the LB takes too long, move on and come back. In real EKS environments, the AWS Load Balancer Controller handles this. Remind students that each LoadBalancer service gets its own ELB, which has cost implications.
-                </aside>
-            </section>
-
-            <!-- Step 6: Headless Service -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128279; Step 6</h2>
-                <h3>Headless Service</h3>
-                <aside class="notes">
-                    A headless service has no cluster IP. DNS returns the individual pod IPs directly. This is essential for StatefulSets where clients need to reach specific pods.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <section>
-<<<<<<< HEAD
                 <h2>&#128208; Step 7: Examine Endpoints</h2>
                 <p>Inspect the Endpoints backing the backend Service:</p>
                 <pre><code class="language-bash" data-trim>
@@ -1194,36 +825,10 @@ backend-headless   ClusterIP   None         &lt;none&gt;        80/TCP
                 </div>
                 <aside class="notes">
                     The key difference is clusterIP: None. Without a virtual IP, the Service cannot load-balance traffic. Instead, it serves as a DNS-only discovery mechanism. This is used with StatefulSets (as seen in Lab 3) and any application that implements its own load balancing or needs to enumerate all backend instances.
-=======
-                <h2>&#128279; Step 6: Headless Service YAML</h2>
-                <p>Create <code>backend-headless-svc.yaml</code>:</p>
-                <pre><code class="language-yaml">apiVersion: v1
-kind: Service
-metadata:
-  name: backend-headless
-  namespace: lab04
-spec:
-  clusterIP: None
-  selector:
-    app: myapp
-    tier: backend
-  ports:
-  - protocol: TCP
-    port: 8080
-    targetPort: 8080</code></pre>
-                <pre class="fragment fade-up"><code class="language-bash">kubectl apply -f backend-headless-svc.yaml
-kubectl get svc backend-headless</code></pre>
-                <div class="highlight-box fragment fade-up">
-                    <p style="margin:0;"><strong>Notice:</strong> The CLUSTER-IP column shows <code>None</code>.</p>
-                </div>
-                <aside class="notes">
-                    The key difference is clusterIP: None. This tells Kubernetes not to allocate a virtual IP. Instead, DNS returns A records for each backing pod.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <section>
-<<<<<<< HEAD
                 <h2>&#127919; Step 8: Test Headless Service DNS</h2>
                 <p>Compare DNS responses between normal and headless Services:</p>
                 <pre><code class="language-bash" data-trim>
@@ -1261,39 +866,10 @@ $ kubectl exec $FRONTEND_POD -n lab-services -- \
                 <h3>Test Session Affinity</h3>
                 <aside class="notes">
                     Session affinity ensures that requests from the same client are consistently routed to the same backend pod. This is useful for applications that store session state in memory rather than in a shared store.
-=======
-                <h2>&#128279; Step 6: Verify DNS Returns Pod IPs</h2>
-                <p>Use <code>nslookup</code> to see individual pod IPs:</p>
-                <pre class="fragment fade-up"><code class="language-bash"># DNS returns individual pod IPs (one per replica)
-kubectl exec $FRONTEND -- nslookup backend-headless
-
-# Compare with the regular ClusterIP service
-kubectl exec $FRONTEND -- nslookup backend-svc</code></pre>
-                <div class="concept-box fragment fade-up">
-                    <h4>Headless vs. ClusterIP</h4>
-                    <ul>
-                        <li><strong>ClusterIP:</strong> DNS returns the single virtual IP of the service</li>
-                        <li><strong>Headless:</strong> DNS returns all pod IPs directly &mdash; no proxy</li>
-                    </ul>
-                    <p style="font-size:0.85em; margin-top:10px;"><strong>Use case:</strong> StatefulSets (databases, message brokers) where clients need to address specific pods.</p>
-                </div>
-                <aside class="notes">
-                    With 3 replicas, you should see 3 IP addresses returned. This is how StatefulSet-backed services like Kafka or PostgreSQL clusters allow clients to connect to specific instances.
-                </aside>
-            </section>
-
-            <!-- Step 7: Cross-Namespace Discovery -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128230; Step 7</h2>
-                <h3>Cross-Namespace Discovery</h3>
-                <aside class="notes">
-                    Services are not limited to their own namespace. Any pod can reach any service in any namespace using the FQDN. This is critical in microservice architectures.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <section>
-<<<<<<< HEAD
                 <h2>&#128274; Step 9: Configure Session Affinity</h2>
                 <p>Create a Service with session affinity enabled:</p>
                 <pre><code class="language-yaml" data-trim>
@@ -1329,80 +905,10 @@ Session Affinity:  ClientIP
                 </div>
                 <aside class="notes">
                     Session affinity is configured at the Service level using sessionAffinity: ClientIP. The timeoutSeconds field controls how long the affinity persists (default is 10800 seconds / 3 hours). Kubernetes does not support cookie-based affinity at the Service level; that requires an Ingress controller. ClientIP affinity uses the source IP to hash requests to the same backend.
-=======
-                <h2>&#128230; Step 7: Create a Second Namespace</h2>
-                <p>Deploy a service in a different namespace:</p>
-                <pre><code class="language-bash"># Create a new namespace
-kubectl create namespace lab04-external
-
-# Deploy an echo server in the new namespace
-kubectl create deployment echo-server \
-  --image=hashicorp/http-echo:0.2.3 \
-  -n lab04-external \
-  -- -text="Hello from lab04-external!" -listen=:8080
-
-# Expose it as a service
-kubectl expose deployment echo-server \
-  --port=80 --target-port=8080 \
-  -n lab04-external</code></pre>
-                <pre class="fragment fade-up"><code class="language-bash"># Verify
-kubectl get svc -n lab04-external</code></pre>
-                <aside class="notes">
-                    We use imperative commands here for speed. In production, declarative YAML is preferred. The key point is that services exist within namespaces, and we need FQDNs to cross namespace boundaries.
                 </aside>
             </section>
 
             <section>
-                <h2>&#128230; Step 7: Test Cross-Namespace Access</h2>
-                <p>From the frontend pod in <code>lab04</code>, reach the service in <code>lab04-external</code>:</p>
-                <pre class="fragment fade-up"><code class="language-bash"># This will FAIL (short name only works in same namespace)
-kubectl exec $FRONTEND -- curl -s http://echo-server
-# Error: Could not resolve host
-
-# This WORKS using the FQDN
-kubectl exec $FRONTEND -- curl -s \
-  http://echo-server.lab04-external.svc.cluster.local</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <p style="margin:0;"><strong>Expected output:</strong> <code>Hello from lab04-external!</code></p>
-                </div>
-                <div class="key-point fragment fade-up">
-                    <strong>Rule of thumb:</strong> Same namespace? Use the short name. Different namespace? Use the FQDN: <code>&lt;service&gt;.&lt;namespace&gt;.svc.cluster.local</code>
-                </div>
-                <aside class="notes">
-                    This is one of the most common sources of confusion for developers. Emphasize that short names only work within the same namespace. Cross-namespace communication always requires the full FQDN. Note that Calico NetworkPolicies can restrict cross-namespace traffic.
-                </aside>
-            </section>
-
-            <!-- Step 8: ExternalName Service -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#127899;&#65039; Step 8</h2>
-                <h3>ExternalName Service</h3>
-                <aside class="notes">
-                    ExternalName services create a DNS CNAME alias for an external endpoint. This lets applications reference external services using Kubernetes-native DNS names.
-                </aside>
-            </section>
-
-            <section>
-                <h2>&#127899;&#65039; Step 8: ExternalName Service YAML</h2>
-                <p>Create <code>external-api-svc.yaml</code>:</p>
-                <pre><code class="language-yaml">apiVersion: v1
-kind: Service
-metadata:
-  name: external-api
-  namespace: lab04
-spec:
-  type: ExternalName
-  externalName: httpbin.org</code></pre>
-                <pre class="fragment fade-up"><code class="language-bash">kubectl apply -f external-api-svc.yaml
-kubectl get svc external-api</code></pre>
-                <aside class="notes">
-                    ExternalName services have no selector and no cluster IP. They simply create a CNAME DNS record. This is useful for abstracting external dependencies behind a Kubernetes service name.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
-                </aside>
-            </section>
-
-            <section>
-<<<<<<< HEAD
                 <h2>&#128274; Step 9: Verify Sticky Sessions</h2>
                 <p>Send multiple requests and verify they all go to the same pod:</p>
                 <pre><code class="language-bash" data-trim>
@@ -1435,40 +941,10 @@ $ for i in $(seq 1 6); do
                 <h3>Multi-Port Service</h3>
                 <aside class="notes">
                     Many applications expose multiple ports (HTTP, HTTPS, metrics, gRPC). Kubernetes Services can expose all of these on a single Service definition, simplifying service discovery.
-=======
-                <h2>&#127899;&#65039; Step 8: Test DNS CNAME Resolution</h2>
-                <p>Verify the CNAME record and test access:</p>
-                <pre class="fragment fade-up"><code class="language-bash"># Check DNS resolution
-kubectl exec $FRONTEND -- nslookup external-api
-
-# Test the actual connection
-kubectl exec $FRONTEND -- curl -s \
-  http://external-api/get</code></pre>
-                <div class="concept-box fragment fade-up">
-                    <h4>Why ExternalName?</h4>
-                    <ul>
-                        <li><strong>Abstraction:</strong> Applications use <code>external-api</code> instead of <code>httpbin.org</code></li>
-                        <li><strong>Migration:</strong> Swap external for internal service without code changes</li>
-                        <li><strong>Consistency:</strong> All service references follow the same DNS pattern</li>
-                    </ul>
-                </div>
-                <aside class="notes">
-                    A practical scenario: you're migrating a database from RDS to an in-cluster PostgreSQL. During the transition, the ExternalName service points to RDS. After migration, you replace it with a ClusterIP service pointing to the in-cluster pods. Application code never changes.
-                </aside>
-            </section>
-
-            <!-- Step 9: Clean Up -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>&#128465;&#65039; Step 9</h2>
-                <h3>Clean Up</h3>
-                <aside class="notes">
-                    Important to clean up LoadBalancer services to avoid lingering AWS costs.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <section>
-<<<<<<< HEAD
                 <h2>&#128256; Step 10: Create a Multi-Port Service</h2>
                 <p>Expose both HTTP and HTTPS on the same Service:</p>
                 <pre><code class="language-yaml" data-trim>
@@ -1571,27 +1047,11 @@ $ kubectl get svc -n lab-services
                 </div>
                 <aside class="notes">
                     Order of deletion matters here. The LoadBalancer Service must be deleted while the AWS Load Balancer Controller is still running and the finalizer can execute. If the namespace is force-deleted, the controller may not get a chance to decommission the NLB. In production, this can lead to orphaned resources and unexpected AWS charges. Always verify cleanup in the AWS console.
-=======
-                <h2>&#128465;&#65039; Step 9: Clean Up Resources</h2>
-                <p>Delete all resources created during this lab:</p>
-                <pre><code class="language-bash"># Delete both namespaces (cascades to all resources within)
-kubectl delete namespace lab04
-kubectl delete namespace lab04-external
-
-# Reset your namespace context
-kubectl config set-context --current --namespace=default</code></pre>
-                <div class="highlight-box warning fragment fade-up">
-                    <p style="margin:0;"><strong>Important:</strong> Deleting the namespace removes the LoadBalancer service, which triggers AWS to deprovision the NLB. Verify with <code>kubectl get svc --all-namespaces | grep lab04</code>.</p>
-                </div>
-                <aside class="notes">
-                    Emphasize that LoadBalancer services incur AWS costs. Always clean up after labs. Deleting the namespace is the cleanest approach since it cascades to all contained resources.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <!-- Summary -->
             <section>
-<<<<<<< HEAD
                 <h2>&#128218; Lab 4 Summary</h2>
                 <div class="concept-box">
                     <h4>Service Type Comparison</h4>
@@ -1666,64 +1126,10 @@ kubectl config set-context --current --namespace=default</code></pre>
                 </div>
                 <aside class="notes">
                     This summary reinforces the practical patterns students will use daily. The production guidance is specific to the Verisign EKS platform. Emphasize the importance of readiness probes, as they control when pods are added to or removed from Service Endpoints. Without readiness probes, traffic can be sent to pods that are not yet ready to handle requests.
-=======
-                <h2>&#128218; Summary</h2>
-                <h3>Service Types Comparison</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Service Type</th>
-                            <th>Scope</th>
-                            <th>Use Case</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="fragment fade-up">
-                            <td><strong>ClusterIP</strong></td>
-                            <td>Internal only</td>
-                            <td>Pod-to-pod communication</td>
-                        </tr>
-                        <tr class="fragment fade-up">
-                            <td><strong>NodePort</strong></td>
-                            <td>Node IP + static port</td>
-                            <td>Development, testing</td>
-                        </tr>
-                        <tr class="fragment fade-up">
-                            <td><strong>LoadBalancer</strong></td>
-                            <td>External via cloud LB</td>
-                            <td>Production external access on EKS</td>
-                        </tr>
-                        <tr class="fragment fade-up">
-                            <td><strong>Headless</strong></td>
-                            <td>Direct pod IPs</td>
-                            <td>StatefulSets, databases</td>
-                        </tr>
-                        <tr class="fragment fade-up">
-                            <td><strong>ExternalName</strong></td>
-                            <td>DNS CNAME alias</td>
-                            <td>External endpoint abstraction</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
-            <section>
-                <h2>&#128218; Key DNS Patterns</h2>
-                <ul class="takeaway-list">
-                    <li class="fragment fade-up">&#9989; <strong>Same namespace:</strong> <code>backend-svc</code></li>
-                    <li class="fragment fade-up">&#9989; <strong>Cross-namespace:</strong> <code>backend-svc.lab04.svc.cluster.local</code></li>
-                    <li class="fragment fade-up">&#9989; <strong>Headless pod DNS:</strong> <code>&lt;pod-name&gt;.&lt;service&gt;.&lt;namespace&gt;.svc.cluster.local</code></li>
-                    <li class="fragment fade-up">&#9989; <strong>ExternalName:</strong> DNS CNAME to external host, no proxying</li>
-                    <li class="fragment fade-up">&#9989; <strong>Pod resolv.conf:</strong> Search domains auto-configured per namespace</li>
-                </ul>
-                <aside class="notes">
-                    These DNS patterns are essential knowledge. Developers will use them daily when configuring application connection strings, environment variables, and service mesh routing.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 
             <!-- Lab Complete -->
-<<<<<<< HEAD
             <section data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)" class="title-slide">
                 <h1>Lab 4 Complete!</h1>
                 <h2>Services and Service Discovery</h2>
@@ -1748,24 +1154,6 @@ kubectl config set-context --current --namespace=default</code></pre>
                 </div>
                 <aside class="notes">
                     Congratulations to all students on completing Lab 4. This lab covered the essential networking and service discovery patterns that underpin all microservice communication on the Verisign EKS platform. The Service type comparison table is a key reference to keep handy. Proceed to Lab 5 when ready.
-=======
-            <section data-background-color="#1a365d" class="lab-callout">
-                <h2>&#127942; Lab 4 Complete!</h2>
-                <h3>Services and Service Discovery</h3>
-                <div class="highlight-box" style="margin-top:20px;">
-                    <p style="margin:0;"><strong>You have successfully:</strong></p>
-                </div>
-                <ul style="margin-top:20px;">
-                    <li class="fragment fade-up">Deployed a multi-tier application with labeled components</li>
-                    <li class="fragment fade-up">Created and tested ClusterIP, NodePort, and LoadBalancer services</li>
-                    <li class="fragment fade-up">Explored DNS-based service discovery and FQDN structure</li>
-                    <li class="fragment fade-up">Configured a headless service and observed direct pod DNS</li>
-                    <li class="fragment fade-up">Performed cross-namespace service discovery</li>
-                    <li class="fragment fade-up">Created an ExternalName service for external endpoint abstraction</li>
-                </ul>
-                <aside class="notes">
-                    Congratulate students on completing the lab. These service types and DNS patterns form the foundation for everything in the networking and access control modules ahead.
->>>>>>> e7e0dd4937630aca9107087d93bdcef32cbb8143
                 </aside>
             </section>
 

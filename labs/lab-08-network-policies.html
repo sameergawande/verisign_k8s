@@ -311,6 +311,38 @@
                 </aside>
             </section>
 
+            <!-- Lab Overview -->
+            <section>
+                <h2>&#x1F4CB; Lab Overview</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>Objectives</h4>
+                        <ul>
+                            <li class="fragment">Deploy a three-tier application</li>
+                            <li class="fragment">Verify default open connectivity</li>
+                            <li class="fragment">Apply a default-deny NetworkPolicy</li>
+                            <li class="fragment">Create targeted ingress policies per tier</li>
+                            <li class="fragment">Test and verify allowed/blocked traffic paths</li>
+                            <li class="fragment">Understand egress policy controls</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Prerequisites</h4>
+                        <ul>
+                            <li>Completed Labs 1&ndash;7</li>
+                            <li>kubectl configured with cluster access</li>
+                            <li>CNI with NetworkPolicy support (Calico or Cilium)</li>
+                        </ul>
+                        <div class="highlight-box warning" style="margin-top: 15px;">
+                            <strong>&#x23F1; Duration:</strong> ~45 minutes
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">
+                    NetworkPolicy enforcement requires a CNI that supports it. The default AWS VPC CNI does not enforce NetworkPolicies without Calico or Cilium. Verify the CNI before starting. If policies are not enforced, the lab can still be completed as a conceptual exercise.
+                </aside>
+            </section>
+
             <!-- ========== STEP 1: Deploy a Three-Tier Application ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
                 <h2>Step 1</h2>
@@ -350,15 +382,12 @@ kind: Pod
 metadata:
   name: database
   namespace: lab08
-  labels:
-    app: bookstore
-    tier: database
+  labels: { app: bookstore, tier: database }
 spec:
   containers:
   - name: db
     image: nginx:1.25
-    ports:
-    - containerPort: 80
+    ports: [{ containerPort: 80 }]
 ---
 apiVersion: v1
 kind: Service
@@ -366,11 +395,8 @@ metadata:
   name: database
   namespace: lab08
 spec:
-  selector:
-    tier: database
-  ports:
-  - port: 3306
-    targetPort: 80
+  selector: { tier: database }
+  ports: [{ port: 3306, targetPort: 80 }]
                     </code></pre>
                 </div>
                 <aside class="notes">
@@ -388,15 +414,12 @@ kind: Pod
 metadata:
   name: backend
   namespace: lab08
-  labels:
-    app: bookstore
-    tier: backend
+  labels: { app: bookstore, tier: backend }
 spec:
   containers:
   - name: api
     image: nginx:1.25
-    ports:
-    - containerPort: 80
+    ports: [{ containerPort: 80 }]
 ---
 apiVersion: v1
 kind: Service
@@ -404,11 +427,8 @@ metadata:
   name: backend
   namespace: lab08
 spec:
-  selector:
-    tier: backend
-  ports:
-  - port: 8080
-    targetPort: 80
+  selector: { tier: backend }
+  ports: [{ port: 8080, targetPort: 80 }]
                 </code></pre>
                 <div class="fragment">
                     <p>Deploy the <strong>frontend</strong> tier:</p>
@@ -419,15 +439,12 @@ kind: Pod
 metadata:
   name: frontend
   namespace: lab08
-  labels:
-    app: bookstore
-    tier: frontend
+  labels: { app: bookstore, tier: frontend }
 spec:
   containers:
   - name: web
     image: nginx:1.25
-    ports:
-    - containerPort: 80
+    ports: [{ containerPort: 80 }]
 ---
 apiVersion: v1
 kind: Service
@@ -435,11 +452,8 @@ metadata:
   name: frontend
   namespace: lab08
 spec:
-  selector:
-    tier: frontend
-  ports:
-  - port: 80
-    targetPort: 80
+  selector: { tier: frontend }
+  ports: [{ port: 80, targetPort: 80 }]
                     </code></pre>
                 </div>
                 <aside class="notes">
@@ -819,39 +833,27 @@ kubectl exec frontend -n lab08 -- \
                 <p>Test all communication paths and verify only allowed paths work:</p>
                 <pre><code class="bash" data-trim>
 echo "=== ALLOWED PATHS ==="
-
-# Frontend → Backend (ALLOWED)
 echo -n "Frontend -> Backend: "
-kubectl exec frontend -n lab08 -- \
-  curl -s -o /dev/null -w "%{http_code}" --max-time 3 \
-  http://backend.lab08.svc.cluster.local:8080 2>/dev/null || echo "BLOCKED"
+kubectl exec frontend -n lab08 -- curl -s -o /dev/null \
+  -w "%{http_code}" --max-time 3 http://backend:8080 2>/dev/null || echo "BLOCKED"
 
-# Backend → Database (ALLOWED)
 echo -n "Backend -> Database: "
-kubectl exec backend -n lab08 -- \
-  curl -s -o /dev/null -w "%{http_code}" --max-time 3 \
-  http://database.lab08.svc.cluster.local:3306 2>/dev/null || echo "BLOCKED"
+kubectl exec backend -n lab08 -- curl -s -o /dev/null \
+  -w "%{http_code}" --max-time 3 http://database:3306 2>/dev/null || echo "BLOCKED"
 
 echo ""
 echo "=== BLOCKED PATHS ==="
-
-# Frontend → Database (BLOCKED)
 echo -n "Frontend -> Database: "
-kubectl exec frontend -n lab08 -- \
-  curl -s -o /dev/null -w "%{http_code}" --max-time 3 \
-  http://database.lab08.svc.cluster.local:3306 2>/dev/null || echo "BLOCKED"
+kubectl exec frontend -n lab08 -- curl -s -o /dev/null \
+  -w "%{http_code}" --max-time 3 http://database:3306 2>/dev/null || echo "BLOCKED"
 
-# Database → Frontend (BLOCKED)
 echo -n "Database -> Frontend: "
-kubectl exec database -n lab08 -- \
-  curl -s -o /dev/null -w "%{http_code}" --max-time 3 \
-  http://frontend.lab08.svc.cluster.local:80 2>/dev/null || echo "BLOCKED"
+kubectl exec database -n lab08 -- curl -s -o /dev/null \
+  -w "%{http_code}" --max-time 3 http://frontend:80 2>/dev/null || echo "BLOCKED"
 
-# Database → Backend (BLOCKED)
 echo -n "Database -> Backend: "
-kubectl exec database -n lab08 -- \
-  curl -s -o /dev/null -w "%{http_code}" --max-time 3 \
-  http://backend.lab08.svc.cluster.local:8080 2>/dev/null || echo "BLOCKED"
+kubectl exec database -n lab08 -- curl -s -o /dev/null \
+  -w "%{http_code}" --max-time 3 http://backend:8080 2>/dev/null || echo "BLOCKED"
                 </code></pre>
                 <div class="highlight-box success fragment">
                     <strong>&#x2705; Expected Output:</strong><br>

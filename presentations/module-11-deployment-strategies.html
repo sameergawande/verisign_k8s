@@ -164,24 +164,17 @@ spec:
       maxUnavailable: 0    # Zero downtime — always 4 ready
   revisionHistoryLimit: 10
   minReadySeconds: 10      # Wait 10s before marking Ready
-  selector:
-    matchLabels:
-      app: api-server
   template:
     metadata:
-      labels:
-        app: api-server
-        version: v2.1.0
+      labels: { app: api-server, version: v2.1.0 }
     spec:
       containers:
-        - name: api
-          image: registry.verisign.com/api:2.1.0
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 5</code></pre>
+      - name: api
+        image: registry.verisign.com/api:2.1.0
+        readinessProbe:
+          httpGet: { path: /healthz, port: 8080 }
+          initialDelaySeconds: 5
+          periodSeconds: 5</code></pre>
                 <aside class="notes">This configuration is conservative: maxUnavailable 0 means we never drop below the desired count, and maxSurge 1 means we create one new pod at a time. The minReadySeconds setting adds a buffer — even after the readiness probe passes, the pod must stay healthy for 10 seconds before the rollout proceeds. This catches pods that crash shortly after startup. revisionHistoryLimit controls how many old ReplicaSets are retained for rollback.</aside>
             </section>
 
@@ -449,27 +442,7 @@ spec:
             <!-- Slide 15: Canary with Ingress Annotations -->
             <section>
                 <h2>&#128736;&#65039; Canary with NGINX Ingress Annotations</h2>
-                <pre><code class="language-yaml"># Primary Ingress (stable traffic)
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: api-ingress
-  annotations:
-    kubernetes.io/ingress.class: nginx
-spec:
-  rules:
-    - host: api.verisign.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: api-stable
-                port:
-                  number: 80
----
-# Canary Ingress (weight-based split)
+                <pre><code class="language-yaml"># Canary Ingress — references same host as primary Ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -477,6 +450,7 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "10"
+    # Also available: canary-by-header, canary-by-cookie
 spec:
   rules:
     - host: api.verisign.com
@@ -830,19 +804,13 @@ curl -sf https://api.verisign.com/healthz || \
             <section>
                 <h2>&#127919; Key Takeaways</h2>
                 <div class="key-point fragment fade-up">
-                    <strong>1. Rolling updates are your baseline.</strong> They work out of the box. Tune <code>maxSurge</code>, <code>maxUnavailable</code>, and <code>minReadySeconds</code> for your availability requirements.
+                    <strong>1. Rolling updates are your baseline.</strong> Tune <code>maxSurge</code>, <code>maxUnavailable</code>, and <code>minReadySeconds</code> for your availability needs. Add canary for critical services.
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>2. Blue-green provides instant rollback.</strong> Worth the 2x resource cost for critical services where recovery speed matters most.
+                    <strong>2. Blue-green provides instant rollback.</strong> Worth the 2x resource cost for critical services. Canary reduces blast radius with metric-driven promotions via Argo Rollouts or Flagger.
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>3. Canary reduces blast radius.</strong> Test with real traffic at controlled scale. Automate with Argo Rollouts or Flagger for metric-driven promotions.
-                </div>
-                <div class="key-point fragment fade-up">
-                    <strong>4. Safety mechanisms are not optional.</strong> PDBs, <code>progressDeadlineSeconds</code>, readiness probes, and <code>revisionHistoryLimit</code> are essential for every production Deployment.
-                </div>
-                <div class="key-point fragment fade-up">
-                    <strong>5. Combine strategies with feature flags.</strong> Decouple deployment (infrastructure risk) from release (product risk) for maximum safety.
+                    <strong>3. Safety mechanisms are not optional.</strong> PDBs, <code>progressDeadlineSeconds</code>, readiness probes, and <code>revisionHistoryLimit</code> are essential. Combine strategies with feature flags to decouple deployment from release risk.
                 </div>
                 <aside class="notes">Five key takeaways. Start simple with rolling updates and add complexity only when the risk profile demands it. Safety mechanisms should be on every Deployment regardless of strategy. And the combination of deployment strategies with feature flags gives you the most resilient release process possible.</aside>
             </section>

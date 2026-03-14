@@ -295,25 +295,13 @@ docker push 123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:${GIT_SHA}</code></p
                     <pre><code class="language-text">gitops-repo/
 ├── apps/
 │   ├── frontend/
-│   │   ├── base/
-│   │   │   ├── deployment.yaml
-│   │   │   ├── service.yaml
-│   │   │   └── kustomization.yaml
-│   │   └── overlays/
-│   │       ├── dev/
-│   │       ├── staging/
-│   │       └── production/
+│   │   ├── base/          # deployment.yaml, service.yaml, kustomization.yaml
+│   │   └── overlays/      # dev/, staging/, production/
 │   └── backend/
 │       ├── base/
 │       └── overlays/
-├── infrastructure/
-│   ├── cert-manager/
-│   ├── ingress-nginx/
-│   └── monitoring/
-└── clusters/
-    ├── dev-cluster/
-    ├── staging-cluster/
-    └── prod-cluster/</code></pre>
+├── infrastructure/        # cert-manager/, ingress-nginx/, monitoring/
+└── clusters/              # dev-cluster/, staging-cluster/, prod-cluster/</code></pre>
                 </div>
                 <div class="key-point fragment">
                     <strong>Every change</strong> goes through a pull request &mdash; code review, approval, and audit trail are built into the workflow.
@@ -384,17 +372,11 @@ spec:
     server: https://kubernetes.default.svc
     namespace: frontend
   syncPolicy:
-    automated:
-      selfHeal: true
-      prune: true
-    syncOptions:
-      - CreateNamespace=true
+    automated: { selfHeal: true, prune: true }
+    syncOptions: [CreateNamespace=true]
     retry:
       limit: 5
-      backoff:
-        duration: 5s
-        maxDuration: 3m0s
-        factor: 2</code></pre>
+      backoff: { duration: 5s, maxDuration: 3m0s, factor: 2 }</code></pre>
                 <div class="key-point fragment">
                     <strong>Source + Destination + SyncPolicy</strong> = the three pillars of every ArgoCD Application definition.
                 </div>
@@ -636,9 +618,7 @@ spec:
             <section>
                 <h2>GitHub Actions for Kubernetes</h2>
                 <pre><code class="language-yaml">name: CI Pipeline
-on:
-  push:
-    branches: [main]
+on: { push: { branches: [main] } }
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -657,12 +637,7 @@ jobs:
           trivy image --exit-code 1 --severity HIGH,CRITICAL \
             $ECR_REGISTRY/myapp:${{ github.sha }}
           docker push $ECR_REGISTRY/myapp:${{ github.sha }}
-      - name: Update GitOps repo
-        run: |
-          cd gitops-repo
-          kustomize edit set image myapp=$ECR_REGISTRY/myapp:${{ github.sha }}
-          git commit -am "Deploy myapp ${{ github.sha }}"
-          git push</code></pre>
+      # ... Update GitOps repo: kustomize edit set image, git commit & push</code></pre>
                 <aside class="notes">This workflow demonstrates the CI portion of a GitOps pipeline. Notice the final step updates the GitOps repository with the new image tag rather than deploying directly to the cluster. OIDC-based authentication with AWS eliminates long-lived credentials. The trivy scan fails the pipeline if critical vulnerabilities are found. ArgoCD or FluxCD then picks up the Git change and deploys it.</aside>
             </section>
 

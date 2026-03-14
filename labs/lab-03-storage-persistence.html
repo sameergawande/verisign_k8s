@@ -448,7 +448,6 @@ spec:
         - |
           echo "Written at $(date)" > /data/testfile.txt
           echo "Hostname: $(hostname)" >> /data/testfile.txt
-          echo "Lab 3 persistence test" >> /data/testfile.txt
           cat /data/testfile.txt
           sleep 3600
       volumeMounts:
@@ -612,37 +611,26 @@ Node Affinity:
 # Save as lab-statefulset.yaml
 apiVersion: apps/v1
 kind: StatefulSet
-metadata:
-  name: web
-  namespace: lab-storage
+metadata: { name: web, namespace: lab-storage }
 spec:
   serviceName: "web-headless"
   replicas: 3
-  selector:
-    matchLabels:
-      app: web
+  selector: { matchLabels: { app: web } }
   template:
-    metadata:
-      labels:
-        app: web
+    metadata: { labels: { app: web } }
     spec:
       containers:
         - name: nginx
           image: nginx:1.25
-          ports:
-            - containerPort: 80
+          ports: [{ containerPort: 80 }]
           volumeMounts:
-            - name: web-data
-              mountPath: /usr/share/nginx/html
+            - { name: web-data, mountPath: /usr/share/nginx/html }
   volumeClaimTemplates:
-    - metadata:
-        name: web-data
+    - metadata: { name: web-data }
       spec:
         accessModes: ["ReadWriteOnce"]
         storageClassName: gp2
-        resources:
-          requests:
-            storage: 1Gi
+        resources: { requests: { storage: 1Gi } }
                 </code></pre>
                 <aside class="notes">
                     Point out the key differences from a Deployment: the serviceName field links to a headless Service, and volumeClaimTemplates automatically creates a unique PVC for each replica. Each pod gets its own dedicated volume rather than sharing one. The naming convention is predictable: web-data-web-0, web-data-web-1, web-data-web-2.

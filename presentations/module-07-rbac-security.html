@@ -264,7 +264,7 @@ rules:
   verbs: ["get", "list"]
 - nonResourceURLs: ["/healthz", "/readyz"]
   verbs: ["get"]</code></pre>
-                <div class="highlight-box.warning" style="background: #fffaf0; border-left: 4px solid var(--warning-color); padding: 20px 25px; border-radius: 0 8px 8px 0; margin: 15px 0;">
+                <div class="highlight-box warning" style="background: #fffaf0; border-left: 4px solid var(--warning-color); padding: 20px 25px; border-radius: 0 8px 8px 0; margin: 15px 0;">
                     <strong>Note:</strong> ClusterRoles can also reference <code>nonResourceURLs</code> like <code>/healthz</code> — something Roles cannot do.
                 </div>
                 <aside class="notes">ClusterRoles have three uses: granting access to cluster-scoped resources like nodes, granting access to non-resource URLs, and serving as reusable templates that can be bound per-namespace via RoleBindings. The third pattern is very common in multi-tenant setups.</aside>

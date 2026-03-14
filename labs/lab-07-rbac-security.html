@@ -311,6 +311,38 @@
                 </aside>
             </section>
 
+            <!-- Lab Overview -->
+            <section>
+                <h2>&#x1F4CB; Lab Overview</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>Objectives</h4>
+                        <ul>
+                            <li class="fragment">Explore existing ClusterRoles and bindings</li>
+                            <li class="fragment">Create Roles and RoleBindings for namespace access</li>
+                            <li class="fragment">Configure ServiceAccounts for workloads</li>
+                            <li class="fragment">Apply Pod Security Standards (PSS)</li>
+                            <li class="fragment">Configure SecurityContexts for pods</li>
+                            <li class="fragment">Test RBAC permission boundaries</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Prerequisites</h4>
+                        <ul>
+                            <li>Completed Labs 1&ndash;6</li>
+                            <li>kubectl configured with cluster-admin access</li>
+                            <li>Running EKS cluster</li>
+                        </ul>
+                        <div class="highlight-box warning" style="margin-top: 15px;">
+                            <strong>&#x23F1; Duration:</strong> ~45 minutes
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">
+                    This lab requires cluster-admin permissions to create Roles and ClusterRoles. Students will create restricted ServiceAccounts and test their permissions to understand RBAC boundaries.
+                </aside>
+            </section>
+
             <!-- ========== STEP 1: Explore Existing ClusterRoles ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
                 <h2>Step 1</h2>
@@ -943,17 +975,14 @@ kubectl apply -f root-pod.yaml
 # Save as secure-pod.yaml
 apiVersion: v1
 kind: Pod
-metadata:
-  name: secure-app
-  namespace: lab07-restricted
+metadata: { name: secure-app, namespace: lab07-restricted }
 spec:
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000
     runAsGroup: 1000
     fsGroup: 1000
-    seccompProfile:
-      type: RuntimeDefault
+    seccompProfile: { type: RuntimeDefault }
   containers:
   - name: app
     image: python:3.11-slim
@@ -961,22 +990,11 @@ spec:
     securityContext:
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: true
-      capabilities:
-        drop:
-          - ALL
-    resources:
-      limits:
-        memory: "128Mi"
-        cpu: "250m"
-      requests:
-        memory: "64Mi"
-        cpu: "125m"
-    volumeMounts:
-    - name: tmp
-      mountPath: /tmp
-  volumes:
-  - name: tmp
-    emptyDir: {}
+      capabilities: { drop: [ALL] }
+    resources: { limits: { memory: "128Mi", cpu: "250m" },
+                 requests: { memory: "64Mi", cpu: "125m" } }
+    volumeMounts: [{ name: tmp, mountPath: /tmp }]
+  volumes: [{ name: tmp, emptyDir: {} }]
                 </code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>

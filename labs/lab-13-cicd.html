@@ -372,33 +372,21 @@
                 <pre><code class="yaml" data-trim>
 # .github/workflows/deploy.yaml
 name: Build and Deploy
-on:
-  push:
-    branches: [main]
-
+on: { push: { branches: [main] } }
 env:
   ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
   ECR_REPOSITORY: my-app
-  EKS_CLUSTER: production-cluster
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
-
-    - name: Login to ECR
-      run: |
-        aws ecr get-login-password --region us-east-1 | \
-          docker login --username AWS --password-stdin $ECR_REGISTRY
-
     - name: Build and push image
       run: |
         IMAGE_TAG=$(git rev-parse --short HEAD)
@@ -474,33 +462,24 @@ jobs:
                 <h2>&#x1F6E0; Create a Sample Application</h2>
                 <p>Set up a simple application to build and deploy:</p>
                 <pre><code class="bash" data-trim>
-# Create a working directory
-mkdir -p ~/cicd-lab && cd ~/cicd-lab
+# Create working directory, init git, create app
+mkdir -p ~/cicd-lab && cd ~/cicd-lab && git init
 
-# Initialize a git repo
-git init
-
-# Create a simple application
 cat &lt;&lt;'EOF' &gt; index.html
-&lt;html&gt;
-&lt;body&gt;
+&lt;html&gt;&lt;body&gt;
   &lt;h1&gt;CI/CD Demo Application&lt;/h1&gt;
   &lt;p&gt;Build: __BUILD_SHA__&lt;/p&gt;
   &lt;p&gt;Deployed: __DEPLOY_TIME__&lt;/p&gt;
-&lt;/body&gt;
-&lt;/html&gt;
+&lt;/body&gt;&lt;/html&gt;
 EOF
 
-# Create the Dockerfile
 cat &lt;&lt;'EOF' &gt; Dockerfile
 FROM nginx:1.25-alpine
 COPY index.html /usr/share/nginx/html/index.html
 EXPOSE 80
 EOF
 
-# Commit the initial version
-git add .
-git commit -m "Initial application"
+git add . && git commit -m "Initial application"
                 </code></pre>
                 <aside class="notes">
                     This creates a minimal application that displays its build SHA and deploy time. The placeholders will be replaced during the build process.
@@ -631,45 +610,22 @@ kind: Deployment
 metadata:
   name: cicd-demo
   namespace: cicd-lab
-  labels:
-    app: cicd-demo
-  annotations:
-    deployment.kubernetes.io/revision: "1"
-    git-commit: "${GIT_SHA}"
+  annotations: { git-commit: "${GIT_SHA}" }
 spec:
   replicas: 3
   selector:
-    matchLabels:
-      app: cicd-demo
+    matchLabels: { app: cicd-demo }
   template:
     metadata:
-      labels:
-        app: cicd-demo
+      labels: { app: cicd-demo }
     spec:
       containers:
       - name: app
         image: ${ECR_REGISTRY}/${ECR_REPO}:${GIT_SHA}
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 100m
-            memory: 128Mi
+        ports: [{containerPort: 80}]
+        # ... resource requests/limits omitted for brevity
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: cicd-demo-svc
-  namespace: cicd-lab
-spec:
-  selector:
-    app: cicd-demo
-  ports:
-  - port: 80
-    targetPort: 80
+# ... Service: cicd-demo-svc (port 80 -> 80)
                 </code></pre>
                 <aside class="notes">
                     Note the git-commit annotation. This embeds the source commit reference directly in the Kubernetes resource, making it easy to trace back from a running deployment to the exact code version.
@@ -901,24 +857,15 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
                 <h2>&#x1F504; Simulate a Pipeline Trigger</h2>
                 <p>Make a code change, rebuild, and update the manifest:</p>
                 <pre><code class="bash" data-trim>
-# Make a code change
+# Make a code change and commit
 cd ~/cicd-lab
 sed -i 's/CI\/CD Demo Application/CI\/CD Demo v2/' index.html
+git add . && git commit -m "Update application to v2"
 
-# Commit the change
-git add .
-git commit -m "Update application to v2"
-
-# Get the new SHA
+# Get the new SHA and build
 NEW_SHA=$(git rev-parse --short HEAD)
 echo "New SHA: $NEW_SHA"
-
-# Build and tag the new image
-sed "s/__BUILD_SHA__/$NEW_SHA/g; s/__DEPLOY_TIME__/$(date -u +%Y-%m-%dT%H:%M:%SZ)/g" \
-  index.html > index_built.html
-cp index_built.html index.html
 docker build -t my-app:$NEW_SHA .
-git checkout index.html  # restore template
 
 # Update the deployment manifest with new image tag
 sed -i "s|image: .*|image: ${ECR_REGISTRY}/${ECR_REPO}:${NEW_SHA}|" k8s/deployment.yaml

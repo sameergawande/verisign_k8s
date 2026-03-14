@@ -400,50 +400,27 @@ ingress-nginx-controller          LoadBalancer   10.100.x.x    a]b1c2d3e4...elb.
 # Save as app-v1.yaml
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: app-v1
-  namespace: lab-ingress
+metadata: { name: app-v1, namespace: lab-ingress }
 spec:
   replicas: 2
-  selector:
-    matchLabels:
-      app: web
-      version: v1
+  selector: { matchLabels: { app: web, version: v1 } }
   template:
-    metadata:
-      labels:
-        app: web
-        version: v1
+    metadata: { labels: { app: web, version: v1 } }
     spec:
       containers:
         - name: app
           image: hashicorp/http-echo:0.2.3
-          args:
-            - "-text=Hello from App V1"
-            - "-listen=:8080"
-          ports:
-            - containerPort: 8080
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 3
-            periodSeconds: 5
+          args: ["-text=Hello from App V1", "-listen=:8080"]
+          ports: [{ containerPort: 8080 }]
+          readinessProbe: { httpGet: { path: /, port: 8080 }, initialDelaySeconds: 3 }
 ---
 apiVersion: v1
 kind: Service
-metadata:
-  name: app-v1-svc
-  namespace: lab-ingress
+metadata: { name: app-v1-svc, namespace: lab-ingress }
 spec:
   type: ClusterIP
-  selector:
-    app: web
-    version: v1
-  ports:
-    - port: 80
-      targetPort: 8080
-      protocol: TCP
+  selector: { app: web, version: v1 }
+  ports: [{ port: 80, targetPort: 8080 }]
                 </code></pre>
                 <aside class="notes">
                     app-v1 uses hashicorp/http-echo which returns a static text response. The ClusterIP service is intentional: the Ingress controller handles external access. Each app has a readiness probe to ensure traffic is only sent to healthy pods. The service maps port 80 to the container port 8080.
@@ -456,50 +433,27 @@ spec:
 # Save as app-v2.yaml
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: app-v2
-  namespace: lab-ingress
+metadata: { name: app-v2, namespace: lab-ingress }
 spec:
   replicas: 2
-  selector:
-    matchLabels:
-      app: web
-      version: v2
+  selector: { matchLabels: { app: web, version: v2 } }
   template:
-    metadata:
-      labels:
-        app: web
-        version: v2
+    metadata: { labels: { app: web, version: v2 } }
     spec:
       containers:
         - name: app
           image: hashicorp/http-echo:0.2.3
-          args:
-            - "-text=Hello from App V2"
-            - "-listen=:8080"
-          ports:
-            - containerPort: 8080
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 3
-            periodSeconds: 5
+          args: ["-text=Hello from App V2", "-listen=:8080"]
+          ports: [{ containerPort: 8080 }]
+          readinessProbe: { httpGet: { path: /, port: 8080 }, initialDelaySeconds: 3 }
 ---
 apiVersion: v1
 kind: Service
-metadata:
-  name: app-v2-svc
-  namespace: lab-ingress
+metadata: { name: app-v2-svc, namespace: lab-ingress }
 spec:
   type: ClusterIP
-  selector:
-    app: web
-    version: v2
-  ports:
-    - port: 80
-      targetPort: 8080
-      protocol: TCP
+  selector: { app: web, version: v2 }
+  ports: [{ port: 80, targetPort: 8080 }]
                 </code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f app-v1.yaml
@@ -532,34 +486,21 @@ $ kubectl get svc -n lab-ingress
 # Save as ingress-host.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
-metadata:
-  name: app-ingress-host
-  namespace: lab-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+metadata: { name: app-ingress-host, namespace: lab-ingress }
+annotations: { nginx.ingress.kubernetes.io/rewrite-target: / }
 spec:
   ingressClassName: nginx
   rules:
     - host: v1.lab.local
       http:
         paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: app-v1-svc
-                port:
-                  number: 80
+          - { path: /, pathType: Prefix,
+              backend: { service: { name: app-v1-svc, port: { number: 80 } } } }
     - host: v2.lab.local
       http:
         paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: app-v2-svc
-                port:
-                  number: 80
+          - { path: /, pathType: Prefix,
+              backend: { service: { name: app-v2-svc, port: { number: 80 } } } }
                 </code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f ingress-host.yaml
@@ -652,38 +593,20 @@ Hello from App V2</pre>
 # Save as ingress-path.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
-metadata:
-  name: app-ingress-path
-  namespace: lab-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+metadata: { name: app-ingress-path, namespace: lab-ingress }
+annotations: { nginx.ingress.kubernetes.io/rewrite-target: / }
 spec:
   ingressClassName: nginx
   rules:
     - host: app.lab.local
       http:
         paths:
-          - path: /v1
-            pathType: Prefix
-            backend:
-              service:
-                name: app-v1-svc
-                port:
-                  number: 80
-          - path: /v2
-            pathType: Prefix
-            backend:
-              service:
-                name: app-v2-svc
-                port:
-                  number: 80
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: app-v1-svc
-                port:
-                  number: 80
+          - { path: /v1, pathType: Prefix,
+              backend: { service: { name: app-v1-svc, port: { number: 80 } } } }
+          - { path: /v2, pathType: Prefix,
+              backend: { service: { name: app-v2-svc, port: { number: 80 } } } }
+          - { path: /, pathType: Prefix,
+              backend: { service: { name: app-v1-svc, port: { number: 80 } } } }
                 </code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f ingress-path.yaml
@@ -764,8 +687,7 @@ metadata:
 spec:
   ingressClassName: nginx
   tls:
-    - hosts:
-        - secure.lab.local
+    - hosts: [secure.lab.local]
       secretName: lab-tls-secret
   rules:
     - host: secure.lab.local
@@ -774,10 +696,7 @@ spec:
           - path: /
             pathType: Prefix
             backend:
-              service:
-                name: app-v1-svc
-                port:
-                  number: 80
+              service: { name: app-v1-svc, port: { number: 80 } }
                 </code></pre>
                 <aside class="notes">
                     The wildcard certificate covers all subdomains of lab.local. The TLS block references the Secret by name and associates it with specific hosts. The ssl-redirect annotation forces HTTP to HTTPS redirection. In production on the Verisign platform, certificates should be managed by cert-manager with Let's Encrypt or an internal CA, or use AWS ACM certificates with the ALB Controller.
@@ -835,19 +754,11 @@ metadata:
   name: app-ingress-advanced
   namespace: lab-ingress
   annotations:
-    # URL Rewriting
     nginx.ingress.kubernetes.io/rewrite-target: /$2
-    # Rate Limiting
     nginx.ingress.kubernetes.io/limit-rps: "10"
-    nginx.ingress.kubernetes.io/limit-burst-multiplier: "3"
-    # CORS
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.verisign.com"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE"
-    # Timeouts
     nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
-    # Custom headers
     nginx.ingress.kubernetes.io/configuration-snippet: |
       add_header X-Served-By "verisign-eks" always;
 spec:
@@ -856,13 +767,8 @@ spec:
     - host: api.lab.local
       http:
         paths:
-          - path: /api(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: app-v1-svc
-                port:
-                  number: 80
+          - { path: "/api(/|$)(.*)", pathType: ImplementationSpecific,
+              backend: { service: { name: app-v1-svc, port: { number: 80 } } } }
                 </code></pre>
                 <aside class="notes">
                     Walk through each annotation group. The rewrite-target with regex captures enables stripping path prefixes. Rate limiting protects backends from traffic spikes. CORS headers are essential for browser-based API access. Proxy timeouts prevent hung connections. The configuration-snippet allows injecting raw NGINX directives. Emphasize that annotations are controller-specific and not portable between NGINX and ALB controllers.
@@ -940,35 +846,20 @@ $ kubectl get crd | grep gateway
 # Save as gateway.yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
-metadata:
-  name: lab-gateway-class
-spec:
-  controllerName: gateway.nginx.org/nginx-gateway-controller
+metadata: { name: lab-gateway-class }
+spec: { controllerName: gateway.nginx.org/nginx-gateway-controller }
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
-metadata:
-  name: lab-gateway
-  namespace: lab-ingress
+metadata: { name: lab-gateway, namespace: lab-ingress }
 spec:
   gatewayClassName: lab-gateway-class
   listeners:
-    - name: http
-      protocol: HTTP
-      port: 80
-      allowedRoutes:
-        namespaces:
-          from: Same
-    - name: https
-      protocol: HTTPS
-      port: 443
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: lab-tls-secret
-      allowedRoutes:
-        namespaces:
-          from: Same
+    - { name: http, protocol: HTTP, port: 80,
+        allowedRoutes: { namespaces: { from: Same } } }
+    - { name: https, protocol: HTTPS, port: 443,
+        tls: { mode: Terminate, certificateRefs: [{ name: lab-tls-secret }] },
+        allowedRoutes: { namespaces: { from: Same } } }
                 </code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f gateway.yaml
@@ -1032,27 +923,17 @@ $ kubectl get gateway lab-gateway -n lab-ingress -o yaml | \
 # Save as httproute.yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata:
-  name: app-route
-  namespace: lab-ingress
+metadata: { name: app-route, namespace: lab-ingress }
 spec:
   parentRefs:
-    - name: lab-gateway
-      sectionName: http
-  hostnames:
-    - "app.lab.local"
+    - { name: lab-gateway, sectionName: http }
+  hostnames: ["app.lab.local"]
   rules:
     - matches:
-        - path:
-            type: PathPrefix
-            value: /
+        - path: { type: PathPrefix, value: / }
       backendRefs:
-        - name: app-v1-svc
-          port: 80
-          weight: 80
-        - name: app-v2-svc
-          port: 80
-          weight: 20
+        - { name: app-v1-svc, port: 80, weight: 80 }
+        - { name: app-v2-svc, port: 80, weight: 20 }
                 </code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f httproute.yaml
@@ -1133,35 +1014,21 @@ $ kubectl exec egress-test -n lab-ingress -- \
 # Save as egress-policy.yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata:
-  name: restrict-egress
-  namespace: lab-ingress
+metadata: { name: restrict-egress, namespace: lab-ingress }
 spec:
-  podSelector:
-    matchLabels:
-      run: egress-test
-  policyTypes:
-    - Egress
+  podSelector: { matchLabels: { run: egress-test } }
+  policyTypes: [Egress]
   egress:
     # Allow DNS resolution (required for service discovery)
     - to:
         - namespaceSelector: {}
-          podSelector:
-            matchLabels:
-              k8s-app: kube-dns
-      ports:
-        - protocol: UDP
-          port: 53
-        - protocol: TCP
-          port: 53
+          podSelector: { matchLabels: { k8s-app: kube-dns } }
+      ports: [{ protocol: UDP, port: 53 }, { protocol: TCP, port: 53 }]
     # Allow traffic to cluster-internal services only
     - to:
         - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: lab-ingress
-      ports:
-        - protocol: TCP
-          port: 80
+            matchLabels: { kubernetes.io/metadata.name: lab-ingress }
+      ports: [{ protocol: TCP, port: 80 }]
                 </code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f egress-policy.yaml
@@ -1327,6 +1194,21 @@ $ rm -f app-v1.yaml app-v2.yaml ingress-host.yaml ingress-path.yaml \
                 <aside class="notes">
                     This comparison table highlights why Gateway API is considered the future of Kubernetes traffic management. The key advantages are role separation, native traffic splitting, and portability across controller implementations. However, Ingress remains widely used and well-supported, so both should be understood. On EKS, the AWS Gateway API Controller provides native integration with AWS networking services.
                 </aside>
+            </section>
+
+            <!-- Lab Complete -->
+            <section data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
+                <h2 style="color: #ffffff;">&#9989; Lab 6 Complete!</h2>
+                <p style="color: #e2e8f0; font-size: 1.2em;">You have successfully completed the Ingress and Gateway API lab.</p>
+                <div class="highlight-box" style="background: rgba(255,255,255,0.1); border-left-color: #90cdf4; color: #e2e8f0; max-width: 600px; margin: 20px auto;">
+                    <ul style="color: #e2e8f0; text-align: left;">
+                        <li>Configured host-based and path-based Ingress routing</li>
+                        <li>Set up TLS termination with self-signed certificates</li>
+                        <li>Explored advanced Ingress annotations</li>
+                        <li>Deployed Gateway API resources with traffic splitting</li>
+                        <li>Applied egress NetworkPolicies for outbound controls</li>
+                    </ul>
+                </div>
             </section>
 
             <!-- Questions -->

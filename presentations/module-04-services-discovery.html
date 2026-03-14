@@ -157,7 +157,7 @@
             <!-- Service Anatomy YAML -->
             <section>
                 <h2>Service Anatomy</h2>
-                <pre><code class="yaml" data-trim>apiVersion: v1
+                <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
 metadata:
   name: my-app-service
@@ -199,7 +199,7 @@ spec:
                         </div>
                     </div>
                     <div>
-                        <pre><code class="yaml" data-trim>apiVersion: v1
+                        <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
 metadata:
   name: backend-api
@@ -236,7 +236,7 @@ spec:
                         </div>
                     </div>
                     <div>
-                        <pre><code class="yaml" data-trim>apiVersion: v1
+                        <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
 metadata:
   name: web-frontend
@@ -268,7 +268,7 @@ spec:
                         <li class="fragment fade-up">Each LoadBalancer Service gets its own cloud LB (cost consideration)</li>
                     </ul>
                 </div>
-                <pre><code class="yaml" data-trim>apiVersion: v1
+                <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
 metadata:
   name: public-api
@@ -302,7 +302,7 @@ spec:
                         </div>
                     </div>
                     <div>
-                        <pre><code class="yaml" data-trim>apiVersion: v1
+                        <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
 metadata:
   name: external-db
@@ -368,7 +368,7 @@ spec:
                 <h2>Selectors &amp; Label Matching</h2>
                 <div class="two-columns">
                     <div>
-                        <pre><code class="yaml" data-trim># Service selector
+                        <pre><code class="language-yaml" data-trim># Service selector
 spec:
   selector:
     app: payment-service
@@ -413,7 +413,7 @@ metadata:
                             <li>Scales poorly beyond ~1000 endpoints</li>
                             <li>Any Pod change rewrites the entire object</li>
                         </ul>
-                        <pre><code class="bash" data-trim>kubectl get endpoints my-svc
+                        <pre><code class="language-bash" data-trim>kubectl get endpoints my-svc
 # NAME     ENDPOINTS
 # my-svc   10.0.1.5:8080,10.0.2.3:8080</code></pre>
                     </div>
@@ -425,7 +425,7 @@ metadata:
                             <li>Default since Kubernetes 1.21</li>
                             <li>Supports dual-stack (IPv4 + IPv6)</li>
                         </ul>
-                        <pre><code class="bash" data-trim>kubectl get endpointslices -l \
+                        <pre><code class="language-bash" data-trim>kubectl get endpointslices -l \
   kubernetes.io/service-name=my-svc</code></pre>
                     </div>
                 </div>
@@ -501,7 +501,7 @@ _http._tcp.backend-api.production.svc.cluster.local
                         </div>
                     </div>
                     <div>
-                        <pre><code class="bash" data-trim># For a Service named "backend-api"
+                        <pre><code class="language-bash" data-trim># For a Service named "backend-api"
 # on port 80:
 BACKEND_API_SERVICE_HOST=10.96.0.15
 BACKEND_API_SERVICE_PORT=80
@@ -532,7 +532,7 @@ BACKEND_API_PORT_80_TCP_ADDR=10.96.0.15</code></pre>
                         </div>
                     </div>
                     <div>
-                        <pre><code class="yaml" data-trim>apiVersion: v1
+                        <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
 metadata:
   name: cassandra
@@ -543,7 +543,7 @@ spec:
   ports:
     - port: 9042
       targetPort: 9042</code></pre>
-                        <pre><code class="bash" data-trim># DNS lookup returns all Pod IPs
+                        <pre><code class="language-bash" data-trim># DNS lookup returns all Pod IPs
 $ nslookup cassandra.default.svc
 # 10.244.1.5
 # 10.244.2.3
@@ -597,7 +597,7 @@ $ nslookup cassandra.default.svc
                 <div class="two-columns">
                     <div class="card">
                         <h4>Cluster (Default)</h4>
-                        <pre><code class="yaml" data-trim>spec:
+                        <pre><code class="language-yaml" data-trim>spec:
   internalTrafficPolicy: Cluster
   externalTrafficPolicy: Cluster</code></pre>
                         <ul>
@@ -609,7 +609,7 @@ $ nslookup cassandra.default.svc
                     </div>
                     <div class="card">
                         <h4>Local</h4>
-                        <pre><code class="yaml" data-trim>spec:
+                        <pre><code class="language-yaml" data-trim>spec:
   internalTrafficPolicy: Local
   externalTrafficPolicy: Local</code></pre>
                         <ul>
@@ -642,7 +642,7 @@ $ nslookup cassandra.default.svc
                         </div>
                     </div>
                     <div>
-                        <pre><code class="yaml" data-trim>apiVersion: v1
+                        <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
 metadata:
   name: legacy-app
@@ -674,7 +674,7 @@ spec:
                 <h2>Multi-Port Services</h2>
                 <div class="two-columns">
                     <div>
-                        <pre><code class="yaml" data-trim>apiVersion: v1
+                        <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
 metadata:
   name: full-stack-app
@@ -780,7 +780,7 @@ spec:
                         </div>
                     </div>
                     <div>
-                        <pre><code class="yaml" data-trim>apiVersion: v1
+                        <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
 metadata:
   name: data-service
@@ -808,10 +808,9 @@ spec:
                         <h4>What It Adds</h4>
                         <ul>
                             <li>mTLS encryption</li>
-                            <li>Advanced traffic management</li>
+                            <li>Traffic management &amp; canaries</li>
                             <li>Observability (traces, metrics)</li>
                             <li>Circuit breaking</li>
-                            <li>Canary deployments</li>
                         </ul>
                     </div>
                     <div class="card">
@@ -819,9 +818,8 @@ spec:
                         <ul>
                             <li>Feature-rich, Envoy sidecar</li>
                             <li>VirtualService / DestinationRule</li>
-                            <li>Higher resource overhead</li>
-                            <li>Strong ecosystem</li>
                             <li>Ambient mode (no sidecars)</li>
+                            <li>Higher resource overhead</li>
                         </ul>
                     </div>
                     <div class="card">
@@ -831,7 +829,6 @@ spec:
                             <li>Simpler operational model</li>
                             <li>Lower resource footprint</li>
                             <li>Graduated CNCF project</li>
-                            <li>Focus on simplicity</li>
                         </ul>
                     </div>
                 </div>
@@ -853,7 +850,7 @@ spec:
                         <li class="fragment fade-up">Integrates with AWS WAF, Shield, and ACM for TLS</li>
                     </ul>
                 </div>
-                <pre><code class="yaml" data-trim>apiVersion: v1
+                <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
 metadata:
   name: production-api
@@ -885,7 +882,7 @@ spec:
                             <li class="fragment fade-up">Extra network hop through NodePort</li>
                             <li class="fragment fade-up">Works with any CNI</li>
                         </ul>
-                        <pre><code class="yaml" data-trim>annotations:
+                        <pre><code class="language-yaml" data-trim>annotations:
   service.beta.kubernetes.io/
     aws-load-balancer-nlb-target-type: "instance"</code></pre>
                     </div>
@@ -897,7 +894,7 @@ spec:
                             <li class="fragment fade-up">Lower latency, better performance</li>
                             <li class="fragment fade-up">Requires VPC CNI plugin</li>
                         </ul>
-                        <pre><code class="yaml" data-trim>annotations:
+                        <pre><code class="language-yaml" data-trim>annotations:
   service.beta.kubernetes.io/
     aws-load-balancer-nlb-target-type: "ip"</code></pre>
                     </div>
@@ -914,7 +911,7 @@ spec:
                 <div class="concept-box">
                     <h4>Common Issues and Commands</h4>
                 </div>
-                <pre><code class="bash" data-trim># 1. Check Service exists and has a ClusterIP
+                <pre><code class="language-bash" data-trim># 1. Check Service exists and has a ClusterIP
 kubectl get svc my-service -o wide
 
 # 2. Verify endpoints are populated (most common issue!)

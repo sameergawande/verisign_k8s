@@ -629,28 +629,15 @@ spec:
     spec:
       chart: nginx
       version: ">=15.0.0 <16.0.0"
-      sourceRef:
-        kind: HelmRepository
-        name: bitnami
-        namespace: flux-system
+      sourceRef: { kind: HelmRepository, name: bitnami, namespace: flux-system }
   values:
     replicaCount: 2
-    service:
-      type: ClusterIP
-    resources:
-      requests:
-        cpu: 50m
-        memory: 64Mi
-      limits:
-        cpu: 200m
-        memory: 128Mi
+    service: { type: ClusterIP }
+    # ... resource requests/limits
   install:
-    remediation:
-      retries: 3
+    remediation: { retries: 3 }
   upgrade:
-    remediation:
-      retries: 3
-      remediationStrategy: rollback
+    remediation: { retries: 3, remediationStrategy: rollback }
                 </code></pre>
                 <aside class="notes">
                     The chart version uses a semver range, meaning Flux will automatically pick up the latest patch release within the 15.x range. The values section overrides the chart defaults. The remediation section ensures that if the install or upgrade fails, Flux will retry up to 3 times and rollback on failure. This makes the release self-healing.
@@ -704,12 +691,9 @@ metadata:
   namespace: flux-system
 spec:
   interval: 5m
-  sourceRef:
-    kind: GitRepository
-    name: lab-sample-app
+  sourceRef: { kind: GitRepository, name: lab-sample-app }
   path: ./infrastructure/controllers
   prune: true
-  timeout: 3m
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -717,15 +701,10 @@ metadata:
   name: lab-infra-configs
   namespace: flux-system
 spec:
-  interval: 5m
-  dependsOn:
-    - name: lab-infra-base
-  sourceRef:
-    kind: GitRepository
-    name: lab-sample-app
+  dependsOn: [{name: lab-infra-base}]
+  sourceRef: { kind: GitRepository, name: lab-sample-app }
   path: ./infrastructure/configs
   prune: true
-  timeout: 3m
                 </code></pre>
                 <aside class="notes">
                     This creates two Kustomizations from the same source but different paths. The second one depends on the first. When applied, Flux will reconcile lab-infra-base first, wait for it to be Ready, and only then begin reconciling lab-infra-configs. If the base fails, configs will remain blocked.
@@ -773,24 +752,16 @@ $ flux events --for Kustomization/lab-infra-configs
                 <pre><code class="language-bash" data-trim>
 # Suspend the Kustomization
 $ flux suspend kustomization lab-sample-app
-&#10004; kustomization lab-sample-app suspended
 
-# Verify it is suspended
+# Verify it is suspended (SUSPENDED column shows "True")
 $ flux get kustomizations lab-sample-app
-# SUSPENDED column should show "True"
 
-# Make a manual change (this will NOT be reverted while suspended)
+# Make a manual change (will NOT be reverted while suspended)
 $ kubectl scale deployment &lt;DEPLOYMENT_NAME&gt; -n &lt;NAMESPACE&gt; --replicas=5
-
-# Wait a moment and verify the change persists
 $ kubectl get deployment &lt;DEPLOYMENT_NAME&gt; -n &lt;NAMESPACE&gt;
-# Replicas should still be 5
 
-# Now resume reconciliation
+# Resume reconciliation and watch Flux correct drift
 $ flux resume kustomization lab-sample-app
-&#10004; kustomization lab-sample-app resumed
-
-# Watch Flux correct the drift
 $ kubectl get deployment &lt;DEPLOYMENT_NAME&gt; -n &lt;NAMESPACE&gt; --watch
 # Replicas will revert to the Git-defined value
                 </code></pre>

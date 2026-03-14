@@ -411,12 +411,10 @@ metadata:
 spec:
   replicas: 2
   selector:
-    matchLabels:
-      app: no-probes-app
+    matchLabels: { app: no-probes-app }
   template:
     metadata:
-      labels:
-        app: no-probes-app
+      labels: { app: no-probes-app }
     spec:
       containers:
       - name: server
@@ -424,17 +422,7 @@ spec:
         ports:
         - containerPort: 80
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: no-probes-svc
-  namespace: probes-lab
-spec:
-  selector:
-    app: no-probes-app
-  ports:
-  - port: 80
-    targetPort: 80
+# ... Service: no-probes-svc (port 80 -> 80)
 EOF
                 </code></pre>
                 <aside class="notes">
@@ -481,32 +469,24 @@ kubectl exec $curl_pod -- curl -s -o /dev/null -w "%{http_code}" localhost:80
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: liveness-http
-  namespace: probes-lab
+metadata: { name: liveness-http, namespace: probes-lab }
 spec:
   replicas: 2
   selector:
-    matchLabels:
-      app: liveness-http
+    matchLabels: { app: liveness-http }
   template:
     metadata:
-      labels:
-        app: liveness-http
+      labels: { app: liveness-http }
     spec:
       containers:
       - name: server
         image: nginx:1.25
-        ports:
-        - containerPort: 80
+        ports: [{containerPort: 80}]
         livenessProbe:
-          httpGet:
-            path: /
-            port: 80
+          httpGet: { path: /, port: 80 }
           initialDelaySeconds: 5
           periodSeconds: 10
           failureThreshold: 3
-          timeoutSeconds: 2
 EOF
                 </code></pre>
                 <div class="highlight-box fragment">
@@ -569,50 +549,23 @@ kubectl describe pod $LIVE_POD | grep -A 5 "Liveness"
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: readiness-app
-  namespace: probes-lab
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: readiness-app
-  template:
-    metadata:
-      labels:
-        app: readiness-app
+metadata: { name: readiness-app, namespace: probes-lab }
+# ... spec.replicas: 3, selector/template labels: app: readiness-app
     spec:
       containers:
       - name: server
         image: nginx:1.25
-        ports:
-        - containerPort: 80
+        ports: [{containerPort: 80}]
         readinessProbe:
-          httpGet:
-            path: /ready
-            port: 80
+          httpGet: { path: /ready, port: 80 }
           initialDelaySeconds: 3
           periodSeconds: 5
           failureThreshold: 2
           successThreshold: 2
         livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 10
-          periodSeconds: 15
+          httpGet: { path: /, port: 80 }
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: readiness-svc
-  namespace: probes-lab
-spec:
-  selector:
-    app: readiness-app
-  ports:
-  - port: 80
-    targetPort: 80
+# ... Service: readiness-svc (port 80 -> 80)
 EOF
                 </code></pre>
                 <aside class="notes">
@@ -707,43 +660,22 @@ kubectl get endpoints readiness-svc
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: slow-start-app
-  namespace: probes-lab
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: slow-start-app
-  template:
-    metadata:
-      labels:
-        app: slow-start-app
+metadata: { name: slow-start-app, namespace: probes-lab }
+# ... spec.replicas: 1, selector/template labels: app: slow-start-app
     spec:
       containers:
       - name: server
         image: nginx:1.25
-        ports:
-        - containerPort: 80
-        command: ['sh', '-c', 'echo "Initializing..."; sleep 30; echo "Ready!"; nginx -g "daemon off;"']
+        ports: [{containerPort: 80}]
+        command: ['sh', '-c', 'sleep 30; nginx -g "daemon off;"']
         startupProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
+          httpGet: { path: /, port: 80 }
           failureThreshold: 12
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          periodSeconds: 10
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
           periodSeconds: 5
+        livenessProbe:
+          httpGet: { path: /, port: 80 }
+        readinessProbe:
+          httpGet: { path: /, port: 80 }
 EOF
                 </code></pre>
                 <aside class="notes">
@@ -854,43 +786,24 @@ kubectl get events --field-selector reason=Unhealthy \
                 <h2>&#x1F4CA; Tuning Exercise</h2>
                 <pre><code class="yaml" data-trim>
 cat &lt;&lt;'EOF' | kubectl apply -f -
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: tuned-probes
-  namespace: probes-lab
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: tuned-probes
-  template:
-    metadata:
-      labels:
-        app: tuned-probes
+# Deployment: tuned-probes (namespace: probes-lab)
+# ... standard metadata/selector/template (app: tuned-probes)
     spec:
       containers:
       - name: server
         image: nginx:1.25
-        ports:
-        - containerPort: 80
+        ports: [{containerPort: 80}]
         livenessProbe:
-          httpGet:
-            path: /
-            port: 80
+          httpGet: { path: /, port: 80 }
           initialDelaySeconds: 10
-          periodSeconds: 5
-          failureThreshold: 2
-          timeoutSeconds: 3
+          periodSeconds: 5       # Faster than default 10s
+          failureThreshold: 2    # Fewer failures needed
         readinessProbe:
-          httpGet:
-            path: /
-            port: 80
+          httpGet: { path: /, port: 80 }
           initialDelaySeconds: 5
           periodSeconds: 3
           failureThreshold: 2
-          successThreshold: 3
-          timeoutSeconds: 2
+          successThreshold: 3    # Must pass 3x to be ready
 EOF
                 </code></pre>
                 <div class="highlight-box fragment">
@@ -921,35 +834,20 @@ EOF
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: tcp-probe-app
-  namespace: probes-lab
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: tcp-probe-app
-  template:
-    metadata:
-      labels:
-        app: tcp-probe-app
+metadata: { name: tcp-probe-app, namespace: probes-lab }
+# ... spec.replicas: 1, selector/template labels: app: tcp-probe-app
     spec:
       containers:
       - name: redis
         image: redis:7-alpine
-        ports:
-        - containerPort: 6379
+        ports: [{containerPort: 6379}]
         livenessProbe:
-          tcpSocket:
-            port: 6379
+          tcpSocket: { port: 6379 }
           initialDelaySeconds: 5
           periodSeconds: 10
-          failureThreshold: 3
         readinessProbe:
-          tcpSocket:
-            port: 6379
+          tcpSocket: { port: 6379 }
           initialDelaySeconds: 3
-          periodSeconds: 5
 EOF
                 </code></pre>
                 <div class="highlight-box fragment">
@@ -1004,31 +902,21 @@ kubectl describe pod $TCP_POD | grep -A 3 "Liveness\|Readiness"
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: exec-probe-app
-  namespace: probes-lab
+metadata: { name: exec-probe-app, namespace: probes-lab }
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app: exec-probe-app
+    matchLabels: { app: exec-probe-app }
   template:
-    metadata:
-      labels:
-        app: exec-probe-app
+    metadata: { labels: { app: exec-probe-app } }
     spec:
       containers:
       - name: app
         image: busybox
-        command: ['sh', '-c', 'touch /tmp/healthy; echo "App started"; while true; do
-          if [ -f /tmp/healthy ]; then echo "$(date) Healthy"; else echo "$(date) Unhealthy"; fi;
-          sleep 5;
-        done']
+        command: ['sh', '-c', 'touch /tmp/healthy; while true; do sleep 5; done']
         livenessProbe:
           exec:
-            command:
-            - cat
-            - /tmp/healthy
+            command: [cat, /tmp/healthy]
           initialDelaySeconds: 5
           periodSeconds: 5
           failureThreshold: 3
@@ -1083,47 +971,22 @@ kubectl get pods -l app=exec-probe-app -w
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: graceful-app
-  namespace: probes-lab
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: graceful-app
-  template:
-    metadata:
-      labels:
-        app: graceful-app
+metadata: { name: graceful-app, namespace: probes-lab }
+# ... spec.replicas: 2, selector/template labels: app: graceful-app
     spec:
       terminationGracePeriodSeconds: 45
       containers:
       - name: server
         image: nginx:1.25
-        ports:
-        - containerPort: 80
+        ports: [{containerPort: 80}]
         lifecycle:
           preStop:
             exec:
-              command:
-              - sh
-              - -c
-              - |
-                echo "Received shutdown signal"
-                echo "Draining connections..."
-                sleep 10
-                echo "Graceful shutdown complete"
-                nginx -s quit
+              command: ['sh', '-c', 'sleep 10; nginx -s quit']
         livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          periodSeconds: 10
+          httpGet: { path: /, port: 80 }
         readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          periodSeconds: 5
+          httpGet: { path: /, port: 80 }
 EOF
                 </code></pre>
                 <aside class="notes">
@@ -1179,40 +1042,23 @@ kubectl delete pod $GRACEFUL_POD
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: pdb-app
-  namespace: probes-lab
-spec:
-  replicas: 4
-  selector:
-    matchLabels:
-      app: pdb-app
-  template:
-    metadata:
-      labels:
-        app: pdb-app
+metadata: { name: pdb-app, namespace: probes-lab }
+# ... spec.replicas: 4, selector/template labels: app: pdb-app
     spec:
       containers:
       - name: server
         image: nginx:1.25
-        ports:
-        - containerPort: 80
+        ports: [{containerPort: 80}]
         readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          periodSeconds: 5
+          httpGet: { path: /, port: 80 }
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
-metadata:
-  name: pdb-app-pdb
-  namespace: probes-lab
+metadata: { name: pdb-app-pdb, namespace: probes-lab }
 spec:
   minAvailable: 2
   selector:
-    matchLabels:
-      app: pdb-app
+    matchLabels: { app: pdb-app }
 EOF
                 </code></pre>
                 <div class="highlight-box fragment">

@@ -657,30 +657,24 @@ spec:
   serviceName: postgres-headless  # Required: headless Service name
   replicas: 3
   selector:
-    matchLabels:
-      app: postgres
+    matchLabels: { app: postgres }
   template:
     metadata:
-      labels:
-        app: postgres
+      labels: { app: postgres }
     spec:
       containers:
       - name: postgres
         image: postgres:16
-        ports:
-        - containerPort: 5432
+        ports: [{ containerPort: 5432 }]
         volumeMounts:
-        - name: data
-          mountPath: /var/lib/postgresql/data
-  volumeClaimTemplates:         # Per-replica PVCs
-  - metadata:
-      name: data
+        - { name: data, mountPath: /var/lib/postgresql/data }
+  volumeClaimTemplates:           # Per-replica PVCs
+  - metadata: { name: data }
     spec:
       accessModes: ["ReadWriteOnce"]
       storageClassName: gp3
       resources:
-        requests:
-          storage: 50Gi</code></pre>
+        requests: { storage: 50Gi }</code></pre>
                 <aside class="notes">Two things distinguish a StatefulSet spec from a Deployment: the serviceName field and the volumeClaimTemplates section. The serviceName must reference a headless Service that provides DNS entries for each pod. The volumeClaimTemplates create a unique PVC for each replica, named data-postgres-0, data-postgres-1, and data-postgres-2.</aside>
             </section>
 
@@ -810,16 +804,13 @@ kubectl get pvc
                 <h2>&#128024; PostgreSQL on Kubernetes</h2>
                 <pre><code class="language-yaml">apiVersion: apps/v1
 kind: StatefulSet
-metadata:
-  name: postgresql
+metadata: { name: postgresql }
 spec:
   serviceName: postgresql-headless
   replicas: 3
-  selector:
-    matchLabels: { app: postgresql }
+  selector: { matchLabels: { app: postgresql } }
   template:
-    metadata:
-      labels: { app: postgresql }
+    metadata: { labels: { app: postgresql } }
     spec:
       containers:
       - name: postgresql
@@ -828,23 +819,11 @@ spec:
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef: { name: pg-secret, key: password }
-        - name: PGDATA
-          value: /var/lib/postgresql/data/pgdata
-        ports:
-        - containerPort: 5432
-        volumeMounts:
-        - name: data
-          mountPath: /var/lib/postgresql/data
-        resources:
-          requests: { cpu: "500m", memory: "1Gi" }
-          limits:   { cpu: "2",    memory: "4Gi" }
-  volumeClaimTemplates:
-  - metadata: { name: data }
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      storageClassName: gp3
-      resources:
-        requests: { storage: 100Gi }</code></pre>
+        - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+        ports: [{ containerPort: 5432 }]
+        volumeMounts: [{ name: data, mountPath: /var/lib/postgresql/data }]
+        resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "2", memory: "4Gi" } }
+  # ... volumeClaimTemplates: gp3, 100Gi ReadWriteOnce per replica</code></pre>
                 <aside class="notes">This is a production-grade PostgreSQL StatefulSet. Key details: PGDATA is set to a subdirectory of the mount point because PostgreSQL requires the data directory to be empty on init. Resources are set with both requests and limits. In a real production setup, you'd use an operator like CloudNativePG or Zalando's postgres-operator to handle replication, failover, and backups.</aside>
             </section>
 
@@ -910,9 +889,9 @@ kubectl describe pvc data-postgres-0 | grep Conditions</code></pre>
                 <aside class="notes">Volume expansion is a common day-2 operation. A database that was provisioned with 50Gi will eventually need more space. With allowVolumeExpansion: true on the StorageClass and the EBS CSI driver, this is seamless. The resize happens in two stages: the cloud provider resizes the block device, then the kubelet resizes the filesystem. Both happen online with EBS.</aside>
             </section>
 
-            <!-- Slide 31: Volume Snapshots -->
+            <!-- Slide 31: Volume Snapshots — Creating -->
             <section>
-                <h2>&#128248; Volume Snapshots</h2>
+                <h2>&#128248; Volume Snapshots — Create</h2>
                 <pre><code class="language-yaml"># VolumeSnapshotClass — defines the snapshot provisioner
 apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotClass
@@ -929,7 +908,13 @@ spec:
   volumeSnapshotClassName: ebs-snapclass
   source:
     persistentVolumeClaimName: data-postgres-0</code></pre>
-                <pre class="fragment fade-up"><code class="language-yaml"># Restore from snapshot — create a new PVC
+                <aside class="notes">Volume snapshots are the Kubernetes-native backup mechanism. They map directly to EBS snapshots on AWS. VolumeSnapshotClass configures how snapshots are taken, and VolumeSnapshot triggers the actual snapshot.</aside>
+            </section>
+
+            <!-- Slide 31b: Volume Snapshots — Restoring -->
+            <section>
+                <h2>&#128248; Volume Snapshots — Restore</h2>
+                <pre><code class="language-yaml"># Restore from snapshot — create a new PVC
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -943,7 +928,10 @@ spec:
     name: postgres-snap-20260313
     kind: VolumeSnapshot
     apiGroup: snapshot.storage.k8s.io</code></pre>
-                <aside class="notes">Volume snapshots are the Kubernetes-native backup mechanism. They map directly to EBS snapshots on AWS. The three resources form a workflow: VolumeSnapshotClass configures how snapshots are taken, VolumeSnapshot triggers the snapshot, and a PVC with a dataSource restores from it. This is useful for pre-upgrade backups, disaster recovery, and cloning environments.</aside>
+                <div class="highlight-box success fragment fade-up">
+                    <strong>Snapshot workflow:</strong> SnapshotClass configures <em>how</em>, VolumeSnapshot triggers <em>when</em>, and a PVC with <code>dataSource</code> restores <em>from</em> it. Useful for pre-upgrade backups, disaster recovery, and cloning environments.
+                </div>
+                <aside class="notes">A PVC with a dataSource referencing a VolumeSnapshot restores from that snapshot. This is useful for pre-upgrade backups, disaster recovery, and cloning environments.</aside>
             </section>
 
             <!-- Slide 32: Storage Best Practices for EKS -->

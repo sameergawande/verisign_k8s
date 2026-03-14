@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lab 15: Configuring IRSA</title>
+    <title>Lab 15: Configuring IRSA | Intermediate Kubernetes</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reset.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/white.css">
@@ -527,37 +527,27 @@ echo "Policy ARN: $POLICY_ARN"</code></pre>
                 </div>
                 <div class="fragment fade-up" style="margin-top: 15px;">
                     <h4>4a. Build the trust policy JSON</h4>
-                    <pre><code class="language-bash"># Get the OIDC issuer URL (without https://)
+                    <pre><code class="language-bash"># Get the OIDC issuer URL and account ID
 OIDC_ISSUER=$(aws eks describe-cluster --name platform-lab \
   --query "cluster.identity.oidc.issuer" --output text | sed 's|https://||')
-echo "OIDC Issuer: $OIDC_ISSUER"
-
-# Get the AWS account ID
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-echo "Account ID: $ACCOUNT_ID"
 
 # Create the trust policy
 cat &lt;&lt;EOF &gt; /tmp/trust-policy.json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/${OIDC_ISSUER}"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "${OIDC_ISSUER}:aud": "sts.amazonaws.com",
-          "${OIDC_ISSUER}:sub": "system:serviceaccount:irsa-lab:s3-reader"
-        }
-      }
-    }
-  ]
+{ "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "Federated": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/${OIDC_ISSUER}"
+    },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": { "StringEquals": {
+      "${OIDC_ISSUER}:aud": "sts.amazonaws.com",
+      "${OIDC_ISSUER}:sub": "system:serviceaccount:irsa-lab:s3-reader"
+    }}
+  }]
 }
 EOF
-
 cat /tmp/trust-policy.json</code></pre>
                 </div>
                 <aside class="notes">
@@ -901,7 +891,7 @@ kubectl exec no-irsa-test -n irsa-lab -- aws sts get-caller-identity
                 </div>
                 <div class="fragment fade-up" style="margin-top: 15px;">
                     <h4>10a. Create a ServiceAccount with a wrong role ARN</h4>
-                    <pre><code class="language-bash"># Create a SA with a typo in the role ARN
+                    <pre><code class="language-bash"># Create a SA with a typo in the role ARN + a test pod
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
@@ -910,15 +900,10 @@ metadata:
   namespace: irsa-lab
   annotations:
     eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/DOES-NOT-EXIST"
-EOF
-
-# Deploy a pod using the broken ServiceAccount
-cat &lt;&lt;'EOF' | kubectl apply -f -
+---
 apiVersion: v1
 kind: Pod
-metadata:
-  name: broken-irsa-test
-  namespace: irsa-lab
+metadata: { name: broken-irsa-test, namespace: irsa-lab }
 spec:
   serviceAccountName: broken-sa
   containers:
@@ -927,7 +912,6 @@ spec:
     command: ["sleep", "3600"]
   restartPolicy: Never
 EOF
-
 kubectl wait --for=condition=Ready pod/broken-irsa-test -n irsa-lab --timeout=60s</code></pre>
                 </div>
                 <aside class="notes">
@@ -965,7 +949,8 @@ kubectl annotate sa broken-sa -n irsa-lab \
 
 # IMPORTANT: Must delete and recreate the pod
 kubectl delete pod broken-irsa-test -n irsa-lab
-# Then recreate the pod (same manifest but with corrected SA)
+
+# Recreate the pod (same manifest with corrected SA)
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: v1
 kind: Pod
@@ -979,9 +964,7 @@ spec:
     image: amazon/aws-cli:latest
     command: ["sleep", "3600"]
   restartPolicy: Never
-EOF
-
-kubectl wait --for=condition=Ready pod/broken-irsa-test -n irsa-lab --timeout=60s</code></pre>
+EOF</code></pre>
                 </div>
                 <aside class="notes">
                     Key learning: the pod starts fine even with a wrong IRSA annotation. The failure only shows up at runtime when the AWS SDK tries to exchange the token. Also reinforce that fixing the SA annotation is not enough — the pod must be recreated for the mutating webhook to re-inject the correct token.

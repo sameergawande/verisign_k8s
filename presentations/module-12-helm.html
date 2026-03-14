@@ -520,7 +520,8 @@ spec:
         - name: migrate
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command: ["./migrate", "--apply"]
-      restartPolicy: Never</code></pre>
+      restartPolicy: Never
+</code></pre>
                 <table class="fragment">
                     <tr><th>Hook</th><th>When It Runs</th></tr>
                     <tr><td><code>pre-install</code></td><td>Before resources are created</td></tr>
@@ -587,13 +588,15 @@ cache:  # uses alias
                 </div>
                 <div class="two-columns fragment">
                     <div>
-                        <h3>Library Chart.yaml</h3>
-                        <pre><code class="language-yaml">apiVersion: v2
+                        <h3>Library Chart</h3>
+                        <pre><code class="language-yaml"># Chart.yaml — type: library
+apiVersion: v2
 name: common-lib
 version: 1.0.0
-type: library  # key distinction</code></pre>
-                        <h3>Library template</h3>
-                        <pre><code class="language-yaml">{{- define "common.deployment" -}}
+type: library  # no rendered manifests
+
+# templates/_deployment.tpl
+{{- define "common.deployment" -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -603,8 +606,8 @@ metadata:
 {{- end -}}</code></pre>
                     </div>
                     <div>
-                        <h3>Consumer chart</h3>
-                        <pre><code class="language-yaml"># Chart.yaml
+                        <h3>Consumer Chart</h3>
+                        <pre><code class="language-yaml"># Chart.yaml dependency
 dependencies:
   - name: common-lib
     version: "1.x"
@@ -613,7 +616,7 @@ dependencies:
 # templates/deployment.yaml
 {{- include "common.deployment" . }}</code></pre>
                         <div class="highlight-box success" style="margin-top: 15px;">
-                            <strong>Use case:</strong> Enforce org-wide standards for labels, annotations, security contexts, and resource structures.
+                            <strong>Use case:</strong> Enforce org-wide standards for labels, security contexts, and resource structures.
                         </div>
                     </div>
                 </div>
@@ -751,8 +754,7 @@ helm show chart oci://registry.example.com/charts/mychart \
   "properties": {
     "replicaCount": {
       "type": "integer",
-      "minimum": 1,
-      "maximum": 20
+      "minimum": 1, "maximum": 20
     },
     "image": {
       "type": "object",
@@ -760,10 +762,7 @@ helm show chart oci://registry.example.com/charts/mychart \
       "properties": {
         "repository": { "type": "string" },
         "tag": { "type": "string" },
-        "pullPolicy": {
-          "type": "string",
-          "enum": ["Always", "IfNotPresent", "Never"]
-        }
+        "pullPolicy": { "enum": ["Always", "IfNotPresent", "Never"] }
       }
     }
   }

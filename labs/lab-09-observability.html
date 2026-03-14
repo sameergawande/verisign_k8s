@@ -485,18 +485,17 @@ metadata:
 spec:
   replicas: 2
   selector:
-    matchLabels:
-      app: json-logger
+    matchLabels: { app: json-logger }
   template:
     metadata:
-      labels:
-        app: json-logger
+      labels: { app: json-logger }
     spec:
       containers:
       - name: logger
         image: busybox
         command: ['sh', '-c', 'i=0; while true; do
-          printf "{\"timestamp\":\"%s\",\"level\":\"info\",\"service\":\"order-api\",\"request_id\":\"%d\",\"method\":\"GET\",\"path\":\"/api/orders\",\"status\":200,\"duration_ms\":%d}\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$i" "$((RANDOM % 500))";
+          printf "{\"timestamp\":\"%s\",\"level\":\"info\",\"service\":\"order-api\",\"request_id\":\"%d\",\"status\":200}\n"
+          "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$i";
           sleep 1; i=$((i+1)); done']
 EOF
                 </code></pre>
@@ -529,7 +528,15 @@ kubectl logs -l app=json-logger --tail=10
                 </aside>
             </section>
 
-            <!-- Step 3: View Logs with kubectl -->
+            <!-- Step 3: Log Patterns and Best Practices -->
+            <section data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)" class="section-divider">
+                <h2>Step 3</h2>
+                <h3>Log Patterns and Best Practices</h3>
+                <aside class="notes">
+                    Review logging best practices before moving on to metrics-based observability.
+                </aside>
+            </section>
+
             <section>
                 <h2>&#x1F4CB; Log Patterns and Best Practices</h2>
                 <div class="two-columns">
@@ -646,13 +653,7 @@ spec:
       - name: stress
         image: busybox
         command: ['sh', '-c', 'while true; do dd if=/dev/urandom bs=1024 count=1024 of=/dev/null 2>/dev/null; done']
-        resources:
-          requests:
-            cpu: 100m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
+        # ... resource requests/limits omitted for brevity
 EOF
                 </code></pre>
                 <div class="fragment">
@@ -918,30 +919,21 @@ kind: PrometheusRule
 metadata:
   name: pod-restart-alert
   namespace: monitoring
-  labels:
-    release: monitoring
+  labels: { release: monitoring }
 spec:
   groups:
   - name: pod-restarts
     rules:
     - alert: HighPodRestartCount
-      expr: |
-        increase(kube_pod_container_status_restarts_total[1h]) > 3
+      expr: increase(kube_pod_container_status_restarts_total[1h]) > 3
       for: 5m
-      labels:
-        severity: warning
+      labels: { severity: warning }
       annotations:
-        summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has restarted {{ $value }} times in the last hour"
-        description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace {{ $labels.namespace }}) has experienced excessive restarts."
+        summary: "Pod {{ $labels.pod }} restarted {{ $value }} times"
     - alert: PodCrashLooping
-      expr: |
-        rate(kube_pod_container_status_restarts_total[15m]) * 60 * 15 > 0
+      expr: rate(kube_pod_container_status_restarts_total[15m]) * 60 * 15 > 0
       for: 5m
-      labels:
-        severity: critical
-      annotations:
-        summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping"
-        description: "Container {{ $labels.container }} is restarting repeatedly."
+      labels: { severity: critical }
 EOF
                 </code></pre>
                 <aside class="notes">
@@ -1043,14 +1035,8 @@ spec:
       containers:
       - name: app
         image: busybox
-        command: ['sh', '-c', 'echo "Starting app..."; sleep $((RANDOM % 10 + 5)); echo "ERROR: Out of memory - cannot allocate buffer"; exit 137']
-        resources:
-          requests:
-            cpu: 50m
-            memory: 32Mi
-          limits:
-            cpu: 100m
-            memory: 64Mi
+        command: ['sh', '-c', 'echo "Starting app..."; sleep $((RANDOM % 10 + 5)); echo "ERROR: Out of memory"; exit 137']
+        # ... resource requests/limits omitted for brevity
 EOF
                 </code></pre>
                 <div class="highlight-box warning fragment">

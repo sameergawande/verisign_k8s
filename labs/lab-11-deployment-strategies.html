@@ -393,39 +393,25 @@ kubectl create configmap app-v1-page \
 # Save as app-deploy-v1.yaml
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: webapp
-  namespace: deploy-strategies
-  labels:
-    app: webapp
+metadata: { name: webapp, namespace: deploy-strategies }
 spec:
   replicas: 4
   strategy:
     type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 1 }
   selector:
-    matchLabels:
-      app: webapp
+    matchLabels: { app: webapp }
   template:
-    metadata:
-      labels:
-        app: webapp
-        version: v1
+    metadata: { labels: { app: webapp, version: v1 } }
     spec:
       containers:
       - name: nginx
         image: nginx:1.24
-        ports:
-        - containerPort: 80
+        ports: [{containerPort: 80}]
         volumeMounts:
-        - name: html
-          mountPath: /usr/share/nginx/html
+        - { name: html, mountPath: /usr/share/nginx/html }
       volumes:
-      - name: html
-        configMap:
-          name: app-v1-page
+      - { name: html, configMap: { name: app-v1-page } }
                 </code></pre>
                 <aside class="notes">
                     Walk through the strategy section. maxSurge 1 means at most 5 pods during update. maxUnavailable 1 means at least 3 pods available during update. These settings control the pace of the rolling update.
@@ -665,25 +651,17 @@ metadata:
 spec:
   replicas: 3
   selector:
-    matchLabels:
-      app: webapp-bg
-      version: blue
+    matchLabels: { app: webapp-bg, version: blue }
   template:
     metadata:
-      labels:
-        app: webapp-bg
-        version: blue
+      labels: { app: webapp-bg, version: blue }
     spec:
       containers:
       - name: nginx
         image: nginx:1.24
-        ports:
-        - containerPort: 80
+        ports: [{containerPort: 80}]
         command: ["/bin/sh", "-c"]
-        args:
-        - |
-          echo '&lt;h1 style="color:blue"&gt;BLUE Version&lt;/h1&gt;' > /usr/share/nginx/html/index.html
-          nginx -g 'daemon off;'
+        args: ["echo '&lt;h1 style=\"color:blue\"&gt;BLUE&lt;/h1&gt;' > /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
                 </code></pre>
                 <aside class="notes">
                     Using inline commands to set the page content keeps the example self-contained. In production, you would use proper container images for each version.
@@ -703,25 +681,17 @@ metadata:
 spec:
   replicas: 3
   selector:
-    matchLabels:
-      app: webapp-bg
-      version: green
+    matchLabels: { app: webapp-bg, version: green }
   template:
     metadata:
-      labels:
-        app: webapp-bg
-        version: green
+      labels: { app: webapp-bg, version: green }
     spec:
       containers:
       - name: nginx
         image: nginx:1.25
-        ports:
-        - containerPort: 80
+        ports: [{containerPort: 80}]
         command: ["/bin/sh", "-c"]
-        args:
-        - |
-          echo '&lt;h1 style="color:green"&gt;GREEN Version&lt;/h1&gt;' > /usr/share/nginx/html/index.html
-          nginx -g 'daemon off;'
+        args: ["echo '&lt;h1 style=\"color:green\"&gt;GREEN&lt;/h1&gt;' > /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
                 </code></pre>
                 <aside class="notes">
                     Both deployments share the app label webapp-bg but differ on the version label. The service selector will switch between them.
@@ -829,25 +799,17 @@ metadata:
 spec:
   replicas: 4
   selector:
-    matchLabels:
-      app: webapp-canary
-      track: stable
+    matchLabels: { app: webapp-canary, track: stable }
   template:
     metadata:
-      labels:
-        app: webapp-canary
-        track: stable
+      labels: { app: webapp-canary, track: stable }
     spec:
       containers:
       - name: nginx
         image: nginx:1.24
-        ports:
-        - containerPort: 80
+        ports: [{containerPort: 80}]
         command: ["/bin/sh", "-c"]
-        args:
-        - |
-          echo 'STABLE-v1' > /usr/share/nginx/html/index.html
-          nginx -g 'daemon off;'
+        args: ["echo 'STABLE-v1' > /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
                 </code></pre>
                 <aside class="notes">
                     The stable deployment uses 4 replicas and the shared label app: webapp-canary. The track label differentiates stable from canary but is not used in the service selector.
@@ -867,25 +829,17 @@ metadata:
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app: webapp-canary
-      track: canary
+    matchLabels: { app: webapp-canary, track: canary }
   template:
     metadata:
-      labels:
-        app: webapp-canary
-        track: canary
+      labels: { app: webapp-canary, track: canary }
     spec:
       containers:
       - name: nginx
         image: nginx:1.25
-        ports:
-        - containerPort: 80
+        ports: [{containerPort: 80}]
         command: ["/bin/sh", "-c"]
-        args:
-        - |
-          echo 'CANARY-v2' > /usr/share/nginx/html/index.html
-          nginx -g 'daemon off;'
+        args: ["echo 'CANARY-v2' > /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
                 </code></pre>
                 <div class="concept-box fragment">
                     <h4>&#x1F4A1; Traffic Ratio</h4>

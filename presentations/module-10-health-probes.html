@@ -581,22 +581,16 @@ spec:
     ports:
     - containerPort: 8080
     startupProbe:
-      httpGet:
-        path: /healthz
-        port: 8080
+      httpGet: { path: /healthz, port: 8080 }
       failureThreshold: 30
       periodSeconds: 5
     livenessProbe:
-      httpGet:
-        path: /healthz
-        port: 8080
+      httpGet: { path: /healthz, port: 8080 }
       periodSeconds: 10
       timeoutSeconds: 3
       failureThreshold: 3
     readinessProbe:
-      httpGet:
-        path: /ready
-        port: 8080
+      httpGet: { path: /ready, port: 8080 }
       periodSeconds: 5
       timeoutSeconds: 3
       successThreshold: 2
@@ -655,18 +649,15 @@ spec:
                 <h4>Step 1: Check Pod Events</h4>
                 <pre><code class="language-bash"># See probe failure events
 kubectl describe pod my-app | grep -A 5 "Events"
-
 # Look for Warning events
 kubectl get events --field-selector reason=Unhealthy \
   --sort-by='.lastTimestamp'</code></pre>
-                <h4>Step 2: Check Container Logs</h4>
-                <pre><code class="language-bash"># Current container logs
+                <h4>Step 2: Check Logs &amp; Test Manually</h4>
+                <pre><code class="language-bash"># Current and previous container logs
 kubectl logs my-app -c app --tail=50
+kubectl logs my-app -c app --previous
 
-# Previous container logs (after restart)
-kubectl logs my-app -c app --previous</code></pre>
-                <h4 class="fragment fade-up">Step 3: Test the Probe Manually</h4>
-                <pre class="fragment fade-up"><code class="language-bash"># Exec into pod and test the health endpoint
+# Exec into pod and test the health endpoint
 kubectl exec my-app -- curl -s http://localhost:8080/healthz
 kubectl exec my-app -- wget -qO- http://localhost:8080/ready</code></pre>
                 <aside class="notes">When probes fail, follow this three-step debugging process. First, describe the pod to see events — Kubernetes logs every probe failure as a Warning event with details about the failure. Second, check container logs, especially previous logs if the container was restarted. Third, exec into the pod and manually test the health endpoints to see what they return. Often the issue is a misconfigured port, wrong path, or the endpoint returning a 503 during initialization.</aside>
@@ -748,38 +739,23 @@ spec:
                 <h2>&#128640; Production-Ready Pod Spec</h2>
                 <pre><code class="language-yaml">apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: production-app
+metadata: { name: production-app }
 spec:
   replicas: 3
-  selector:
-    matchLabels:
-      app: production-app
   template:
     spec:
       terminationGracePeriodSeconds: 45
       containers:
       - name: app
         image: myapp:2.0
-        resources:
-          requests: { cpu: "250m", memory: "256Mi" }
-          limits: { cpu: "1000m", memory: "512Mi" }
+        resources: { requests: { cpu: "250m", memory: "256Mi" }, limits: { cpu: "1000m", memory: "512Mi" } }
         startupProbe:
           httpGet: { path: /healthz, port: 8080 }
           failureThreshold: 20
           periodSeconds: 5
-        livenessProbe:
-          httpGet: { path: /healthz, port: 8080 }
-          periodSeconds: 10
-          failureThreshold: 3
-        readinessProbe:
-          httpGet: { path: /ready, port: 8080 }
-          periodSeconds: 5
-          failureThreshold: 3
-        lifecycle:
-          preStop:
-            exec:
-              command: ["/bin/sh", "-c", "sleep 10"]</code></pre>
+        livenessProbe: { httpGet: { path: /healthz, port: 8080 }, periodSeconds: 10, failureThreshold: 3 }
+        readinessProbe: { httpGet: { path: /ready, port: 8080 }, periodSeconds: 5, failureThreshold: 3 }
+        lifecycle: { preStop: { exec: { command: ["/bin/sh", "-c", "sleep 10"] } } }</code></pre>
                 <aside class="notes">Here's a complete, production-ready pod spec that combines everything we've covered. Three probes for comprehensive health checking, resource limits, a termination grace period, and a preStop hook for clean shutdown. This template is a solid starting point for any production deployment — adjust the timing parameters based on your application's characteristics.</aside>
             </section>
 
