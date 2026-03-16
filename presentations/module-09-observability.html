@@ -154,7 +154,6 @@
                 <div class="three-columns">
                     <div class="card fragment fade-up">
                         <h4>&#128220; Logs</h4>
-                        <p>Discrete, timestamped events</p>
                         <ul>
                             <li>What happened</li>
                             <li>Immutable records</li>
@@ -163,7 +162,6 @@
                     </div>
                     <div class="card fragment fade-up">
                         <h4>&#128202; Metrics</h4>
-                        <p>Numeric measurements over time</p>
                         <ul>
                             <li>How much / how fast</li>
                             <li>Aggregatable</li>
@@ -172,7 +170,6 @@
                     </div>
                     <div class="card fragment fade-up">
                         <h4>&#128279; Traces</h4>
-                        <p>Request flow across services</p>
                         <ul>
                             <li>Where time is spent</li>
                             <li>Causal relationships</li>
@@ -180,7 +177,7 @@
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Each pillar answers different questions. Logs tell you what happened at a specific point in time. Metrics tell you the aggregated health and performance characteristics. Traces tell you how a single request flows through your distributed system. You need all three for full observability.</aside>
+                <aside class="notes">Logs are discrete, timestamped events. Metrics are numeric measurements over time. Traces track request flow across services. Each pillar answers different questions. Logs tell you what happened at a specific point in time. Metrics tell you the aggregated health and performance characteristics. Traces tell you how a single request flows through your distributed system. You need all three for full observability.</aside>
             </section>
 
             <!-- Slide 6: How the Pillars Complement Each Other -->
@@ -374,7 +371,6 @@ after 30s for user api-svc</code></pre>
                 <div class="three-columns">
                     <div class="card fragment fade-up">
                         <h4>&#128207; Resource Metrics</h4>
-                        <p><code>metrics-server</code></p>
                         <ul>
                             <li>CPU &amp; memory per pod/node</li>
                             <li>Powers HPA &amp; VPA</li>
@@ -383,7 +379,6 @@ after 30s for user api-svc</code></pre>
                     </div>
                     <div class="card fragment fade-up">
                         <h4>&#127919; Custom Metrics</h4>
-                        <p><code>custom.metrics.k8s.io</code></p>
                         <ul>
                             <li>App-specific (queue depth, etc.)</li>
                             <li>Prometheus Adapter</li>
@@ -392,7 +387,6 @@ after 30s for user api-svc</code></pre>
                     </div>
                     <div class="card fragment fade-up">
                         <h4>&#127758; External Metrics</h4>
-                        <p><code>external.metrics.k8s.io</code></p>
                         <ul>
                             <li>Outside-cluster sources</li>
                             <li>SQS queue length, etc.</li>
@@ -400,7 +394,7 @@ after 30s for user api-svc</code></pre>
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Kubernetes defines three categories of metrics through the metrics APIs. Resource metrics from metrics-server are the simplest — CPU and memory. Custom metrics come from your application, exposed via Prometheus and served through the Prometheus Adapter. External metrics come from outside the cluster entirely, like AWS SQS queue depths. All three can drive autoscaling decisions.</aside>
+                <aside class="notes">APIs: Resource metrics via metrics-server, Custom metrics via custom.metrics.k8s.io, External metrics via external.metrics.k8s.io. Kubernetes defines three categories of metrics through the metrics APIs. Resource metrics from metrics-server are the simplest — CPU and memory. Custom metrics come from your application, exposed via Prometheus and served through the Prometheus Adapter. External metrics come from outside the cluster entirely, like AWS SQS queue depths. All three can drive autoscaling decisions.</aside>
             </section>
 
             <!-- Slide 16: Prometheus Fundamentals -->
@@ -591,10 +585,6 @@ aws eks create-addon --cluster-name verisign-prod \
             <!-- Slide 24: OpenTelemetry Overview -->
             <section>
                 <h2>&#127758; OpenTelemetry (OTel)</h2>
-                <div class="concept-box">
-                    <h4>The Industry Standard for Observability Data</h4>
-                    <p>Vendor-neutral APIs, SDKs, and tools for generating and collecting telemetry data</p>
-                </div>
                 <div class="three-columns fragment fade-up">
                     <div class="card">
                         <h4>&#128218; SDKs</h4>
@@ -621,7 +611,7 @@ aws eks create-addon --cluster-name verisign-prod \
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">OpenTelemetry is the CNCF project that has unified the observability instrumentation landscape. It merges the former OpenTracing and OpenCensus projects. The key insight is that OTel separates instrumentation from backend choice. You instrument your code once with OTel SDKs, and the Collector routes data to whatever backend you choose — Jaeger, X-Ray, Datadog, or any OTLP-compatible backend. ADOT is the AWS distribution of the OTel Collector.</aside>
+                <aside class="notes">OpenTelemetry is the industry standard for observability data — vendor-neutral APIs, SDKs, and tools for generating and collecting telemetry data. It is the CNCF project that has unified the observability instrumentation landscape. It merges the former OpenTracing and OpenCensus projects. The key insight is that OTel separates instrumentation from backend choice. You instrument your code once with OTel SDKs, and the Collector routes data to whatever backend you choose — Jaeger, X-Ray, Datadog, or any OTLP-compatible backend. ADOT is the AWS distribution of the OTel Collector.</aside>
             </section>
 
             <!-- Slide 25: OTel Collector Configuration -->
@@ -858,7 +848,9 @@ kubectl describe pod &lt;pod-name&gt; -n production
 
 # Check for OOMKilled containers
 kubectl get pods -n production -o json | \
-  jq '.items[] | select(.status.containerStatuses[]?.lastState.terminated.reason == "OOMKilled") | .metadata.name'
+  jq '.items[] | select(.status.containerStatuses[]?
+    .lastState.terminated.reason == "OOMKilled")
+    | .metadata.name'
 
 # Debug networking with ephemeral containers
 kubectl debug -it &lt;pod-name&gt; --image=nicolaka/netshoot -- bash</code></pre>

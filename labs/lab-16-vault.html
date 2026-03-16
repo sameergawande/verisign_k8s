@@ -153,6 +153,14 @@
             color: var(--accent-color);
         }
 
+        .reveal pre code {
+            font-size: 0.65em;
+            max-height: 450px;
+            overflow-y: auto;
+            line-height: 1.4;
+            border-radius: 8px;
+        }
+
         /* Lab Callout */
         .lab-callout h2 {
             color: #ffffff;
@@ -890,8 +898,13 @@ kubectl exec -it vault-0 -n vault -- vault policy list | grep lab16
                 </aside>
             </section>
 
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="questions-slide" style="text-align: center;">
+                <h2>Questions?</h2>
+                <p>Review any concepts before moving on</p>
+            </section>
+
             <!-- Lab Complete -->
-            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="lab-callout">
+            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="title-slide">
                 <h2>&#127881; Lab 16 Complete!</h2>
                 <h3>Vault and External Secrets</h3>
                 <p>You have successfully completed the full Vault + ESO workflow:</p>

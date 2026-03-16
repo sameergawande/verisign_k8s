@@ -318,19 +318,16 @@
                     <div class="card">
                         <h4>Objectives</h4>
                         <ul>
-                            <li class="fragment">Deploy a three-tier application</li>
-                            <li class="fragment">Verify default open connectivity</li>
+                            <li class="fragment">Deploy a three-tier application and verify default connectivity</li>
                             <li class="fragment">Apply a default-deny NetworkPolicy</li>
                             <li class="fragment">Create targeted ingress policies per tier</li>
-                            <li class="fragment">Test and verify allowed/blocked traffic paths</li>
-                            <li class="fragment">Understand egress policy controls</li>
+                            <li class="fragment">Test allowed/blocked paths and egress controls</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Prerequisites</h4>
                         <ul>
-                            <li>Completed Labs 1&ndash;7</li>
-                            <li>kubectl configured with cluster access</li>
+                            <li>Completed Labs 1&ndash;7 with kubectl access</li>
                             <li>CNI with NetworkPolicy support (Calico or Cilium)</li>
                         </ul>
                         <div class="highlight-box warning" style="margin-top: 15px;">
@@ -532,14 +529,8 @@ kubectl exec backend -n lab08 -- \
 kubectl exec database -n lab08 -- \
   curl -s --max-time 3 http://frontend.lab08.svc.cluster.local:80
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> All four curl commands return the nginx welcome page HTML. Every pod can reach every other pod &mdash; this is the Kubernetes default.
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Important:</strong> By default, Kubernetes has a <strong>flat network</strong> with no restrictions. Any pod can communicate with any other pod in any namespace. This is why NetworkPolicies are critical for security.
-                </div>
                 <aside class="notes">
-                    This baseline is important. Students need to see the "before" state so the "after" state (with policies) is meaningful. In a real three-tier architecture, the database should never be directly accessible from the frontend.
+                    Expected Output: All four curl commands return the nginx welcome page HTML. Every pod can reach every other pod -- this is the Kubernetes default. Important: By default, Kubernetes has a flat network with no restrictions. Any pod can communicate with any other pod in any namespace. This is why NetworkPolicies are critical for security. This baseline is important. Students need to see the "before" state so the "after" state (with policies) is meaningful. In a real three-tier architecture, the database should never be directly accessible from the frontend.
                 </aside>
             </section>
 
@@ -651,14 +642,8 @@ kubectl exec database -n lab08 -- \
   curl -s --max-time 3 http://frontend.lab08.svc.cluster.local:80
 echo "Exit code: $?"
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> All four curl commands <strong>timeout</strong> after 3 seconds with a non-zero exit code. No pod can receive traffic from any other pod. The deny-all policy is working.
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x1F4DD; Note:</strong> The curl commands will hang for 3 seconds before timing out. This is expected &mdash; the packets are being dropped by the CNI, not rejected. A timeout (not a connection refused) is the typical behavior for NetworkPolicy denials.
-                </div>
                 <aside class="notes">
-                    The difference between timeout and connection refused is important. NetworkPolicies silently drop packets rather than sending a TCP RST. This is a security feature — it does not reveal to the sender whether the destination exists.
+                    Expected Output: All four curl commands timeout after 3 seconds with a non-zero exit code. No pod can receive traffic from any other pod. The deny-all policy is working. Note: The curl commands will hang for 3 seconds before timing out. This is expected -- the packets are being dropped by the CNI, not rejected. A timeout (not a connection refused) is the typical behavior for NetworkPolicy denials. The difference between timeout and connection refused is important. NetworkPolicies silently drop packets rather than sending a TCP RST. This is a security feature -- it does not reveal to the sender whether the destination exists.
                 </aside>
             </section>
 
@@ -855,19 +840,8 @@ echo -n "Database -> Backend: "
 kubectl exec database -n lab08 -- curl -s -o /dev/null \
   -w "%{http_code}" --max-time 3 http://backend:8080 2>/dev/null || echo "BLOCKED"
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong><br>
-                    Frontend &rarr; Backend: <strong>200</strong><br>
-                    Backend &rarr; Database: <strong>200</strong><br>
-                    Frontend &rarr; Database: <strong>BLOCKED</strong><br>
-                    Database &rarr; Frontend: <strong>BLOCKED</strong><br>
-                    Database &rarr; Backend: <strong>BLOCKED</strong>
-                </div>
-                <div class="key-point fragment">
-                    <strong>&#x1F511; Key Point:</strong> The policies enforce a strict traffic flow: <code>Frontend &rarr; Backend &rarr; Database</code>. No reverse paths, no direct frontend-to-database access, and no lateral movement from the database tier. This is the principle of least privilege applied to networking.
-                </div>
                 <aside class="notes">
-                    This is the key checkpoint of the lab. The traffic matrix should show exactly two allowed paths and all others blocked. Use this to discuss micro-segmentation and defense in depth at the network layer.
+                    Expected Output: Frontend to Backend: 200, Backend to Database: 200, Frontend to Database: BLOCKED, Database to Frontend: BLOCKED, Database to Backend: BLOCKED. Key Point: The policies enforce a strict traffic flow: Frontend to Backend to Database. No reverse paths, no direct frontend-to-database access, and no lateral movement from the database tier. This is the principle of least privilege applied to networking. This is the key checkpoint of the lab. The traffic matrix should show exactly two allowed paths and all others blocked. Use this to discuss micro-segmentation and defense in depth at the network layer.
                 </aside>
             </section>
 
@@ -964,14 +938,8 @@ kubectl exec frontend -n lab08 -- \
   curl -s --max-time 3 http://backend.lab08.svc.cluster.local:8080
                     </code></pre>
                 </div>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> DNS resolution works again. The <code>namespaceSelector: {}</code> allows DNS queries to kube-dns in the <code>kube-system</code> namespace. The frontend-to-backend path is restored.
-                </div>
-                <div class="key-point fragment">
-                    <strong>&#x1F511; Key Point:</strong> When implementing egress policies, always create a DNS allow rule first. Use <code>namespaceSelector: {}</code> to allow DNS to any namespace (kube-dns might be in <code>kube-system</code>). Include both UDP and TCP port 53.
-                </div>
                 <aside class="notes">
-                    DNS uses UDP port 53 by default but can fall back to TCP port 53 for large responses. Always allow both. The namespaceSelector: {} allows traffic to pods in any namespace, which is necessary because kube-dns runs in kube-system.
+                    Expected Output: DNS resolution works again. The namespaceSelector: {} allows DNS queries to kube-dns in the kube-system namespace. The frontend-to-backend path is restored. Key Point: When implementing egress policies, always create a DNS allow rule first. Use namespaceSelector: {} to allow DNS to any namespace (kube-dns might be in kube-system). Include both UDP and TCP port 53. DNS uses UDP port 53 by default but can fall back to TCP port 53 for large responses. Always allow both.
                 </aside>
             </section>
 

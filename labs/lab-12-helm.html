@@ -320,17 +320,16 @@
                         <ul>
                             <li class="fragment">Install and manage Helm charts from repositories</li>
                             <li class="fragment">Upgrade and rollback releases</li>
-                            <li class="fragment">Create a custom Helm chart from scratch</li>
-                            <li class="fragment">Use Helm templating and values</li>
+                            <li class="fragment">Create a custom Helm chart with templating</li>
                             <li class="fragment">Validate, debug, and package charts</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Prerequisites</h4>
                         <ul>
-                            <li>kubectl installed and configured</li>
-                            <li>Helm v3 installed</li>
+                            <li>kubectl configured, Helm v3 installed</li>
                             <li>Access to a Kubernetes cluster (EKS)</li>
+                            <li>Completed Labs 1&ndash;11</li>
                         </ul>
                         <div class="highlight-box warning" style="margin-top: 15px;">
                             <strong>&#x23F1; Duration:</strong> ~45 minutes
@@ -766,8 +765,7 @@ cat mychart/values.yaml
                         <h4>Chart.yaml Key Fields</h4>
                         <ul>
                             <li><code>apiVersion</code> &mdash; v2 for Helm 3</li>
-                            <li><code>name</code> &mdash; chart name</li>
-                            <li><code>version</code> &mdash; chart version (SemVer)</li>
+                            <li><code>name</code> / <code>version</code> &mdash; chart identity (SemVer)</li>
                             <li><code>appVersion</code> &mdash; app version</li>
                             <li><code>type</code> &mdash; application or library</li>
                         </ul>
@@ -776,7 +774,6 @@ cat mychart/values.yaml
                         <h4>values.yaml Purpose</h4>
                         <ul>
                             <li>Provides default configuration</li>
-                            <li>Documents all configurable options</li>
                             <li>Overridden by <code>--set</code> or <code>-f</code></li>
                             <li>Accessed via <code>.Values</code> in templates</li>
                         </ul>
@@ -1097,6 +1094,11 @@ rm -rf mychart/ mychart-*.tgz
                 <aside class="notes">
                     Summarize the key concepts covered in this lab and connect them to real-world usage patterns.
                 </aside>
+            </section>
+
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="questions-slide" style="text-align: center;">
+                <h2>Questions?</h2>
+                <p>Review any concepts before moving on</p>
             </section>
 
             <section>

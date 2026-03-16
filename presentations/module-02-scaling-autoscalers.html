@@ -537,15 +537,16 @@ $ kubectl describe hpa myapp-hpa
 Conditions:
   Type            Status  Reason            Message
   ----            ------  ------            -------
-  AbleToScale     True    ReadyForNewScale  recommended size matches current size
-  ScalingActive   True    ValidMetricFound  the HPA was able to successfully calculate
-  ScalingLimited  False   DesiredWithinRange  the desired count is within the acceptable range
+  AbleToScale     True    ReadyForNewScale  size matches current
+  ScalingActive   True    ValidMetricFound  calc successful
+  ScalingLimited  False   DesiredInRange    desired within range
 
 # View HPA events (scaling actions)
-$ kubectl get events --field-selector involvedObject.name=myapp-hpa
-LAST SEEN   TYPE     REASON            OBJECT                  MESSAGE
-5m          Normal   SuccessfulRescale hpa/myapp-hpa           New size: 5; reason: cpu above target
-2h          Normal   SuccessfulRescale hpa/myapp-hpa           New size: 3; reason: All metrics below target</code></pre>
+$ kubectl get events --field-selector \
+    involvedObject.name=myapp-hpa
+LAST SEEN  TYPE    REASON             OBJECT         MESSAGE
+5m         Normal  SuccessfulRescale  hpa/myapp-hpa  Size: 5; cpu above target
+2h         Normal  SuccessfulRescale  hpa/myapp-hpa  Size: 3; all below target</code></pre>
                 <aside class="notes">These commands are essential for troubleshooting HPA behavior. The TARGETS column shows current/target for each metric. The Conditions section tells you whether the HPA can scale, whether metrics are available, and whether it's hitting min/max limits. Events show you the actual scaling history. If ScalingActive is False, check that Metrics Server is running and your pod has resource requests set.</aside>
             </section>
 

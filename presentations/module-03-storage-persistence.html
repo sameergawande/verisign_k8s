@@ -822,7 +822,13 @@ spec:
         - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
         ports: [{ containerPort: 5432 }]
         volumeMounts: [{ name: data, mountPath: /var/lib/postgresql/data }]
-        resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "2", memory: "4Gi" } }
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
   # ... volumeClaimTemplates: gp3, 100Gi ReadWriteOnce per replica</code></pre>
                 <aside class="notes">This is a production-grade PostgreSQL StatefulSet. Key details: PGDATA is set to a subdirectory of the mount point because PostgreSQL requires the data directory to be empty on init. Resources are set with both requests and limits. In a real production setup, you'd use an operator like CloudNativePG or Zalando's postgres-operator to handle replication, failover, and backups.</aside>
             </section>

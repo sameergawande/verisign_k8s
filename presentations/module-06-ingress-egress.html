@@ -406,8 +406,8 @@ spec:
             </section>
 
             <section>
-                <h2>&#9889; Automated TLS with cert-manager</h2>
-                <pre class="fragment fade-up"><code class="language-yaml"># ClusterIssuer for Let's Encrypt (or internal CA)
+                <h2>&#9889; ClusterIssuer Configuration</h2>
+                <pre><code class="language-yaml"># ClusterIssuer for Let's Encrypt (or internal CA)
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -422,7 +422,12 @@ spec:
     - http01:
         ingress:
           class: nginx-external</code></pre>
-                <pre class="fragment fade-up"><code class="language-yaml"># Ingress with automatic certificate provisioning
+                <aside class="notes">cert-manager watches for Ingress resources with its annotation, automatically requests certificates from the configured issuer, and stores them in the referenced Secret. It also handles renewals before expiry. For Verisign internal services, you'd typically use an internal CA issuer rather than Let's Encrypt.</aside>
+            </section>
+
+            <section>
+                <h2>&#9889; Ingress with cert-manager</h2>
+                <pre><code class="language-yaml"># Ingress with automatic certificate provisioning
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -446,7 +451,7 @@ spec:
             name: api-service
             port:
               number: 8080</code></pre>
-                <aside class="notes">cert-manager watches for Ingress resources with its annotation, automatically requests certificates from the configured issuer, and stores them in the referenced Secret. It also handles renewals before expiry. For Verisign internal services, you'd typically use an internal CA issuer rather than Let's Encrypt.</aside>
+                <aside class="notes">The cert-manager annotation on the Ingress triggers automatic certificate provisioning. cert-manager creates and manages the Secret referenced in secretName. Certificates are renewed automatically before expiry.</aside>
             </section>
 
             <!-- Gateway API -->
@@ -638,7 +643,6 @@ spec:
 
             <section>
                 <h2>&#128202; Header-Based Canary Routing</h2>
-                <p>Route specific users to the canary using headers:</p>
                 <pre class="fragment fade-up"><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -670,7 +674,7 @@ spec:
                 <div class="highlight-box success fragment fade-up">
                     <strong>Verisign Use Case:</strong> QA team sets <code>X-Canary: true</code> header to test new versions in production before enabling weight-based rollout for all traffic.
                 </div>
-                <aside class="notes">Header-based routing is another powerful pattern. Internal teams can test the canary version by adding a specific header, while all other traffic goes to stable. This lets you verify the canary in the real production environment before exposing it to a percentage of all users.</aside>
+                <aside class="notes">This pattern routes specific users to the canary using headers. Header-based routing is another powerful pattern. Internal teams can test the canary version by adding a specific header, while all other traffic goes to stable. This lets you verify the canary in the real production environment before exposing it to a percentage of all users.</aside>
             </section>
 
             <!-- Verisign Integration -->

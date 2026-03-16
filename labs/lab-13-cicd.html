@@ -319,19 +319,17 @@
                         <h4>Objectives</h4>
                         <ul>
                             <li class="fragment">Understand CI/CD pipeline structure for Kubernetes</li>
-                            <li class="fragment">Build and tag container images with git SHA</li>
-                            <li class="fragment">Push images to ECR</li>
+                            <li class="fragment">Build, tag, and push container images to ECR</li>
                             <li class="fragment">Deploy using kubectl and GitOps tools</li>
-                            <li class="fragment">Manage deployments with ArgoCD and FluxCD</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Prerequisites</h4>
                         <ul>
-                            <li>kubectl installed and configured</li>
-                            <li>Docker installed</li>
-                            <li>AWS CLI configured with ECR access</li>
+                            <li>kubectl, Docker, and AWS CLI configured</li>
+                            <li>Access to a Kubernetes cluster (EKS)</li>
                             <li>ArgoCD CLI (optional)</li>
+                            <li>Completed Labs 1&ndash;12</li>
                         </ul>
                         <div class="highlight-box warning" style="margin-top: 15px;">
                             <strong>&#x23F1; Duration:</strong> ~45 minutes
@@ -401,32 +399,27 @@ jobs:
             <section>
                 <h2>&#x1F4C4; Pipeline Stages</h2>
                 <p>A Kubernetes CI/CD pipeline typically has these stages:</p>
-                <div class="three-columns">
+                <div class="two-columns">
                     <div class="card fragment">
-                        <h4>&#x1F6E0; Build</h4>
+                        <h4>&#x1F6E0; Build &amp; Push (CI)</h4>
                         <ul>
                             <li>Run tests</li>
                             <li>Build container image</li>
                             <li>Tag with git SHA</li>
                             <li>Scan for vulnerabilities</li>
-                        </ul>
-                    </div>
-                    <div class="card fragment">
-                        <h4>&#x1F4E6; Push</h4>
-                        <ul>
-                            <li>Authenticate to registry</li>
                             <li>Push image to ECR</li>
-                            <li>Tag as latest (optional)</li>
                             <li>Sign image (optional)</li>
                         </ul>
                     </div>
                     <div class="card fragment">
-                        <h4>&#x1F680; Deploy</h4>
+                        <h4>&#x1F680; Deploy (CD)</h4>
                         <ul>
-                            <li>Update manifest/values</li>
+                            <li>Update manifest or Helm values</li>
                             <li>Apply via kubectl or GitOps</li>
-                            <li>Verify rollout</li>
+                            <li>Verify rollout status</li>
                             <li>Run smoke tests</li>
+                            <li>Monitor metrics and alerts</li>
+                            <li>Rollback on failure</li>
                         </ul>
                     </div>
                 </div>
@@ -1161,6 +1154,11 @@ kubectl get namespace cicd-lab
                 <aside class="notes">
                     Discuss how organizations typically evolve from kubectl apply to GitOps. The journey often goes: manual kubectl, CI pipeline with kubectl, Helm, then GitOps with ArgoCD or Flux.
                 </aside>
+            </section>
+
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="questions-slide" style="text-align: center;">
+                <h2>Questions?</h2>
+                <p>Review any concepts before moving on</p>
             </section>
 
             <section>

@@ -153,6 +153,14 @@
             color: var(--accent-color);
         }
 
+        .reveal pre code {
+            font-size: 0.65em;
+            max-height: 450px;
+            overflow-y: auto;
+            line-height: 1.4;
+            border-radius: 8px;
+        }
+
         /* Lab Callout */
         .lab-callout h2 {
             color: #ffffff;
@@ -678,11 +686,8 @@ kubectl wait --for=condition=Ready pod/irsa-test -n irsa-lab --timeout=60s
 # Verify pod status
 kubectl get pod irsa-test -n irsa-lab</code></pre>
                 </div>
-                <div class="highlight-box fragment fade-up" style="margin-top: 10px;">
-                    <p style="margin:0;"><strong>Note:</strong> The <code>serviceAccountName: s3-reader</code> field is what triggers the EKS mutating webhook to inject the IRSA token and environment variables.</p>
-                </div>
                 <aside class="notes">
-                    The pod uses the amazon/aws-cli image which has the AWS CLI pre-installed. The sleep command keeps the pod running so we can exec into it. The serviceAccountName field is the link between the pod and the IRSA-annotated ServiceAccount.
+                    Note: The serviceAccountName: s3-reader field is what triggers the EKS mutating webhook to inject the IRSA token and environment variables. The pod uses the amazon/aws-cli image which has the AWS CLI pre-installed. The sleep command keeps the pod running so we can exec into it. The serviceAccountName field is the link between the pod and the IRSA-annotated ServiceAccount.
                 </aside>
             </section>
 
@@ -747,11 +752,8 @@ kubectl exec irsa-test -n irsa-lab -- aws s3 ls s3://platform-lab-irsa-demo/
 kubectl exec irsa-test -n irsa-lab -- \
   aws s3 cp s3://platform-lab-irsa-demo/test-file.txt -</code></pre>
                 </div>
-                <div class="highlight-box success fragment fade-up" style="margin-top: 10px;">
-                    <p style="margin:0;"><strong>Checkpoint:</strong> The <code>get-caller-identity</code> output should show the IRSA role ARN, <strong>not</strong> the EC2 instance role. S3 list and read commands should succeed.</p>
-                </div>
                 <aside class="notes">
-                    The critical check is that get-caller-identity shows the IRSA role, not the node's instance profile role. If it shows the instance role, IRSA is not working — the SDK is falling back to the instance metadata service. If S3 access works, the full IRSA chain is validated end-to-end.
+                    Checkpoint: The get-caller-identity output should show the IRSA role ARN, not the EC2 instance role. S3 list and read commands should succeed. The critical check is that get-caller-identity shows the IRSA role, not the node's instance profile role. If it shows the instance role, IRSA is not working — the SDK is falling back to the instance metadata service. If S3 access works, the full IRSA chain is validated end-to-end.
                 </aside>
             </section>
 
@@ -1074,6 +1076,11 @@ aws iam list-roles --query "Roles[?contains(RoleName, 'irsa-demo')]" --output ta
                 <aside class="notes">
                     Review the full flow with the class. Ask students to trace the chain from OIDC provider to temporary credentials without looking at notes. Reinforce the debugging workflow: check SA annotation, check pod env vars, check sts get-caller-identity, check CloudTrail.
                 </aside>
+            </section>
+
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="questions-slide" style="text-align: center;">
+                <h2>Questions?</h2>
+                <p>Review any concepts before moving on</p>
             </section>
 
             <!-- Lab Complete -->

@@ -256,20 +256,19 @@ eksctl utils associate-iam-oidc-provider \
             <!-- Slide 10: Trust Policy Anatomy -->
             <section>
                 <h2>&#128220; Trust Policy Anatomy</h2>
-                <p>The IAM role's trust policy determines <em>which</em> service accounts can assume it.</p>
                 <pre><code class="json">{
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:aws:iam::111122223333:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE"
+        "Federated": "arn:aws:iam::111122223333:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLEID"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE:aud": "sts.amazonaws.com",
-          "oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE:sub": "system:serviceaccount:my-namespace:my-sa"
+          "oidc.eks.us-east-1.amazonaws.com/id/EXAMPLEID:aud": "sts.amazonaws.com",
+          "oidc.eks.us-east-1.amazonaws.com/id/EXAMPLEID:sub": "system:serviceaccount:my-namespace:my-sa"
         }
       }
     }
@@ -280,7 +279,7 @@ eksctl utils associate-iam-oidc-provider \
                     <li class="fragment"><strong>:aud</strong> condition &mdash; must be <code>sts.amazonaws.com</code></li>
                     <li class="fragment"><strong>:sub</strong> condition &mdash; scoped to exact namespace:serviceaccount</li>
                 </ul>
-                <aside class="notes">This trust policy is the security boundary. The :sub condition is what makes IRSA fine-grained. Without it, any service account in the cluster could assume this role. Always scope to specific namespace and service account name.</aside>
+                <aside class="notes">The IAM role's trust policy determines which service accounts can assume it. This trust policy is the security boundary. The :sub condition is what makes IRSA fine-grained. Without it, any service account in the cluster could assume this role. Always scope to specific namespace and service account name.</aside>
             </section>
 
             <!-- Slide 11: Section - Implementing IRSA -->

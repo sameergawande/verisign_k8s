@@ -495,10 +495,7 @@ spec:
         resources:
           requests: { cpu: "250m", memory: "256Mi" }
           limits:   { cpu: "500m", memory: "512Mi" }</code></pre>
-                <div class="key-point fragment fade-up">
-                    <strong>Developer value:</strong> You declare <em>"I want 3 healthy copies of my app running at all times"</em> and Kubernetes makes it happen — and keeps it that way.
-                </div>
-                <aside class="notes">The Deployment is the workhorse resource for developers. Key things to note: replicas controls availability, the strategy section controls how updates happen (maxUnavailable: 0 means zero-downtime deploys), and the selector must match the pod template labels. The Deployment controller continuously reconciles actual state to desired state.</aside>
+                <aside class="notes">Developer value: You declare "I want 3 healthy copies of my app running at all times" and Kubernetes makes it happen — and keeps it that way. The Deployment is the workhorse resource for developers. Key things to note: replicas controls availability, the strategy section controls how updates happen (maxUnavailable: 0 means zero-downtime deploys), and the selector must match the pod template labels. The Deployment controller continuously reconciles actual state to desired state.</aside>
             </section>
 
             <!-- Services -->

@@ -335,14 +335,10 @@ nodeSelector:
                 <div class="two-columns">
                     <div>
                         <h3>Define in _helpers.tpl</h3>
-                        <pre><code class="language-yaml">{{/*
-Common labels for all resources
-*/}}
-{{- define "mychart.labels" -}}
+                        <pre><code class="language-yaml">{{- define "mychart.labels" -}}
 app.kubernetes.io/name: {{ .Chart.Name }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
 helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
 {{- end }}</code></pre>
                     </div>
@@ -353,12 +349,7 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}-app
   labels:
-    {{- include "mychart.labels" . | nindent 4 }}
-spec:
-  template:
-    metadata:
-      labels:
-        {{- include "mychart.labels" . | nindent 8 }}</code></pre>
+    {{- include "mychart.labels" . | nindent 4 }}</code></pre>
                     </div>
                 </div>
                 <div class="key-point fragment">
@@ -426,13 +417,10 @@ helm pull bitnami/postgresql --untar  # extract to directory</code></pre>
                 <aside class="notes">Repos are just HTTP servers hosting an index.yaml and packaged chart tarballs. Artifact Hub at artifacthub.io aggregates charts from many repositories. Always pin chart versions in production to avoid unexpected upgrades.</aside>
             </section>
 
-            <!-- Slide 18: helm template and helm lint -->
+            <!-- Slide 18: helm template -->
             <section>
-                <h2>Debugging &amp; Validation</h2>
-                <div class="two-columns">
-                    <div>
-                        <h3><code>helm template</code></h3>
-                        <pre><code class="language-bash"># Render templates locally
+                <h2>Debugging: <code>helm template</code></h2>
+                <pre><code class="language-bash"># Render templates locally
 helm template my-release ./mychart
 
 # Render with overrides
@@ -447,10 +435,16 @@ helm template my-release ./mychart \
 # Validate against K8s API
 helm template my-release ./mychart \
   --validate</code></pre>
-                    </div>
-                    <div>
-                        <h3><code>helm lint</code></h3>
-                        <pre><code class="language-bash"># Check chart for issues
+                <div class="highlight-box fragment">
+                    <strong>Best friend during development:</strong> Renders everything locally without touching the cluster. Use it in CI to catch errors early.
+                </div>
+                <aside class="notes">helm template is your best friend during development. It renders everything locally without touching the cluster. Use it in CI to catch errors early.</aside>
+            </section>
+
+            <!-- Slide 18b: helm lint -->
+            <section>
+                <h2>Validation: <code>helm lint</code></h2>
+                <pre><code class="language-bash"># Check chart for issues
 helm lint ./mychart
 
 # Lint with specific values
@@ -465,9 +459,10 @@ helm lint ./mychart --strict
 # [INFO] Chart.yaml: icon is recommended
 # [WARNING] templates/: directory not found
 # [ERROR] values.yaml: required field missing</code></pre>
-                    </div>
+                <div class="highlight-box fragment">
+                    <strong>Use in CI pipelines:</strong> <code>helm lint</code> checks for structural issues and best practice violations. Together with <code>helm template</code>, these form the first line of defense in a chart testing pipeline.
                 </div>
-                <aside class="notes">helm template is your best friend during development. It renders everything locally without touching the cluster. Use it in CI to catch errors early. helm lint checks for structural issues and best practice violations. Together these form the first line of defense in a chart testing pipeline.</aside>
+                <aside class="notes">helm lint checks for structural issues and best practice violations. Together with helm template, these form the first line of defense in a chart testing pipeline.</aside>
             </section>
 
             <!-- Slide 19: Release Management and History -->
@@ -501,7 +496,7 @@ helm get notes my-release         # NOTES.txt output</code></pre>
                 <aside class="notes">Let's move into advanced Helm features that you'll encounter in production charts and complex deployment scenarios.</aside>
             </section>
 
-            <!-- Slide 21: Hooks -->
+            <!-- Slide 21: Hooks — Example -->
             <section>
                 <h2>Helm Hooks</h2>
                 <p>Hooks run at specific points in the release lifecycle:</p>
@@ -522,7 +517,16 @@ spec:
           command: ["./migrate", "--apply"]
       restartPolicy: Never
 </code></pre>
-                <table class="fragment">
+                <div class="highlight-box fragment">
+                    <strong>Common use cases:</strong> Database migrations before upgrade, cache warming after install, cleanup jobs before delete.
+                </div>
+                <aside class="notes">Hooks are regular Kubernetes resources with special annotations. Hook-weight controls execution order when multiple hooks exist. Delete policies control whether hook resources are cleaned up automatically.</aside>
+            </section>
+
+            <!-- Slide 21b: Hooks — Reference Table -->
+            <section>
+                <h2>Helm Hook Types</h2>
+                <table>
                     <tr><th>Hook</th><th>When It Runs</th></tr>
                     <tr><td><code>pre-install</code></td><td>Before resources are created</td></tr>
                     <tr><td><code>post-install</code></td><td>After all resources are created</td></tr>
@@ -530,16 +534,17 @@ spec:
                     <tr><td><code>pre-rollback / post-rollback</code></td><td>Before/after rollback</td></tr>
                     <tr><td><code>pre-delete / post-delete</code></td><td>Before/after uninstall</td></tr>
                 </table>
-                <aside class="notes">Hooks are regular Kubernetes resources with special annotations. Common use cases: database migrations before upgrade, cache warming after install, cleanup jobs before delete. Hook-weight controls execution order when multiple hooks exist. Delete policies control whether hook resources are cleaned up automatically.</aside>
+                <div class="key-point fragment">
+                    <strong>hook-weight</strong> controls execution order when multiple hooks exist. <strong>hook-delete-policy</strong> controls whether hook resources are cleaned up automatically.
+                </div>
+                <aside class="notes">Hook-weight is an integer string that determines ordering. Lower weights run first. The delete policy options are: hook-succeeded (delete after success), hook-failed (delete after failure), and before-hook-creation (delete any existing hook resource before creating a new one).</aside>
             </section>
 
-            <!-- Slide 22: Dependencies and Subcharts -->
+            <!-- Slide 22: Declaring Dependencies -->
             <section>
-                <h2>Dependencies &amp; Subcharts</h2>
-                <div class="two-columns">
-                    <div>
-                        <h3>Chart.yaml</h3>
-                        <pre><code class="language-yaml">apiVersion: v2
+                <h2>Declaring Dependencies</h2>
+                <h4>Chart.yaml</h4>
+                <pre><code class="language-yaml">apiVersion: v2
 name: my-application
 version: 1.0.0
 dependencies:
@@ -552,18 +557,22 @@ dependencies:
     repository: "https://charts.bitnami.com/bitnami"
     condition: redis.enabled
     alias: cache</code></pre>
-                    </div>
-                    <div>
-                        <h3>Managing Dependencies</h3>
-                        <pre><code class="language-bash"># Download dependencies
+                <div class="highlight-box fragment">
+                    <strong>condition</strong> and <strong>tags</strong> let users enable/disable dependencies. Use <strong>alias</strong> to install the same chart multiple times with different configs.
+                </div>
+                <aside class="notes">Dependencies are declared in Chart.yaml. The Chart.lock file pins exact versions, similar to package-lock.json. The alias field is useful when you need two instances of the same chart, like two Redis instances.</aside>
+            </section>
+
+            <!-- Slide 22b: Managing Dependencies -->
+            <section>
+                <h2>Managing Dependencies</h2>
+                <pre><code class="language-bash"># Download dependencies
 helm dependency update ./mychart
 
 # List dependencies
-helm dependency list ./mychart
-
-# Override subchart values
-# in values.yaml:
-postgresql:
+helm dependency list ./mychart</code></pre>
+                <h4>Override subchart values in values.yaml:</h4>
+                <pre><code class="language-yaml">postgresql:
   enabled: true
   auth:
     username: myapp
@@ -571,25 +580,20 @@ postgresql:
 cache:  # uses alias
   enabled: true
   architecture: standalone</code></pre>
-                    </div>
-                </div>
                 <div class="highlight-box fragment">
-                    <strong>condition</strong> and <strong>tags</strong> let users enable/disable dependencies. Use <strong>alias</strong> to install the same chart multiple times with different configs.
+                    <strong>Subchart values are scoped</strong> under the dependency name (or alias) in the parent's <code>values.yaml</code>.
                 </div>
-                <aside class="notes">Dependencies are downloaded into the charts/ directory as .tgz files. The Chart.lock file pins exact versions, similar to package-lock.json. Subchart values are scoped under the dependency name in the parent's values.yaml. The alias field is useful when you need two instances of the same chart, like two Redis instances.</aside>
+                <aside class="notes">Dependencies are downloaded into the charts/ directory as .tgz files. Subchart values are scoped under the dependency name in the parent's values.yaml.</aside>
             </section>
 
-            <!-- Slide 23: Library Charts -->
+            <!-- Slide 23: Creating Library Charts -->
             <section>
-                <h2>Library Charts</h2>
+                <h2>Creating Library Charts</h2>
                 <div class="concept-box">
                     <h4>What are Library Charts?</h4>
                     <p>Charts that provide <strong>only named templates</strong> &mdash; no rendered manifests. They define common patterns shared across multiple application charts.</p>
                 </div>
-                <div class="two-columns fragment">
-                    <div>
-                        <h3>Library Chart</h3>
-                        <pre><code class="language-yaml"># Chart.yaml — type: library
+                <pre><code class="language-yaml"># Chart.yaml — type: library
 apiVersion: v2
 name: common-lib
 version: 1.0.0
@@ -604,10 +608,13 @@ metadata:
   labels:
     {{- include "common.labels" . | nindent 4 }}
 {{- end -}}</code></pre>
-                    </div>
-                    <div>
-                        <h3>Consumer Chart</h3>
-                        <pre><code class="language-yaml"># Chart.yaml dependency
+                <aside class="notes">Library charts are powerful for platform teams. You define standard deployment patterns once, and all application teams consume them. The type: library field in Chart.yaml is what distinguishes it from a regular application chart.</aside>
+            </section>
+
+            <!-- Slide 23b: Consuming Library Charts -->
+            <section>
+                <h2>Consuming Library Charts</h2>
+                <pre><code class="language-yaml"># Chart.yaml dependency
 dependencies:
   - name: common-lib
     version: "1.x"
@@ -615,17 +622,18 @@ dependencies:
 
 # templates/deployment.yaml
 {{- include "common.deployment" . }}</code></pre>
-                        <div class="highlight-box success" style="margin-top: 15px;">
-                            <strong>Use case:</strong> Enforce org-wide standards for labels, security contexts, and resource structures.
-                        </div>
-                    </div>
+                <div class="highlight-box success">
+                    <strong>Use case:</strong> Enforce org-wide standards for labels, security contexts, and resource structures across hundreds of microservices.
                 </div>
-                <aside class="notes">Library charts are powerful for platform teams. You define standard deployment patterns once, and all application teams consume them. This ensures consistency across hundreds of microservices. Bitnami's common chart is a well-known example. The type: library field in Chart.yaml is what distinguishes it from a regular application chart.</aside>
+                <div class="key-point fragment">
+                    <strong>Example:</strong> Bitnami's <code>common</code> chart is a well-known library chart that provides reusable templates for labels, names, and common Kubernetes patterns.
+                </div>
+                <aside class="notes">All application teams consume the library chart as a dependency. This ensures consistency across hundreds of microservices. Bitnami's common chart is a well-known example.</aside>
             </section>
 
-            <!-- Slide 24: Helm Testing -->
+            <!-- Slide 24: Helm Testing — Test Pod -->
             <section>
-                <h2>Helm Testing</h2>
+                <h2>Helm Testing: Test Definition</h2>
                 <pre><code class="language-yaml"># templates/tests/test-connection.yaml
 apiVersion: v1
 kind: Pod
@@ -640,7 +648,16 @@ spec:
       command: ['wget']
       args: ['{{ .Release.Name }}-svc:{{ .Values.service.port }}']
   restartPolicy: Never</code></pre>
-                <pre class="fragment"><code class="language-bash"># Run tests after install/upgrade
+                <div class="highlight-box">
+                    <strong>Helm tests</strong> are Pods with the <code>helm.sh/hook: test</code> annotation. They verify your release is functioning correctly after install or upgrade.
+                </div>
+                <aside class="notes">Helm tests are pods with the helm.sh/hook: test annotation. Tests can check connectivity, validate data, or run integration test suites.</aside>
+            </section>
+
+            <!-- Slide 24b: Helm Testing — Running Tests -->
+            <section>
+                <h2>Helm Testing: Running Tests</h2>
+                <pre><code class="language-bash"># Run tests after install/upgrade
 helm test my-release
 
 # Run tests with logs
@@ -654,7 +671,10 @@ helm test my-release --logs
 # Last Started:   Mon Mar 13 10:00:05 2026
 # Last Completed: Mon Mar 13 10:00:08 2026
 # Phase:          Succeeded</code></pre>
-                <aside class="notes">Helm tests are pods with the helm.sh/hook: test annotation. They run when you execute helm test and verify your release is functioning correctly. Tests can check connectivity, validate data, or run integration test suites. Include them in your CI/CD pipeline after every deployment.</aside>
+                <div class="key-point fragment">
+                    <strong>CI/CD integration:</strong> Include <code>helm test</code> in your pipeline after every deployment to catch issues before they reach users.
+                </div>
+                <aside class="notes">Include helm test in your CI/CD pipeline after every deployment. Tests run as pods in the cluster, so they can verify actual connectivity and functionality.</aside>
             </section>
 
             <!-- Slide 25: OCI Registry Support -->
@@ -741,13 +761,11 @@ helm show chart oci://registry.example.com/charts/mychart \
                 <aside class="notes">The helm create command generates a well-structured starting point. Template names should be prefixed with the chart name to avoid collisions when used as subcharts. Version separation between the chart and the app is critical - a chart template fix shouldn't require an app version bump.</aside>
             </section>
 
-            <!-- Slide 29: Values Schema Validation -->
+            <!-- Slide 29: Values Schema — JSON Schema -->
             <section>
-                <h2>Values Schema Validation</h2>
-                <div class="two-columns">
-                    <div>
-                        <h3>values.schema.json</h3>
-                        <pre><code class="language-json">{
+                <h2>Values Schema: JSON Schema</h2>
+                <h4>values.schema.json</h4>
+                <pre><code class="language-json">{
   "$schema": "https://json-schema.org/draft-07/schema#",
   "type": "object",
   "required": ["image", "service"],
@@ -767,22 +785,26 @@ helm show chart oci://registry.example.com/charts/mychart \
     }
   }
 }</code></pre>
-                    </div>
-                    <div>
-                        <h3>What It Provides</h3>
-                        <ul>
-                            <li class="fragment"><strong>Type checking</strong> &mdash; catch string vs number errors</li>
-                            <li class="fragment"><strong>Required fields</strong> &mdash; fail fast on missing values</li>
-                            <li class="fragment"><strong>Range validation</strong> &mdash; enforce min/max constraints</li>
-                            <li class="fragment"><strong>Enum validation</strong> &mdash; restrict to allowed values</li>
-                            <li class="fragment"><strong>Pattern matching</strong> &mdash; validate format (e.g., semver)</li>
-                        </ul>
-                        <div class="key-point fragment">
-                            <strong>Validated automatically</strong> during <code>helm install</code>, <code>helm upgrade</code>, <code>helm lint</code>, and <code>helm template</code>.
-                        </div>
-                    </div>
+                <div class="highlight-box fragment">
+                    <strong>Placement:</strong> Place <code>values.schema.json</code> at the chart root alongside <code>values.yaml</code>.
                 </div>
-                <aside class="notes">The values.schema.json file is placed at the chart root alongside values.yaml. Helm validates all supplied values against this schema before rendering templates. This catches configuration errors before they become runtime failures. It's especially valuable for charts consumed by other teams who may not know all the valid options.</aside>
+                <aside class="notes">The values.schema.json file is placed at the chart root alongside values.yaml. Helm validates all supplied values against this schema before rendering templates.</aside>
+            </section>
+
+            <!-- Slide 29b: Values Schema — Benefits -->
+            <section>
+                <h2>Values Schema: Validation Benefits</h2>
+                <ul>
+                    <li class="fragment"><strong>Type checking</strong> &mdash; catch string vs number errors</li>
+                    <li class="fragment"><strong>Required fields</strong> &mdash; fail fast on missing values</li>
+                    <li class="fragment"><strong>Range validation</strong> &mdash; enforce min/max constraints</li>
+                    <li class="fragment"><strong>Enum validation</strong> &mdash; restrict to allowed values</li>
+                    <li class="fragment"><strong>Pattern matching</strong> &mdash; validate format (e.g., semver)</li>
+                </ul>
+                <div class="key-point fragment">
+                    <strong>Validated automatically</strong> during <code>helm install</code>, <code>helm upgrade</code>, <code>helm lint</code>, and <code>helm template</code>. Catches configuration errors before they become runtime failures.
+                </div>
+                <aside class="notes">This catches configuration errors before they become runtime failures. It's especially valuable for charts consumed by other teams who may not know all the valid options.</aside>
             </section>
 
             <!-- Slide 30: Lab Callout -->

@@ -153,6 +153,11 @@
             color: var(--accent-color);
         }
 
+        .reveal ul, .reveal ol { margin-left: 0.5em; }
+        .reveal li { margin-bottom: 8px; line-height: 1.4; }
+        .reveal p { margin-bottom: 12px; line-height: 1.5; }
+        .small-text { font-size: 0.75em; }
+
         /* Lab Callout */
         .lab-callout h2 {
             color: #ffffff;
@@ -961,19 +966,16 @@ $ kubectl get pv
                     <div class="card">
                         <h4>StatefulSet Guarantees</h4>
                         <ul>
-                            <li><strong>Stable pod names</strong> &mdash; web-0, web-1, web-2</li>
-                            <li><strong>Stable DNS</strong> &mdash; pod-name.service.namespace</li>
+                            <li><strong>Stable names and DNS</strong> &mdash; web-0, web-1 with predictable DNS</li>
                             <li><strong>Ordered operations</strong> &mdash; create/delete in sequence</li>
-                            <li><strong>Per-replica storage</strong> &mdash; each pod gets its own PVC</li>
-                            <li><strong>PVC retention</strong> &mdash; data survives scale-down</li>
+                            <li><strong>Per-replica storage</strong> &mdash; each pod gets its own PVC, retained on scale-down</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>When to Use StatefulSets</h4>
                         <ul>
                             <li>Databases (PostgreSQL, MySQL, MongoDB)</li>
-                            <li>Message queues (Kafka, RabbitMQ)</li>
-                            <li>Distributed caches (Redis Cluster, Memcached)</li>
+                            <li>Message queues and distributed caches (Kafka, Redis Cluster)</li>
                             <li>Search engines (Elasticsearch)</li>
                             <li>Any workload needing stable identity</li>
                         </ul>
@@ -1013,6 +1015,11 @@ $ kubectl get pv
                 <aside class="notes">
                     Congratulations to all students on completing Lab 3. This lab covered the essential storage primitives and StatefulSet patterns that underpin all stateful workloads on the Verisign EKS platform. The skills practiced here apply directly to managing databases, caches, and other stateful services in production. Proceed to Lab 4 when ready.
                 </aside>
+            </section>
+
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="questions-slide" style="text-align: center;">
+                <h2>Questions?</h2>
+                <p>Review any storage concepts before moving on</p>
             </section>
 
         </div>

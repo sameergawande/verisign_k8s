@@ -153,6 +153,11 @@
             color: var(--accent-color);
         }
 
+        .reveal ul, .reveal ol { margin-left: 0.5em; }
+        .reveal li { margin-bottom: 8px; line-height: 1.4; }
+        .reveal p { margin-bottom: 12px; line-height: 1.5; }
+        .small-text { font-size: 0.75em; }
+
         /* Lab Callout */
         .lab-callout h2 {
             color: #ffffff;
@@ -299,17 +304,14 @@
                         <ul>
                             <li class="fragment">Deploy a multi-tier application</li>
                             <li class="fragment">Create ClusterIP, NodePort, and LoadBalancer Services</li>
-                            <li class="fragment">Test DNS-based service discovery</li>
-                            <li class="fragment">Examine Endpoints and EndpointSlices</li>
-                            <li class="fragment">Create a headless Service for direct pod access</li>
-                            <li class="fragment">Configure session affinity and multi-port Services</li>
+                            <li class="fragment">Test DNS-based service discovery and examine Endpoints</li>
+                            <li class="fragment">Configure headless Services, session affinity, and multi-port Services</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Prerequisites</h4>
                         <ul>
-                            <li>Access to the EKS cluster via <code>kubectl</code></li>
-                            <li>Completion of Labs 1&ndash;3</li>
+                            <li>Completion of Labs 1&ndash;3 with <code>kubectl</code> access</li>
                             <li>Familiarity with pods and deployments</li>
                         </ul>
                     </div>
@@ -1103,9 +1105,7 @@ $ kubectl get svc -n lab-services
                     <div class="card">
                         <h4>Service Discovery</h4>
                         <ul>
-                            <li><strong>DNS</strong> is the primary discovery mechanism</li>
-                            <li>Short names work within the same namespace</li>
-                            <li>FQDN format: <code>svc.ns.svc.cluster.local</code></li>
+                            <li><strong>DNS</strong> is the primary discovery mechanism (short names and FQDN)</li>
                             <li>SRV records provide port discovery</li>
                             <li>Endpoints track ready pod IPs dynamically</li>
                         </ul>
@@ -1114,8 +1114,7 @@ $ kubectl get svc -n lab-services
                         <h4>Advanced Features</h4>
                         <ul>
                             <li><strong>Session Affinity</strong> &mdash; ClientIP-based sticky sessions</li>
-                            <li><strong>Multi-Port</strong> &mdash; Multiple ports on one Service</li>
-                            <li><strong>Headless</strong> &mdash; Direct pod IP discovery</li>
+                            <li><strong>Multi-Port and Headless</strong> &mdash; Multiple ports or direct pod IP discovery</li>
                             <li><strong>EndpointSlices</strong> &mdash; Scalable endpoint tracking</li>
                             <li><strong>AWS NLB</strong> &mdash; Production external access</li>
                         </ul>
@@ -1155,6 +1154,11 @@ $ kubectl get svc -n lab-services
                 <aside class="notes">
                     Congratulations to all students on completing Lab 4. This lab covered the essential networking and service discovery patterns that underpin all microservice communication on the Verisign EKS platform. The Service type comparison table is a key reference to keep handy. Proceed to Lab 5 when ready.
                 </aside>
+            </section>
+
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="questions-slide" style="text-align: center;">
+                <h2>Questions?</h2>
+                <p>Review any service discovery concepts before moving on</p>
             </section>
 
         </div>

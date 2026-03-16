@@ -153,6 +153,14 @@
             color: var(--accent-color);
         }
 
+        .reveal pre code {
+            font-size: 0.65em;
+            max-height: 450px;
+            overflow-y: auto;
+            line-height: 1.4;
+            border-radius: 8px;
+        }
+
         /* Lab Callout */
         .lab-callout h2 {
             color: #ffffff;
@@ -950,8 +958,7 @@ $ kubectl get all -n default -l app.kubernetes.io/instance=lab-nginx
                     <div class="card">
                         <h4>CRDs You Created</h4>
                         <ul>
-                            <li><strong>GitRepository</strong> &mdash; Fetched artifacts from a Git repo</li>
-                            <li><strong>HelmRepository</strong> &mdash; Indexed a Helm chart registry</li>
+                            <li><strong>GitRepository / HelmRepository</strong> &mdash; Source definitions</li>
                             <li><strong>Kustomization</strong> &mdash; Applied manifests with pruning and health checks</li>
                             <li><strong>HelmRelease</strong> &mdash; Managed a Helm chart lifecycle</li>
                         </ul>
@@ -960,10 +967,8 @@ $ kubectl get all -n default -l app.kubernetes.io/instance=lab-nginx
                         <h4>Reconciliation Flow</h4>
                         <ol>
                             <li>Source fetches artifact from external system</li>
-                            <li>Controller detects new/changed artifact</li>
                             <li>Controller builds and applies manifests</li>
-                            <li>Controller verifies health checks</li>
-                            <li>Controller reports Ready (or error) status</li>
+                            <li>Controller verifies health checks and reports status</li>
                             <li>Dependents begin their reconciliation</li>
                         </ol>
                     </div>
@@ -974,6 +979,11 @@ $ kubectl get all -n default -l app.kubernetes.io/instance=lab-nginx
                 <aside class="notes">
                     This summary reinforces the two most important concepts from the lab: the CRDs that define the desired state, and the reconciliation flow that converges actual state to desired state. The key point at the bottom is the single most important takeaway for developers working with GitOps on the Verisign platform.
                 </aside>
+            </section>
+
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="questions-slide" style="text-align: center;">
+                <h2>Questions?</h2>
+                <p>Review any concepts before moving on</p>
             </section>
 
             <!-- Lab Complete -->

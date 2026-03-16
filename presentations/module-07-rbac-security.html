@@ -840,7 +840,51 @@ containers:
                 <aside class="notes">This lab covers the full RBAC workflow: creating roles, binding them, and testing with impersonation. Students will also apply security contexts and see Pod Security Admission in action. Common issues: forgetting to specify the namespace in RoleBindings, and using the wrong apiGroup in subjects. Circulate and help with RBAC debugging — kubectl auth can-i is the key diagnostic tool.</aside>
             </section>
 
-            <!-- Slide 30: Questions -->
+            <!-- Module Summary -->
+            <section>
+                <h2>&#128218; Module 7 Summary</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>RBAC Essentials</h4>
+                        <ul>
+                            <li>Roles and ClusterRoles define permissions on resources</li>
+                            <li>RoleBindings and ClusterRoleBindings grant those permissions to subjects</li>
+                            <li>ServiceAccounts provide identity for pods</li>
+                            <li>Verbs (get, list, create, delete) control the allowed actions</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Security Hardening</h4>
+                        <ul>
+                            <li>securityContext enforces non-root, read-only root FS, and dropped capabilities</li>
+                            <li>Pod Security Standards (baseline, restricted) replace deprecated PSPs</li>
+                            <li>Audit logging tracks who did what and when</li>
+                            <li>Image security ensures only trusted, scanned images are deployed</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">This summary ties together the two major themes of this module: RBAC for authorization and security hardening for defense in depth. Both are essential for production clusters.</aside>
+            </section>
+
+            <!-- Key Takeaways -->
+            <section>
+                <h2>&#127919; Key Takeaways</h2>
+                <div class="key-point fragment fade-up">
+                    <strong>Least Privilege:</strong> Grant only the minimum permissions needed. Start with no access and add permissions as required.
+                </div>
+                <div class="key-point fragment fade-up">
+                    <strong>PSS Restricted Profile:</strong> Use the restricted Pod Security Standard for all production namespaces to enforce non-root, read-only FS, and no privilege escalation.
+                </div>
+                <div class="key-point fragment fade-up">
+                    <strong>IRSA for Pod Identity:</strong> Use IAM Roles for Service Accounts to give pods scoped AWS access without sharing static credentials.
+                </div>
+                <div class="key-point fragment fade-up">
+                    <strong>Audit Logging:</strong> Enable Kubernetes audit logging and forward to your SIEM to detect unauthorized access and policy violations.
+                </div>
+                <aside class="notes">These four takeaways represent the highest-impact security practices. Least privilege applies to both RBAC and IAM. PSS restricted is the new standard replacing PSPs. IRSA eliminates the need for long-lived AWS credentials. Audit logging is essential for compliance and incident response.</aside>
+            </section>
+
+            <!-- Slide 32: Questions -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="questions-slide" style="text-align: center;">
                 <h2>&#10067; Questions &amp; Discussion</h2>
                 <p>How does your team currently manage access control in your Kubernetes clusters?</p>

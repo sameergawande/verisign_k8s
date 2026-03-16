@@ -319,11 +319,9 @@
                         <h4>What You'll Learn</h4>
                         <ul>
                             <li class="fragment">Container log collection and analysis</li>
-                            <li class="fragment">Metrics Server and resource monitoring</li>
                             <li class="fragment">Prometheus metrics and PromQL queries</li>
                             <li class="fragment">Grafana dashboards for visualization</li>
                             <li class="fragment">Custom alerting rules</li>
-                            <li class="fragment">Systematic debugging with observability tools</li>
                         </ul>
                     </div>
                     <div class="card">
@@ -332,7 +330,6 @@
                             <li><strong>Duration:</strong> ~45 minutes</li>
                             <li><strong>Difficulty:</strong> Intermediate</li>
                             <li><strong>Prerequisites:</strong> Labs 1-8</li>
-                            <li><strong>Namespace:</strong> observability-lab</li>
                         </ul>
                         <div class="highlight-box warning" style="margin-top: 15px;">
                             <strong>&#x26A0;&#xFE0F; Note:</strong> Some steps require metrics-server. Verify it is running before you begin.
@@ -499,11 +496,8 @@ spec:
           sleep 1; i=$((i+1)); done']
 EOF
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected:</strong> Deployment creates 2 replicas producing structured JSON log lines.
-                </div>
                 <aside class="notes">
-                    JSON logging is the gold standard for production because it enables automated parsing, filtering, and aggregation. Tools like Fluentd, Fluent Bit, and Loki can ingest these directly.
+                    Expected: Deployment creates 2 replicas producing structured JSON log lines. JSON logging is the gold standard for production because it enables automated parsing, filtering, and aggregation. Tools like Fluentd, Fluent Bit, and Loki can ingest these directly.
                 </aside>
             </section>
 
@@ -544,20 +538,17 @@ kubectl logs -l app=json-logger --tail=10
                         <h4>&#x2705; Good Practices</h4>
                         <ul>
                             <li class="fragment">Structured JSON format</li>
-                            <li class="fragment">Include correlation IDs</li>
                             <li class="fragment">Log to stdout/stderr</li>
                             <li class="fragment">Use consistent log levels</li>
-                            <li class="fragment">Include timestamps in UTC</li>
+                            <li class="fragment">Include correlation IDs and timestamps</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>&#x274C; Anti-Patterns</h4>
                         <ul>
                             <li class="fragment">Writing logs to files inside containers</li>
-                            <li class="fragment">Unstructured multi-line stack traces</li>
                             <li class="fragment">Logging sensitive data (tokens, passwords)</li>
                             <li class="fragment">Excessive DEBUG logging in production</li>
-                            <li class="fragment">Missing context (no request IDs)</li>
                         </ul>
                     </div>
                 </div>
@@ -1039,11 +1030,8 @@ spec:
         # ... resource requests/limits omitted for brevity
 EOF
                 </code></pre>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0;&#xFE0F; Expected:</strong> This app will crash and enter CrashLoopBackOff after a few iterations. That is intentional!
-                </div>
                 <aside class="notes">
-                    The app simulates an OOM-like crash. Students will use the systematic debugging approach to diagnose it.
+                    Expected: This app will crash and enter CrashLoopBackOff after a few iterations. That is intentional! The app simulates an OOM-like crash. Students will use the systematic debugging approach to diagnose it.
                 </aside>
             </section>
 

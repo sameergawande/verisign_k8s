@@ -153,6 +153,11 @@
             color: var(--accent-color);
         }
 
+        .reveal ul, .reveal ol { margin-left: 0.5em; }
+        .reveal li { margin-bottom: 8px; line-height: 1.4; }
+        .reveal p { margin-bottom: 12px; line-height: 1.5; }
+        .small-text { font-size: 0.75em; }
+
         /* Lab Callout */
         .lab-callout h2 {
             color: #ffffff;
@@ -297,21 +302,17 @@
                     <div class="card">
                         <h4>What You Will Do</h4>
                         <ul>
-                            <li class="fragment">Verify the Ingress controller</li>
-                            <li class="fragment">Deploy sample apps with ClusterIP services</li>
-                            <li class="fragment">Configure host-based and path-based routing</li>
-                            <li class="fragment">Set up TLS termination</li>
+                            <li class="fragment">Verify the Ingress controller and deploy sample apps</li>
+                            <li class="fragment">Configure host-based and path-based routing with TLS</li>
                             <li class="fragment">Explore Ingress annotations</li>
-                            <li class="fragment">Deploy Gateway API resources</li>
-                            <li class="fragment">Create HTTPRoute for traffic splitting</li>
+                            <li class="fragment">Deploy Gateway API resources with HTTPRoute traffic splitting</li>
                             <li class="fragment">Configure egress NetworkPolicies</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Prerequisites</h4>
                         <ul>
-                            <li>Access to the EKS cluster via <code>kubectl</code></li>
-                            <li>Completion of Labs 1&ndash;5</li>
+                            <li>Completion of Labs 1&ndash;5 with <code>kubectl</code> access</li>
                             <li>Ingress controller installed (NGINX or AWS ALB)</li>
                         </ul>
                         <div class="highlight-box" style="margin-top: 15px;">
@@ -1113,32 +1114,26 @@ $ rm -f app-v1.yaml app-v2.yaml ingress-host.yaml ingress-path.yaml \
 
             <section>
                 <h2>&#127891; Lab Summary</h2>
-                <div class="three-columns">
+                <div class="two-columns">
                     <div class="card">
                         <h4>Ingress</h4>
                         <ul class="takeaway-list">
-                            <li class="fragment">&#9989; Host-based routing</li>
-                            <li class="fragment">&#9989; Path-based routing</li>
+                            <li class="fragment">&#9989; Host-based and path-based routing</li>
                             <li class="fragment">&#9989; TLS termination</li>
                             <li class="fragment">&#9989; Controller annotations</li>
+                        </ul>
+                        <h4 style="margin-top: 10px;">Egress Controls</h4>
+                        <ul class="takeaway-list">
+                            <li class="fragment">&#9989; NetworkPolicy egress rules with DNS exceptions</li>
+                            <li class="fragment">&#9989; Namespace-scoped restrictions (CNI required)</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Gateway API</h4>
                         <ul class="takeaway-list">
                             <li class="fragment">&#9989; Role-based separation</li>
-                            <li class="fragment">&#9989; Native traffic splitting</li>
-                            <li class="fragment">&#9989; HTTPRoute resources</li>
+                            <li class="fragment">&#9989; Native traffic splitting via HTTPRoute</li>
                             <li class="fragment">&#9989; Portable across controllers</li>
-                        </ul>
-                    </div>
-                    <div class="card">
-                        <h4>Egress Controls</h4>
-                        <ul class="takeaway-list">
-                            <li class="fragment">&#9989; NetworkPolicy egress rules</li>
-                            <li class="fragment">&#9989; DNS exception pattern</li>
-                            <li class="fragment">&#9989; Namespace-scoped restrictions</li>
-                            <li class="fragment">&#9989; CNI requirements</li>
                         </ul>
                     </div>
                 </div>

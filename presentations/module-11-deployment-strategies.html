@@ -244,14 +244,13 @@ kubectl annotate deployment/api-server \
                     <h4>Core Principle</h4>
                     <p>Run two identical environments in parallel. Route all traffic to one (blue). Deploy changes to the other (green). Switch traffic atomically when ready.</p>
                 </div>
-                <div class="three-columns fragment fade-up">
+                <div class="two-columns fragment fade-up">
                     <div class="card">
                         <h4>&#9989; Advantages</h4>
                         <ul>
                             <li>Instant rollback (switch back)</li>
                             <li>No mixed versions serving</li>
                             <li>Full pre-flight testing</li>
-                            <li>Simple mental model</li>
                         </ul>
                     </div>
                     <div class="card">
@@ -259,30 +258,21 @@ kubectl annotate deployment/api-server \
                         <ul>
                             <li>2x resource cost during deploy</li>
                             <li>Database compatibility required</li>
-                            <li>Long-running connections drop</li>
                             <li>Session state must be external</li>
                         </ul>
                     </div>
-                    <div class="card">
-                        <h4>&#127919; Best For</h4>
-                        <ul>
-                            <li>Critical production services</li>
-                            <li>Compliance-heavy environments</li>
-                            <li>APIs with strict SLAs</li>
-                            <li>When rollback speed is paramount</li>
-                        </ul>
-                    </div>
+                </div>
+                <div class="highlight-box fragment fade-up">
+                    <strong>Best for:</strong> Critical production services, compliance-heavy environments, APIs with strict SLAs, and when rollback speed is paramount.
                 </div>
                 <aside class="notes">Blue-green is the simplest deployment strategy to reason about. The trade-off is resource cost — you need capacity for two full copies of the application simultaneously. For Verisign's DNS-critical services, the instant rollback capability can justify the extra cost. The database challenge applies here too: both blue and green must work with the same database schema.</aside>
             </section>
 
-            <!-- Slide 10: Blue-Green with Service Label Switching -->
+            <!-- Slide 10: Blue-Green — Blue Deployment -->
             <section>
-                <h2>&#128280; Blue-Green via Service Label Switching</h2>
-                <div class="two-columns">
-                    <div>
-                        <h4>Blue Deployment (current)</h4>
-                        <pre><code class="language-yaml">apiVersion: apps/v1
+                <h2>&#128280; Blue-Green: Deployment Setup</h2>
+                <h4>Blue Deployment (current)</h4>
+                <pre><code class="language-yaml">apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api-blue
@@ -298,10 +288,17 @@ spec:
         app: api-server
         slot: blue
         version: v2.0.0</code></pre>
-                    </div>
-                    <div>
-                        <h4>Service (the switch)</h4>
-                        <pre><code class="language-yaml">apiVersion: v1
+                <div class="highlight-box">
+                    <strong>Pattern:</strong> Both blue and green Deployments share the <code>app: api-server</code> label. The <code>slot</code> label differentiates them for the Service selector.
+                </div>
+                <aside class="notes">This is the simplest blue-green implementation. You create two identical Deployments, each with a different slot label (blue or green). The green Deployment is deployed and validated beforehand.</aside>
+            </section>
+
+            <!-- Slide 10b: Blue-Green — Service Switch -->
+            <section>
+                <h2>&#128280; Blue-Green: Service Label Switching</h2>
+                <h4>Service (the traffic switch)</h4>
+                <pre><code class="language-yaml">apiVersion: v1
 kind: Service
 metadata:
   name: api-server
@@ -312,17 +309,14 @@ spec:
   ports:
     - port: 80
       targetPort: 8080</code></pre>
-                        <pre><code class="language-bash"># Atomic cutover
+                <pre><code class="language-bash"># Atomic cutover
 kubectl patch svc api-server \
-  -p '{"spec":{"selector":
-  {"slot":"green"}}}' \
+  -p '{"spec":{"selector":{"slot":"green"}}}' \
   -n production</code></pre>
-                    </div>
-                </div>
                 <div class="key-point fragment fade-up">
                     <strong>Atomic switch:</strong> Changing the Service selector instantly redirects all new connections to green pods. Existing connections to blue pods drain naturally.
                 </div>
-                <aside class="notes">This is the simplest blue-green implementation. The Service acts as the traffic switch — patching its selector from blue to green redirects all traffic. The green Deployment is deployed and validated beforehand. To roll back, patch the selector back to blue. Both Deployments remain running until you're confident in the new version.</aside>
+                <aside class="notes">The Service acts as the traffic switch — patching its selector from blue to green redirects all traffic. To roll back, patch the selector back to blue. Both Deployments remain running until you're confident in the new version.</aside>
             </section>
 
             <!-- Slide 11: Blue-Green with Ingress / Gateway API -->
@@ -375,7 +369,6 @@ spec:
                             <li><strong>Step 2:</strong> Observe error rates, latency</li>
                             <li><strong>Step 3:</strong> Promote to 25%, then 50%</li>
                             <li><strong>Step 4:</strong> Full promotion to 100%</li>
-                            <li><strong>Abort:</strong> Route 100% back to stable</li>
                         </ul>
                     </div>
                     <div class="card">
@@ -383,7 +376,6 @@ spec:
                         <ul>
                             <li>HTTP error rate (5xx responses)</li>
                             <li>Request latency (p50, p95, p99)</li>
-                            <li>Application-specific health checks</li>
                             <li>Resource consumption (CPU, memory)</li>
                             <li>Business metrics (conversion, throughput)</li>
                         </ul>
@@ -392,13 +384,11 @@ spec:
                 <aside class="notes">The canary pattern is about controlled risk. Instead of exposing all users to a new version at once, you start with a small percentage and watch closely. The key is having good observability — you need real-time metrics to make promotion or rollback decisions. Without metrics, canary deployments are just slow rolling updates.</aside>
             </section>
 
-            <!-- Slide 14: Manual Canary with Multiple Deployments -->
+            <!-- Slide 14: Manual Canary — Stable Deployment -->
             <section>
-                <h2>&#128295; Manual Canary with Multiple Deployments</h2>
-                <div class="two-columns">
-                    <div>
-                        <h4>Stable (4 replicas)</h4>
-                        <pre><code class="language-yaml">apiVersion: apps/v1
+                <h2>&#128295; Manual Canary: Stable Deployment</h2>
+                <h4>Stable (4 replicas)</h4>
+                <pre><code class="language-yaml">apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api-stable
@@ -413,10 +403,17 @@ spec:
       labels:
         app: api-server
         track: stable</code></pre>
-                    </div>
-                    <div>
-                        <h4>Canary (1 replica)</h4>
-                        <pre><code class="language-yaml">apiVersion: apps/v1
+                <div class="highlight-box">
+                    <strong>The Service selects on <code>app: api-server</code></strong>, which matches both stable and canary pods. Traffic is split proportionally by pod count.
+                </div>
+                <aside class="notes">The simplest canary approach uses two Deployments behind one Service. The Service selects on app: api-server, which matches both stable and canary pods. To promote, scale up canary and scale down stable. To abort, delete the canary Deployment.</aside>
+            </section>
+
+            <!-- Slide 14b: Manual Canary — Canary Deployment -->
+            <section>
+                <h2>&#128295; Manual Canary: Canary Deployment</h2>
+                <h4>Canary (1 replica)</h4>
+                <pre><code class="language-yaml">apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api-canary
@@ -431,12 +428,10 @@ spec:
       labels:
         app: api-server
         track: canary</code></pre>
-                    </div>
-                </div>
                 <div class="highlight-box warning fragment fade-up">
                     <strong>Limitation:</strong> Traffic split is tied to pod ratio (1/5 = 20%). For finer-grained control (e.g., 5%), you need ingress-level traffic splitting.
                 </div>
-                <aside class="notes">The simplest canary approach uses two Deployments behind one Service. The Service selects on app: api-server, which matches both stable and canary pods. Traffic split is proportional to pod count — with 4 stable and 1 canary, about 20% goes to the canary. This is crude but works without any extra tooling. To promote, scale up canary and scale down stable. To abort, delete the canary Deployment.</aside>
+                <aside class="notes">Traffic split is proportional to pod count — with 4 stable and 1 canary, about 20% goes to the canary. This is crude but works without any extra tooling.</aside>
             </section>
 
             <!-- Slide 15: Canary with Ingress Annotations -->
@@ -466,13 +461,10 @@ spec:
                 <aside class="notes">NGINX Ingress Controller supports canary annotations natively. The canary-weight annotation sends a precise percentage of traffic to the canary backend. You can also use canary-by-header to route specific users or canary-by-cookie for session-based routing. This gives much finer control than pod-ratio canaries — you can send just 1% of traffic to the canary regardless of replica count.</aside>
             </section>
 
-            <!-- Slide 16: Progressive Delivery with Flagger / Argo Rollouts -->
+            <!-- Slide 16: Progressive Delivery — Argo Rollouts -->
             <section>
-                <h2>&#128640; Progressive Delivery Tooling</h2>
-                <div class="two-columns">
-                    <div class="card">
-                        <h4>Argo Rollouts</h4>
-                        <pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
+                <h2>&#128640; Progressive Delivery: Argo Rollouts</h2>
+                <pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   name: api-server
@@ -489,10 +481,16 @@ spec:
         - setWeight: 100
       canaryService: api-canary
       stableService: api-stable</code></pre>
-                    </div>
-                    <div class="card">
-                        <h4>Flagger</h4>
-                        <pre><code class="language-yaml">apiVersion: flagger.app/v1beta1
+                <div class="highlight-box">
+                    <strong>Argo Rollouts</strong> replaces Deployments with a custom <code>Rollout</code> CRD. It provides built-in canary steps, analysis templates, and service mesh integration.
+                </div>
+                <aside class="notes">Argo Rollouts provides a custom Rollout resource with built-in canary steps, analysis templates, and integration with various service meshes. It integrates with Prometheus for metric-driven promotion decisions.</aside>
+            </section>
+
+            <!-- Slide 16b: Progressive Delivery — Flagger -->
+            <section>
+                <h2>&#128640; Progressive Delivery: Flagger</h2>
+                <pre><code class="language-yaml">apiVersion: flagger.app/v1beta1
 kind: Canary
 metadata:
   name: api-server
@@ -511,12 +509,10 @@ spec:
     metrics:
       - name: request-success-rate
         threshold: 99</code></pre>
-                    </div>
-                </div>
                 <div class="key-point fragment fade-up">
-                    <strong>Key difference:</strong> Argo Rollouts replaces Deployments with a Rollout CRD. Flagger wraps existing Deployments and automates canary analysis.
+                    <strong>Key difference:</strong> Flagger wraps <em>existing</em> Deployments and automates canary analysis based on metrics. No CRD replacement needed.
                 </div>
-                <aside class="notes">Both tools automate the canary progression. Argo Rollouts provides a custom Rollout resource with built-in canary steps, analysis templates, and integration with various service meshes. Flagger takes a different approach — it watches standard Deployments and automatically manages canary progression based on metrics. Both integrate with Prometheus for metric-driven promotion decisions.</aside>
+                <aside class="notes">Flagger takes a different approach from Argo Rollouts — it watches standard Deployments and automatically manages canary progression based on metrics. Both tools integrate with Prometheus for metric-driven promotion decisions.</aside>
             </section>
 
             <!-- Slide 17: Section — Advanced Strategies -->

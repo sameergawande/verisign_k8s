@@ -318,11 +318,9 @@
                     <div class="card">
                         <h4>What You'll Learn</h4>
                         <ul>
-                            <li class="fragment">Why probes matter for reliability</li>
                             <li class="fragment">HTTP, TCP, and exec liveness probes</li>
                             <li class="fragment">Readiness probes and endpoint management</li>
                             <li class="fragment">Startup probes for slow-starting apps</li>
-                            <li class="fragment">Probe parameter tuning</li>
                             <li class="fragment">Graceful shutdown and Pod Disruption Budgets</li>
                         </ul>
                     </div>
@@ -332,7 +330,6 @@
                             <li><strong>Duration:</strong> ~40 minutes</li>
                             <li><strong>Difficulty:</strong> Intermediate</li>
                             <li><strong>Prerequisites:</strong> Labs 1-9</li>
-                            <li><strong>Namespace:</strong> probes-lab</li>
                         </ul>
                         <div class="highlight-box" style="margin-top: 15px;">
                             <strong>&#x1F4A1; Context:</strong> Probes tie directly into the observability skills from Lab 9 &mdash; they generate events and metrics you can monitor.
@@ -489,17 +486,8 @@ spec:
           failureThreshold: 3
 EOF
                 </code></pre>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; Probe Parameters:</strong>
-                    <ul>
-                        <li><code>initialDelaySeconds: 5</code> &mdash; Wait 5s before first probe</li>
-                        <li><code>periodSeconds: 10</code> &mdash; Check every 10 seconds</li>
-                        <li><code>failureThreshold: 3</code> &mdash; 3 consecutive failures to declare unhealthy</li>
-                        <li><code>timeoutSeconds: 2</code> &mdash; Probe must respond within 2 seconds</li>
-                    </ul>
-                </div>
                 <aside class="notes">
-                    The kubelet sends an HTTP GET request. Any status code between 200 and 399 counts as success. 400+ or a timeout counts as failure.
+                    Probe Parameters: initialDelaySeconds: 5 (wait 5s before first probe), periodSeconds: 10 (check every 10s), failureThreshold: 3 (3 consecutive failures to declare unhealthy), timeoutSeconds: 2 (probe must respond within 2s). The kubelet sends an HTTP GET request. Any status code between 200 and 399 counts as success. 400+ or a timeout counts as failure.
                 </aside>
             </section>
 
@@ -806,16 +794,8 @@ cat &lt;&lt;'EOF' | kubectl apply -f -
           successThreshold: 3    # Must pass 3x to be ready
 EOF
                 </code></pre>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; Analysis:</strong>
-                    <ul>
-                        <li>Liveness detection time: 5s &times; 2 = <strong>10 seconds</strong></li>
-                        <li>Readiness detection time: 3s &times; 2 = <strong>6 seconds</strong></li>
-                        <li>Readiness recovery time: 3s &times; 3 = <strong>9 seconds</strong> (higher successThreshold)</li>
-                    </ul>
-                </div>
                 <aside class="notes">
-                    Faster probes catch failures quicker but increase kubelet overhead. For most workloads, checking every 5-10 seconds is sufficient.
+                    Analysis: Liveness detection time: 5s x 2 = 10 seconds. Readiness detection time: 3s x 2 = 6 seconds. Readiness recovery time: 3s x 3 = 9 seconds (higher successThreshold). Faster probes catch failures quicker but increase kubelet overhead. For most workloads, checking every 5-10 seconds is sufficient.
                 </aside>
             </section>
 
@@ -922,11 +902,8 @@ spec:
           failureThreshold: 3
 EOF
                 </code></pre>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; How It Works:</strong> The probe runs <code>cat /tmp/healthy</code> inside the container. Exit code 0 = success, non-zero = failure.
-                </div>
                 <aside class="notes">
-                    File-based health checks are a simple pattern. The application creates a sentinel file to indicate health and removes it when unhealthy. The exec probe checks for the file's existence.
+                    How It Works: The probe runs cat /tmp/healthy inside the container. Exit code 0 = success, non-zero = failure. File-based health checks are a simple pattern. The application creates a sentinel file to indicate health and removes it when unhealthy. The exec probe checks for the file's existence.
                 </aside>
             </section>
 
@@ -1061,16 +1038,8 @@ spec:
     matchLabels: { app: pdb-app }
 EOF
                 </code></pre>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; PDB Options:</strong>
-                    <ul>
-                        <li><code>minAvailable: 2</code> &mdash; At least 2 pods must remain available</li>
-                        <li><code>maxUnavailable: 1</code> &mdash; At most 1 pod can be unavailable (alternative syntax)</li>
-                        <li>Can use absolute numbers or percentages (e.g., <code>"50%"</code>)</li>
-                    </ul>
-                </div>
                 <aside class="notes">
-                    PDBs are respected by voluntary disruption operations like kubectl drain and cluster autoscaler. They are NOT respected by involuntary disruptions like node hardware failures.
+                    PDB Options: minAvailable: 2 (at least 2 pods must remain available), maxUnavailable: 1 (at most 1 pod can be unavailable, alternative syntax). Can use absolute numbers or percentages (e.g., "50%"). PDBs are respected by voluntary disruption operations like kubectl drain and cluster autoscaler. They are NOT respected by involuntary disruptions like node hardware failures.
                 </aside>
             </section>
 

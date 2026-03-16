@@ -466,13 +466,24 @@ spec:
                 <aside class="notes">Exec probes give you complete flexibility — you can run any command or script inside the container. The example checks both that a file exists and that it was modified within the last minute, which is a common pattern where the application touches a file periodically to signal health. Be aware that exec probes spawn a process each time, so setting periodSeconds too low can cause PID exhaustion in containers with low PID limits.</aside>
             </section>
 
-            <!-- Slide 17: gRPC Probes -->
+            <!-- Slide 17: gRPC Probes — Concept -->
             <section>
                 <h2>&#128752; gRPC Probes</h2>
                 <div class="concept-box">
                     <h4>Native gRPC Health Checking (Kubernetes 1.24+)</h4>
                     <p>Kubernetes can natively call the <strong>gRPC Health Checking Protocol</strong> without needing a sidecar or exec workaround.</p>
                 </div>
+                <ul>
+                    <li class="fragment fade-up"><strong>service:</strong> Optional &mdash; specifies which gRPC service to check (empty = overall status)</li>
+                    <li class="fragment fade-up">App must implement the <code>grpc.health.v1.Health</code> service</li>
+                    <li class="fragment fade-up">Returns <code>SERVING</code>, <code>NOT_SERVING</code>, or <code>UNKNOWN</code></li>
+                </ul>
+                <aside class="notes">gRPC probes are a relatively recent addition to Kubernetes. Before this feature, you had to use exec probes with grpc_health_probe or a sidecar container. Now Kubernetes natively speaks the gRPC health protocol. Your application just needs to implement the standard grpc.health.v1.Health service interface.</aside>
+            </section>
+
+            <!-- Slide 17b: gRPC Probes — Configuration -->
+            <section>
+                <h2>&#128752; gRPC Probe Configuration</h2>
                 <pre><code class="language-yaml">spec:
   containers:
   - name: grpc-service
@@ -490,12 +501,10 @@ spec:
         port: 50051
       initialDelaySeconds: 5
       periodSeconds: 5</code></pre>
-                <ul>
-                    <li class="fragment fade-up"><strong>service:</strong> Optional &mdash; specifies which gRPC service to check (empty = overall status)</li>
-                    <li class="fragment fade-up">App must implement the <code>grpc.health.v1.Health</code> service</li>
-                    <li class="fragment fade-up">Returns <code>SERVING</code>, <code>NOT_SERVING</code>, or <code>UNKNOWN</code></li>
-                </ul>
-                <aside class="notes">gRPC probes are a relatively recent addition to Kubernetes. Before this feature, you had to use exec probes with grpc_health_probe or a sidecar container. Now Kubernetes natively speaks the gRPC health protocol. Your application just needs to implement the standard grpc.health.v1.Health service interface. The optional service field lets you check specific services within a multi-service gRPC server.</aside>
+                <div class="highlight-box">
+                    <strong>Tip:</strong> The optional <code>service</code> field lets you check specific services within a multi-service gRPC server.
+                </div>
+                <aside class="notes">This example shows both liveness and readiness gRPC probes. The liveness probe checks a specific service named "myservice", while the readiness probe checks the overall server status by omitting the service field.</aside>
             </section>
 
             <!-- Slide 18: Section — Probe Best Practices -->
@@ -601,13 +610,11 @@ spec:
                 <aside class="notes">This is a production-ready configuration for a typical web application. The startup probe gives 150 seconds for initialization — enough for dependency injection and cache warming. Liveness checks a lightweight internal endpoint every 10 seconds. Readiness uses a separate endpoint that verifies downstream services, and requires 2 consecutive successes before adding the pod back to the Service, preventing flapping.</aside>
             </section>
 
-            <!-- Slide 22: Real-World Examples — Microservice and Database Sidecar -->
+            <!-- Slide 22: Real-World Examples — Microservice Probes -->
             <section>
-                <h2>&#128640; Real-World: Microservice &amp; Sidecar</h2>
-                <div class="two-columns">
-                    <div>
-                        <h4>Microservice with gRPC</h4>
-                        <pre><code class="language-yaml">containers:
+                <h2>&#128640; Real-World: Microservice Probes</h2>
+                <h4>gRPC Microservice</h4>
+                <pre><code class="language-yaml">containers:
 - name: order-svc
   image: order-service:1.5
   livenessProbe:
@@ -619,10 +626,18 @@ spec:
       port: 50051
       service: "orders"
     periodSeconds: 5</code></pre>
-                    </div>
-                    <div>
-                        <h4>Database Sidecar</h4>
-                        <pre><code class="language-yaml">containers:
+                <ul>
+                    <li class="fragment fade-up"><strong>Liveness:</strong> Checks the gRPC server is responsive (overall status)</li>
+                    <li class="fragment fade-up"><strong>Readiness:</strong> Checks the specific "orders" service is ready to handle requests</li>
+                </ul>
+                <aside class="notes">The gRPC microservice uses native gRPC probes — liveness checks the server is responsive, readiness checks the specific "orders" service. This is a common pattern for microservice architectures using gRPC.</aside>
+            </section>
+
+            <!-- Slide 22b: Real-World Examples — Sidecar Probes -->
+            <section>
+                <h2>&#128640; Real-World: Sidecar Probes</h2>
+                <h4>Database Sidecar (PgBouncer)</h4>
+                <pre><code class="language-yaml">containers:
 - name: pgbouncer
   image: pgbouncer:1.20
   livenessProbe:
@@ -638,9 +653,12 @@ spec:
         -p 6432 -U probe
         -c "SELECT 1"
     periodSeconds: 10</code></pre>
-                    </div>
-                </div>
-                <aside class="notes">Two more real-world patterns. The gRPC microservice uses native gRPC probes — liveness checks the server is responsive, readiness checks the specific "orders" service. The database sidecar pattern shows a common approach: TCP for liveness (is PgBouncer listening?) and exec for readiness (can it actually execute a query?). This layered approach catches both process-level and application-level failures.</aside>
+                <ul>
+                    <li class="fragment fade-up"><strong>Liveness (TCP):</strong> Is PgBouncer listening on port 6432?</li>
+                    <li class="fragment fade-up"><strong>Readiness (Exec):</strong> Can it actually execute a query end-to-end?</li>
+                    <li class="fragment fade-up">This layered approach catches both process-level and application-level failures</li>
+                </ul>
+                <aside class="notes">The database sidecar pattern shows a common approach: TCP for liveness (is PgBouncer listening?) and exec for readiness (can it actually execute a query?). This layered approach catches both process-level and application-level failures.</aside>
             </section>
 
             <!-- Slide 23: Debugging Probe Failures -->
@@ -663,13 +681,24 @@ kubectl exec my-app -- wget -qO- http://localhost:8080/ready</code></pre>
                 <aside class="notes">When probes fail, follow this three-step debugging process. First, describe the pod to see events — Kubernetes logs every probe failure as a Warning event with details about the failure. Second, check container logs, especially previous logs if the container was restarted. Third, exec into the pod and manually test the health endpoints to see what they return. Often the issue is a misconfigured port, wrong path, or the endpoint returning a 503 during initialization.</aside>
             </section>
 
-            <!-- Slide 24: Graceful Shutdown and preStop Hooks -->
+            <!-- Slide 24: Graceful Shutdown — Concept -->
             <section>
                 <h2>&#128721; Graceful Shutdown &amp; preStop Hooks</h2>
                 <div class="concept-box">
                     <h4>Pod Termination Sequence</h4>
                     <p><strong>1.</strong> Pod set to Terminating &rarr; <strong>2.</strong> preStop hook runs &rarr; <strong>3.</strong> SIGTERM sent &rarr; <strong>4.</strong> Grace period countdown &rarr; <strong>5.</strong> SIGKILL if still running</p>
                 </div>
+                <ul>
+                    <li class="fragment fade-up"><strong>preStop + SIGTERM:</strong> Happen concurrently with endpoint removal from Services</li>
+                    <li class="fragment fade-up"><strong>Race condition:</strong> Add a <code>sleep 5</code> in preStop to let endpoints propagate</li>
+                    <li class="fragment fade-up"><strong>terminationGracePeriodSeconds:</strong> Must exceed preStop + drain time</li>
+                </ul>
+                <aside class="notes">Graceful shutdown is tightly coupled with probes. When Kubernetes terminates a pod, it removes the pod from Service endpoints and runs the preStop hook simultaneously. This creates a race condition — the kube-proxy might still route traffic for a few seconds after termination starts.</aside>
+            </section>
+
+            <!-- Slide 24b: Graceful Shutdown — Configuration -->
+            <section>
+                <h2>&#128721; preStop Hook Configuration</h2>
                 <pre><code class="language-yaml">spec:
   terminationGracePeriodSeconds: 60
   containers:
@@ -686,15 +715,13 @@ kubectl exec my-app -- wget -qO- http://localhost:8080/ready</code></pre>
             curl -s http://localhost:8080/shutdown
             # Wait for in-flight requests to drain
             sleep 15</code></pre>
-                <ul>
-                    <li class="fragment fade-up"><strong>preStop + SIGTERM:</strong> Happen concurrently with endpoint removal from Services</li>
-                    <li class="fragment fade-up"><strong>Race condition:</strong> Add a <code>sleep 5</code> in preStop to let endpoints propagate</li>
-                    <li class="fragment fade-up"><strong>terminationGracePeriodSeconds:</strong> Must exceed preStop + drain time</li>
-                </ul>
-                <aside class="notes">Graceful shutdown is tightly coupled with probes. When Kubernetes terminates a pod, it removes the pod from Service endpoints and runs the preStop hook simultaneously. This creates a race condition — the kube-proxy might still route traffic for a few seconds after termination starts. The sleep in preStop ensures existing connections drain before the app shuts down. Always set terminationGracePeriodSeconds high enough to cover your preStop hook plus your application's drain time.</aside>
+                <div class="highlight-box">
+                    <strong>Key rule:</strong> Always set <code>terminationGracePeriodSeconds</code> high enough to cover your preStop hook duration plus your application's drain time.
+                </div>
+                <aside class="notes">The sleep in preStop ensures existing connections drain before the app shuts down. Always set terminationGracePeriodSeconds high enough to cover your preStop hook plus your application's drain time.</aside>
             </section>
 
-            <!-- Slide 25: Pod Disruption Budgets -->
+            <!-- Slide 25: Pod Disruption Budgets — Configuration -->
             <section>
                 <h2>&#128737;&#65039; Pod Disruption Budgets (PDBs)</h2>
                 <div class="key-point">
@@ -726,12 +753,21 @@ spec:
       app: api</code></pre>
                     </div>
                 </div>
+                <aside class="notes">PDBs are the bridge between health probes and operational safety. They ensure that when you're draining nodes or upgrading your cluster, you don't accidentally take down too many pods at once. Use minAvailable for small replica counts and maxUnavailable with percentages for larger deployments.</aside>
+            </section>
+
+            <!-- Slide 25b: Pod Disruption Budgets — Behavior -->
+            <section>
+                <h2>&#128737;&#65039; PDB Behavior &amp; Interactions</h2>
                 <ul>
                     <li class="fragment fade-up">Works with <code>kubectl drain</code>, cluster autoscaler, and upgrade controllers</li>
                     <li class="fragment fade-up">Does <strong>not</strong> protect against involuntary disruptions (node crashes, OOM kills)</li>
                     <li class="fragment fade-up">Combine with readiness probes &mdash; unready pods count as unavailable</li>
                 </ul>
-                <aside class="notes">PDBs are the bridge between health probes and operational safety. They ensure that when you're draining nodes or upgrading your cluster, you don't accidentally take down too many pods at once. Note the interaction with readiness probes: a pod that fails its readiness probe counts as unavailable, which can block further voluntary disruptions. Use minAvailable for small replica counts and maxUnavailable with percentages for larger deployments.</aside>
+                <div class="key-point fragment fade-up">
+                    <strong>Probe interaction:</strong> A pod that fails its readiness probe counts as unavailable, which can block further voluntary disruptions. Always consider PDB + readiness probe behavior together.
+                </div>
+                <aside class="notes">Note the interaction with readiness probes: a pod that fails its readiness probe counts as unavailable, which can block further voluntary disruptions.</aside>
             </section>
 
             <!-- Slide 26: Putting It All Together -->
@@ -748,7 +784,13 @@ spec:
       containers:
       - name: app
         image: myapp:2.0
-        resources: { requests: { cpu: "250m", memory: "256Mi" }, limits: { cpu: "1000m", memory: "512Mi" } }
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
         startupProbe:
           httpGet: { path: /healthz, port: 8080 }
           failureThreshold: 20
@@ -759,44 +801,42 @@ spec:
                 <aside class="notes">Here's a complete, production-ready pod spec that combines everything we've covered. Three probes for comprehensive health checking, resource limits, a termination grace period, and a preStop hook for clean shutdown. This template is a solid starting point for any production deployment — adjust the timing parameters based on your application's characteristics.</aside>
             </section>
 
-            <!-- Slide 27: Quick Reference Cheat Sheet -->
+            <!-- Slide 27: Quick Reference — Probe Selection -->
             <section>
-                <h2>&#128221; Quick Reference</h2>
-                <div class="two-columns">
-                    <div class="card">
-                        <h4>Probe Selection Guide</h4>
-                        <table>
-                            <thead>
-                                <tr><th>Scenario</th><th>Probe Type</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr><td>App hangs/deadlocks</td><td>Liveness</td></tr>
-                                <tr><td>Warming cache on startup</td><td>Readiness</td></tr>
-                                <tr><td>Slow JVM/ML model load</td><td>Startup</td></tr>
-                                <tr><td>Dependency unavailable</td><td>Readiness</td></tr>
-                                <tr><td>Memory leak detected</td><td>Liveness</td></tr>
-                                <tr><td>Rolling update safety</td><td>Readiness</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="card">
-                        <h4>Protocol Selection Guide</h4>
-                        <table>
-                            <thead>
-                                <tr><th>Workload</th><th>Protocol</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr><td>Web apps / REST APIs</td><td>HTTP</td></tr>
-                                <tr><td>gRPC microservices</td><td>gRPC</td></tr>
-                                <tr><td>Databases / Caches</td><td>TCP</td></tr>
-                                <tr><td>Custom validation</td><td>Exec</td></tr>
-                                <tr><td>Legacy apps</td><td>Exec / TCP</td></tr>
-                                <tr><td>Multi-check logic</td><td>Exec</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <aside class="notes">Keep this reference handy for your lab work and real projects. On the left, match your failure scenario to the right probe type. On the right, pick the probe protocol based on your workload type. Most modern web services use HTTP probes, but don't overlook exec probes for complex health validation logic.</aside>
+                <h2>&#128221; Quick Reference: Probe Selection</h2>
+                <table>
+                    <thead>
+                        <tr><th>Scenario</th><th>Probe Type</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>App hangs/deadlocks</td><td>Liveness</td></tr>
+                        <tr><td>Warming cache on startup</td><td>Readiness</td></tr>
+                        <tr><td>Slow JVM/ML model load</td><td>Startup</td></tr>
+                        <tr><td>Dependency unavailable</td><td>Readiness</td></tr>
+                        <tr><td>Memory leak detected</td><td>Liveness</td></tr>
+                        <tr><td>Rolling update safety</td><td>Readiness</td></tr>
+                    </tbody>
+                </table>
+                <aside class="notes">Match your failure scenario to the right probe type. Liveness for internal failures that a restart would fix, readiness for temporary conditions, and startup for slow initialization.</aside>
+            </section>
+
+            <!-- Slide 27b: Quick Reference — Protocol Selection -->
+            <section>
+                <h2>&#128221; Quick Reference: Protocol Selection</h2>
+                <table>
+                    <thead>
+                        <tr><th>Workload</th><th>Protocol</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Web apps / REST APIs</td><td>HTTP</td></tr>
+                        <tr><td>gRPC microservices</td><td>gRPC</td></tr>
+                        <tr><td>Databases / Caches</td><td>TCP</td></tr>
+                        <tr><td>Custom validation</td><td>Exec</td></tr>
+                        <tr><td>Legacy apps</td><td>Exec / TCP</td></tr>
+                        <tr><td>Multi-check logic</td><td>Exec</td></tr>
+                    </tbody>
+                </table>
+                <aside class="notes">Pick the probe protocol based on your workload type. Most modern web services use HTTP probes, but don't overlook exec probes for complex health validation logic.</aside>
             </section>
 
             <!-- Slide 28: Lab Callout -->
