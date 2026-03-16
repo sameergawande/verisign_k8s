@@ -350,17 +350,7 @@ spec:
     matchLabels: { app: backend, tier: api }
   template:
     metadata:
-      labels: { app: backend, tier: api }
-    spec:
-      containers:
-        - name: backend
-          image: kennethreitz/httpbin:latest
-          ports: [{ containerPort: 80 }]
-          readinessProbe:
-            httpGet: { path: /health, port: 80 }
-            initialDelaySeconds: 5
-            periodSeconds: 10
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f backend-deployment.yaml
 $ kubectl get pods -n lab-services -l tier=api -w
@@ -386,30 +376,15 @@ spec:
     matchLabels: { app: frontend, tier: web }
   template:
     metadata:
-      labels: { app: frontend, tier: web }
-    spec:
-      containers:
-        - name: frontend
-          image: nginx:1.25
-          ports:
-            - containerPort: 80
-            - containerPort: 443
-          readinessProbe:
-            httpGet: { path: /, port: 80 }
-            initialDelaySeconds: 3
-            periodSeconds: 5
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f frontend-deployment.yaml
 
 # Verify all pods are running
 $ kubectl get pods -n lab-services -o wide
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Checkpoint:</strong> You should have 5 pods running &mdash; 3 backend and 2 frontend. All should show <code>1/1 Ready</code>.</p>
-                </div>
                 <aside class="notes">
-                    The frontend exposes both port 80 and 443 to demonstrate multi-port Services later. At this point, neither tier can communicate with the other because no Services exist yet. This is the baseline state before we add networking.
+                    Checkpoint: You should have 5 pods running — 3 backend and 2 frontend. All should show 1/1 Ready. The frontend exposes both port 80 and 443 to demonstrate multi-port Services later. At this point, neither tier can communicate with the other because no Services exist yet. This is the baseline state before we add networking.
                 </aside>
             </section>
 
@@ -438,11 +413,7 @@ spec:
     app: backend
     tier: api
   ports:
-    - name: http
-      port: 80
-      targetPort: 80
-      protocol: TCP
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f backend-svc.yaml
 
@@ -450,20 +421,12 @@ $ kubectl apply -f backend-svc.yaml
 $ kubectl get svc backend-svc -n lab-services
 $ kubectl describe svc backend-svc -n lab-services
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected Output:</strong></p>
-                    <pre style="margin:5px 0 0 0; font-size:0.85em; background:transparent; box-shadow:none;"><code data-trim>
-NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
-backend-svc   ClusterIP   10.100.45.120   &lt;none&gt;        80/TCP    5s
-                    </code></pre>
-                </div>
-                <div class="highlight-box">
-                    <p style="margin:0;"><strong>Key Concept:</strong> The ClusterIP (e.g., 10.100.45.120) is a virtual IP managed by kube-proxy. It is only reachable from within the cluster. Traffic sent to this IP is load-balanced across all pods matching the selector.</p>
-                </div>
                 <aside class="notes">
-                    Point out the ClusterIP address and explain it is a virtual IP that only exists in iptables or IPVS rules on each node. There is no external-IP because ClusterIP Services are internal-only by design. The describe output shows the Endpoints, which should list the IPs of all three backend pods. If Endpoints is empty, the selector labels do not match any pods.
+                    Expected Output: NAME backend-svc, TYPE ClusterIP, CLUSTER-IP 10.100.45.120, PORT(S) 80/TCP. Point out the ClusterIP address and explain it is a virtual IP that only exists in iptables or IPVS rules on each node. There is no external-IP because ClusterIP Services are internal-only by design. The describe output shows the Endpoints, which should list the IPs of all three backend pods. If Endpoints is empty, the selector labels do not match any pods.
                 </aside>
-            </section>
+            
+                    <aside class="notes">Key Concept: The ClusterIP (e.g., 10.100.45.120) is a virtual IP managed by kube-proxy. It is only reachable from within the cluster. Traffic sent to this IP is load-balanced across all pods matching the selector.</aside>
+                </section>
 
             <!-- Step 3: Test DNS-Based Discovery -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
@@ -490,25 +453,13 @@ $ kubectl exec $FRONTEND_POD -n lab-services -- \
 # Test DNS resolution of the backend service
 $ kubectl exec $FRONTEND_POD -n lab-services -- nslookup backend-svc
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected Output:</strong></p>
-                    <pre style="margin:5px 0 0 0; font-size:0.85em; background:transparent; box-shadow:none;"><code data-trim>
-Server:         10.100.0.10
-Address:        10.100.0.10#53
-
-Name:   backend-svc.lab-services.svc.cluster.local
-Address: 10.100.45.120
-                    </code></pre>
-                </div>
                 <pre><code class="language-bash" data-trim>
 # Curl the backend through the Service
-$ kubectl exec $FRONTEND_POD -n lab-services -- curl -s backend-svc/ip
+$ kubectl exec $FRONTEND_POD -n lab-services -- \
+  curl -s backend-svc/ip
                 </code></pre>
-                <div class="highlight-box">
-                    <p style="margin:0;"><strong>Key Insight:</strong> Inside the same namespace, you can reach the Service using just its name (<code>backend-svc</code>). Kubernetes DNS automatically resolves it to the ClusterIP address.</p>
-                </div>
                 <aside class="notes">
-                    The DNS server address (10.100.0.10) is the CoreDNS ClusterIP. Within the same namespace, pods can use the short Service name. The FQDN is also available. The curl command hits the httpbin /ip endpoint which returns the client IP as seen by the backend, demonstrating that traffic is flowing through the Service. Run curl multiple times to show that different backend pods may respond.
+                    Expected Output: nslookup returns backend-svc.lab-services.svc.cluster.local resolving to the ClusterIP (e.g., 10.100.45.120). Key Insight: Inside the same namespace, you can reach the Service using just its name (backend-svc). Kubernetes DNS automatically resolves it to the ClusterIP address. The curl command hits the httpbin /ip endpoint which returns the client IP as seen by the backend. Run curl multiple times to show that different backend pods may respond.
                 </aside>
             </section>
 
@@ -536,50 +487,33 @@ $ kubectl exec $FRONTEND_POD -n lab-services -- \
 # Verify the search domains configured in the pod
 $ kubectl exec $FRONTEND_POD -n lab-services -- cat /etc/resolv.conf
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected resolv.conf:</strong></p>
-                    <pre style="margin:5px 0 0 0; font-size:0.85em; background:transparent; box-shadow:none;"><code data-trim>
-nameserver 10.100.0.10
-search lab-services.svc.cluster.local svc.cluster.local cluster.local
-options ndots:5
-                    </code></pre>
-                </div>
                 <div class="concept-box">
                     <h4>DNS Resolution Hierarchy</h4>
                     <table>
                         <thead>
                             <tr>
                                 <th>Format</th>
-                                <th>Scope</th>
                                 <th>Example</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td><code>service-name</code></td>
-                                <td>Same namespace only</td>
+                                <td><code>service-name</code> (same ns)</td>
                                 <td><code>backend-svc</code></td>
                             </tr>
                             <tr>
-                                <td><code>service.namespace</code></td>
-                                <td>Cross-namespace</td>
+                                <td><code>svc.namespace</code> (cross-ns)</td>
                                 <td><code>backend-svc.lab-services</code></td>
                             </tr>
                             <tr>
-                                <td><code>service.namespace.svc</code></td>
-                                <td>Explicit SVC</td>
-                                <td><code>backend-svc.lab-services.svc</code></td>
-                            </tr>
-                            <tr>
-                                <td><code>service.namespace.svc.cluster.local</code></td>
-                                <td>Fully qualified</td>
+                                <td>FQDN</td>
                                 <td><code>backend-svc.lab-services.svc.cluster.local</code></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <aside class="notes">
-                    The resolv.conf file shows the DNS search domains. Because of these search domains and the ndots:5 setting, short names like backend-svc are resolved by appending each search domain in order. For cross-namespace communication, you must include at least the namespace in the DNS name. The FQDN ending with a dot (cluster.local.) avoids all search domain lookups and is the most efficient form for production configurations.
+                    Expected resolv.conf: nameserver 10.100.0.10, search lab-services.svc.cluster.local svc.cluster.local cluster.local, options ndots:5. The resolv.conf file shows the DNS search domains. Because of these search domains and the ndots:5 setting, short names like backend-svc are resolved by appending each search domain in order. For cross-namespace communication, you must include at least the namespace in the DNS name. The FQDN ending with a dot (cluster.local.) avoids all search domain lookups and is the most efficient form for production configurations.
                 </aside>
             </section>
 
@@ -606,37 +540,20 @@ spec:
   type: NodePort
   selector:
     app: frontend
-    tier: web
-  ports:
-    - name: http
-      port: 80
-      targetPort: 80
-      nodePort: 30080
-      protocol: TCP
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f frontend-nodeport.yaml
 $ kubectl get svc frontend-nodeport -n lab-services
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected Output:</strong></p>
-                    <pre style="margin:5px 0 0 0; font-size:0.85em; background:transparent; box-shadow:none;"><code data-trim>
-NAME                TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)
-frontend-nodeport   NodePort   10.100.78.200   &lt;none&gt;        80:30080/TCP
-                    </code></pre>
-                </div>
                 <pre><code class="language-bash" data-trim>
 # Get a node's external IP to test
 $ kubectl get nodes -o wide
 
-# Test via NodePort (from within the cluster or if nodes are accessible)
+# Test via NodePort
 $ curl http://&lt;NODE-EXTERNAL-IP&gt;:30080
                 </code></pre>
-                <div class="highlight-box warning">
-                    <p style="margin:0;"><strong>Note:</strong> In EKS, node security groups may block NodePort traffic by default. NodePort is primarily useful for development and testing. Production workloads should use LoadBalancer or Ingress instead.</p>
-                </div>
                 <aside class="notes">
-                    The nodePort 30080 is allocated on every node in the cluster. Even nodes that do not run frontend pods will accept traffic on this port and forward it to the correct pods. The valid NodePort range is 30000-32767 by default. Point out that NodePort also creates a ClusterIP, so the Service is accessible both internally and externally. In EKS, security groups typically need to be updated to allow NodePort traffic, which is why LoadBalancer is preferred.
+                    Expected Output: frontend-nodeport NodePort 10.100.78.200 80:30080/TCP. Note: In EKS, node security groups may block NodePort traffic by default. NodePort is primarily useful for development and testing — production workloads should use LoadBalancer or Ingress instead. The nodePort 30080 is allocated on every node in the cluster. The valid NodePort range is 30000-32767 by default. NodePort also creates a ClusterIP, so the Service is accessible both internally and externally.
                 </aside>
             </section>
 
@@ -665,29 +582,15 @@ metadata:
     service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
 spec:
   type: LoadBalancer
-  selector:
-    app: frontend
-    tier: web
-  ports:
-    - name: http
-      port: 80
-      targetPort: 80
-      protocol: TCP
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f frontend-lb.yaml
 
 # Watch for the external hostname/IP to be assigned
 $ kubectl get svc frontend-lb -n lab-services -w
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected:</strong> After 1&ndash;3 minutes, the EXTERNAL-IP field will show an AWS NLB hostname like <code>a1b2c3d4-abc123.elb.us-east-1.amazonaws.com</code>.</p>
-                </div>
-                <div class="highlight-box warning">
-                    <p style="margin:0;"><strong>Common Issue:</strong> If EXTERNAL-IP stays as <code>&lt;pending&gt;</code> for more than 5 minutes, check that the AWS Load Balancer Controller is installed: <code>kubectl get deployment -n kube-system aws-load-balancer-controller</code></p>
-                </div>
                 <aside class="notes">
-                    The annotations are specific to the AWS Load Balancer Controller. The nlb-target-type: ip routes directly to pod IPs (bypassing NodePort), which is more efficient. The scheme: internet-facing creates a public-facing NLB. For internal services, use internal instead. The provisioning takes 1-3 minutes as AWS creates the NLB, registers targets, and performs health checks. Students should wait until the EXTERNAL-IP is populated before testing.
+                    Expected: After 1-3 minutes, EXTERNAL-IP will show an AWS NLB hostname. Common Issue: If EXTERNAL-IP stays as pending for more than 5 minutes, check that the AWS Load Balancer Controller is installed: kubectl get deployment -n kube-system aws-load-balancer-controller. The annotations are specific to the AWS Load Balancer Controller. The nlb-target-type: ip routes directly to pod IPs (bypassing NodePort), which is more efficient. The scheme: internet-facing creates a public-facing NLB.
                 </aside>
             </section>
 
@@ -736,7 +639,8 @@ $ kubectl describe svc frontend-lb -n lab-services
 $ kubectl get endpoints backend-svc -n lab-services
 
 # View EndpointSlices (the modern replacement)
-$ kubectl get endpointslices -n lab-services -l kubernetes.io/service-name=backend-svc
+$ kubectl get endpointslices -n lab-services \
+  -l kubernetes.io/service-name=backend-svc
 
 # Describe for full details
 $ kubectl describe endpointslice -n lab-services \
@@ -818,15 +722,8 @@ spec:
 $ kubectl apply -f backend-headless.yaml
 $ kubectl get svc backend-headless -n lab-services
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected:</strong> The CLUSTER-IP column shows <code>None</code>.</p>
-                    <pre style="margin:5px 0 0 0; font-size:0.85em; background:transparent; box-shadow:none;"><code data-trim>
-NAME               TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)
-backend-headless   ClusterIP   None         &lt;none&gt;        80/TCP
-                    </code></pre>
-                </div>
                 <aside class="notes">
-                    The key difference is clusterIP: None. Without a virtual IP, the Service cannot load-balance traffic. Instead, it serves as a DNS-only discovery mechanism. This is used with StatefulSets (as seen in Lab 3) and any application that implements its own load balancing or needs to enumerate all backend instances.
+                    Expected: The CLUSTER-IP column shows None. The key difference is clusterIP: None. Without a virtual IP, the Service cannot load-balance traffic. Instead, it serves as a DNS-only discovery mechanism. This is used with StatefulSets (as seen in Lab 3) and any application that implements its own load balancing or needs to enumerate all backend instances.
                 </aside>
             </section>
 
@@ -842,23 +739,11 @@ $ kubectl exec $FRONTEND_POD -n lab-services -- \
 $ kubectl exec $FRONTEND_POD -n lab-services -- \
   dig backend-headless.lab-services.svc.cluster.local +short
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected:</strong></p>
-                    <pre style="margin:5px 0 0 0; font-size:0.85em; background:transparent; box-shadow:none;"><code data-trim>
-# ClusterIP Service returns 1 virtual IP:
-10.100.45.120
-
-# Headless Service returns all pod IPs:
-10.0.1.15
-10.0.2.22
-10.0.3.18
-                    </code></pre>
-                </div>
                 <div class="key-point">
                     <strong>Key Difference:</strong> A ClusterIP Service returns one virtual IP (load balancing happens at the network layer). A headless Service returns all pod IPs (the client decides which pod to connect to).
                 </div>
                 <aside class="notes">
-                    This is a critical comparison. With a regular ClusterIP Service, the client sees one IP and kube-proxy handles load balancing transparently. With a headless Service, the client receives all pod IPs and must implement its own selection logic. This is how database clients discover all replicas, how Kafka consumers find all brokers, and how custom service meshes enumerate backends.
+                    Expected: ClusterIP Service returns 1 virtual IP (e.g., 10.100.45.120). Headless Service returns all pod IPs (e.g., 10.0.1.15, 10.0.2.22, 10.0.3.18). This is a critical comparison. With a regular ClusterIP Service, the client sees one IP and kube-proxy handles load balancing transparently. With a headless Service, the client receives all pod IPs and must implement its own selection logic. This is how database clients discover all replicas, how Kafka consumers find all brokers, and how custom service meshes enumerate backends.
                 </aside>
             </section>
 
@@ -887,26 +772,14 @@ spec:
     app: backend
     tier: api
   sessionAffinity: ClientIP
-  sessionAffinityConfig:
-    clientIP:
-      timeoutSeconds: 300
-  ports:
-    - name: http
-      port: 80
-      targetPort: 80
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f backend-sticky.yaml
-$ kubectl describe svc backend-sticky -n lab-services | grep -A 2 "Session Affinity"
+$ kubectl describe svc backend-sticky -n lab-services | grep -A 2 \
+  "Session Affinity"
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected:</strong></p>
-                    <pre style="margin:5px 0 0 0; font-size:0.85em; background:transparent; box-shadow:none;"><code data-trim>
-Session Affinity:  ClientIP
-                    </code></pre>
-                </div>
                 <aside class="notes">
-                    Session affinity is configured at the Service level using sessionAffinity: ClientIP. The timeoutSeconds field controls how long the affinity persists (default is 10800 seconds / 3 hours). Kubernetes does not support cookie-based affinity at the Service level; that requires an Ingress controller. ClientIP affinity uses the source IP to hash requests to the same backend.
+                    Expected: Session Affinity: ClientIP. Session affinity is configured at the Service level using sessionAffinity: ClientIP. The timeoutSeconds field controls how long the affinity persists (default is 10800 seconds / 3 hours). Kubernetes does not support cookie-based affinity at the Service level; that requires an Ingress controller. ClientIP affinity uses the source IP to hash requests to the same backend.
                 </aside>
             </section>
 
@@ -962,34 +835,18 @@ spec:
     app: frontend
     tier: web
   ports:
-    - name: http
-      port: 80
-      targetPort: 80
-      protocol: TCP
-    - name: https
-      port: 443
-      targetPort: 443
-      protocol: TCP
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f frontend-multiport.yaml
 $ kubectl get svc frontend-multiport -n lab-services
 $ kubectl describe svc frontend-multiport -n lab-services
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected Output:</strong></p>
-                    <pre style="margin:5px 0 0 0; font-size:0.85em; background:transparent; box-shadow:none;"><code data-trim>
-NAME                 TYPE        CLUSTER-IP      PORT(S)
-frontend-multiport   ClusterIP   10.100.92.50    80/TCP,443/TCP
-                    </code></pre>
-                </div>
-                <div class="highlight-box">
-                    <p style="margin:0;"><strong>Important:</strong> When a Service has multiple ports, each port <strong>must</strong> have a <code>name</code> field. Kubernetes uses port names for DNS SRV records and Endpoint identification.</p>
-                </div>
                 <aside class="notes">
-                    Multi-port Services are common in production. Web servers expose HTTP and HTTPS. Applications expose a main port and a metrics port for Prometheus. gRPC services may expose both gRPC and a health check HTTP port. The name field is mandatory for multi-port Services and is used in DNS SRV records. Clients can also reference ports by name in Ingress and other configurations.
+                    Expected Output: frontend-multiport ClusterIP 10.100.92.50 80/TCP,443/TCP. Multi-port Services are common in production. Web servers expose HTTP and HTTPS. Applications expose a main port and a metrics port for Prometheus. The name field is mandatory for multi-port Services and is used in DNS SRV records. Clients can also reference ports by name in Ingress and other configurations.
                 </aside>
-            </section>
+            
+                    <aside class="notes">Important: When a Service has multiple ports, each port must have a name field. Kubernetes uses port names for DNS SRV records and Endpoint identification.</aside>
+                </section>
 
             <section>
                 <h2>&#128256; Step 10: DNS SRV Records for Multi-Port</h2>

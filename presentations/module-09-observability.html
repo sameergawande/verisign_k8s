@@ -686,8 +686,7 @@ service:
 kind: PrometheusRule
 metadata:
   name: api-server-alerts
-  labels:
-    release: prometheus
+  labels: { release: prometheus }
 spec:
   groups:
   - name: api-server
@@ -697,14 +696,11 @@ spec:
         sum(rate(http_requests_total{status=~"5..",job="api"}[5m]))
         / sum(rate(http_requests_total{job="api"}[5m])) > 0.05
       for: 5m
-      labels:
-        severity: critical
+      labels: { severity: critical }
       annotations:
         summary: "API error rate above 5%"
         runbook_url: "https://wiki.internal/runbooks/api-errors"</code></pre>
-                <div class="highlight-box warning fragment fade-up">
-                    <strong>Key fields:</strong> <code>for</code> prevents flapping, <code>severity</code> drives routing, <code>runbook_url</code> links to remediation steps.
-                </div>
+                <aside class="notes">Tip: key fields -- for prevents flapping, severity drives routing, runbook_url links to remediation steps.</aside>
                 <aside class="notes">PrometheusRule is the CRD for defining alerting rules when using the Prometheus Operator. The for clause requires the condition to be true for 5 minutes before firing — this prevents transient spikes from triggering pages. Severity labels control routing in Alertmanager. The runbook URL is critical — every alert should link to documentation that explains what the alert means and how to resolve it.</aside>
             </section>
 

@@ -162,21 +162,17 @@ kind: Service
 metadata:
   name: my-app-service
   namespace: production
-  labels:
-    app: my-app
-    tier: frontend
+  labels: { app: my-app, tier: frontend }
 spec:
-  type: ClusterIP           # Default type
+  type: ClusterIP             # Default type
   selector:
-    app: my-app              # Matches Pod labels
+    app: my-app               # Matches Pod labels
     version: v2
   ports:
     - name: http
-      protocol: TCP
-      port: 80               # Service port (what clients use)
-      targetPort: 8080       # Pod port (where app listens)
+      port: 80                # Service port (what clients use)
+      targetPort: 8080        # Pod port (where app listens)
     - name: metrics
-      protocol: TCP
       port: 9090
       targetPort: 9090</code></pre>
                 <aside class="notes">Here's the anatomy of a Service YAML. The selector field is critical — it defines which Pods this Service routes to by matching labels. The port is what clients connect to, and targetPort is where your application actually listens inside the Pod. You can also use named ports for targetPort to decouple from specific port numbers.</aside>
@@ -211,12 +207,9 @@ spec:
   ports:
     - port: 80
       targetPort: 3000</code></pre>
-                        <div class="highlight-box fragment fade-up">
-                            <strong>Use case:</strong> Microservice-to-microservice communication inside the cluster.
-                        </div>
                     </div>
                 </div>
-                <aside class="notes">ClusterIP is the default and most commonly used Service type. It allocates a virtual IP from the cluster's Service CIDR range. This IP is only reachable from within the cluster. kube-proxy sets up iptables or IPVS rules to distribute traffic across the matching Pods. This is what you use for all internal service-to-service communication.</aside>
+                <aside class="notes">Tip: ClusterIP is the default — use for microservice-to-microservice communication inside the cluster. It allocates a virtual IP from the cluster's Service CIDR range, reachable only within the cluster. kube-proxy sets up iptables or IPVS rules to distribute traffic.</aside>
             </section>
 
             <!-- NodePort Deep Dive -->
@@ -248,12 +241,9 @@ spec:
     - port: 80
       targetPort: 8080
       nodePort: 30080  # Optional</code></pre>
-                        <div class="highlight-box warning fragment fade-up">
-                            <strong>Limitation:</strong> Requires managing node IPs and firewall rules. Rarely used directly in production.
-                        </div>
                     </div>
                 </div>
-                <aside class="notes">NodePort extends ClusterIP by opening a port on every node in the cluster. Any traffic hitting any node on that port gets routed to the Service. It's useful for development and testing, but in production you'd typically put a load balancer in front. Note that a NodePort Service still gets a ClusterIP for internal access.</aside>
+                <aside class="notes">Tip: NodePort requires managing node IPs and firewall rules — rarely used directly in production. It extends ClusterIP by opening a port on every node. Useful for development and testing, but in production you'd typically put a load balancer in front.</aside>
             </section>
 
             <!-- LoadBalancer Deep Dive -->
@@ -310,12 +300,9 @@ metadata:
 spec:
   type: ExternalName
   externalName: mydb.us-east-1.rds.amazonaws.com</code></pre>
-                        <div class="highlight-box success fragment fade-up">
-                            <strong>Benefit:</strong> Applications use <code>external-db.production.svc.cluster.local</code> — migration from external to in-cluster becomes a Service type change.
-                        </div>
                     </div>
                 </div>
-                <aside class="notes">ExternalName is unique — it doesn't involve any proxying at all. It simply returns a CNAME record pointing to the external DNS name you specify. This is great for abstracting external dependencies. If you later migrate that database into the cluster, you just change the Service type and add a selector — no application changes needed.</aside>
+                <aside class="notes">Tip: Applications use external-db.production.svc.cluster.local — migration from external to in-cluster becomes a Service type change. ExternalName simply returns a CNAME record pointing to the external DNS name. No proxying involved.</aside>
             </section>
 
             <!-- Service Type Comparison -->
@@ -393,12 +380,9 @@ metadata:
                                 <li class="fragment fade-up">Services are namespace-scoped</li>
                             </ul>
                         </div>
-                        <div class="highlight-box danger fragment fade-up">
-                            <strong>Common pitfall:</strong> Typos in labels silently cause zero endpoints. Always verify with <code>kubectl get endpoints</code>.
-                        </div>
                     </div>
                 </div>
-                <aside class="notes">Service selectors use simple equality-based matching. Every label key-value pair in the selector must exist on the Pod for it to be included. The Pod can have additional labels — those are ignored. A very common debugging issue is a label mismatch causing a Service to have no endpoints. Always check with kubectl get endpoints.</aside>
+                <aside class="notes">Tip: Typos in labels silently cause zero endpoints — always verify with kubectl get endpoints. Service selectors use equality-based matching; every label in the selector must exist on the Pod.</aside>
             </section>
 
             <!-- Endpoints and EndpointSlices -->
@@ -408,8 +392,7 @@ metadata:
                     <div class="card">
                         <h4>Endpoints (Legacy)</h4>
                         <ul>
-                            <li>Single object per Service</li>
-                            <li>Lists all Pod IPs and ports</li>
+                            <li>Single object per Service listing all Pod IPs</li>
                             <li>Scales poorly beyond ~1000 endpoints</li>
                             <li>Any Pod change rewrites the entire object</li>
                         </ul>
@@ -534,20 +517,15 @@ BACKEND_API_PORT_80_TCP_ADDR=10.96.0.15</code></pre>
                     <div>
                         <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
-metadata:
-  name: cassandra
+metadata: { name: cassandra }
 spec:
-  clusterIP: None
-  selector:
-    app: cassandra
+  clusterIP: None      # Makes it headless
+  selector: { app: cassandra }
   ports:
-    - port: 9042
-      targetPort: 9042</code></pre>
-                        <pre><code class="language-bash" data-trim># DNS lookup returns all Pod IPs
+    - port: 9042</code></pre>
+                        <pre><code class="language-bash" data-trim># DNS returns all Pod IPs directly
 $ nslookup cassandra.default.svc
-# 10.244.1.5
-# 10.244.2.3
-# 10.244.3.8</code></pre>
+# 10.244.1.5, 10.244.2.3, 10.244.3.8</code></pre>
                     </div>
                 </div>
                 <aside class="notes">Headless Services set clusterIP to None. Instead of getting a virtual IP, DNS queries return the individual Pod IPs. This is critical for stateful applications where clients need to connect to specific instances — like Cassandra nodes, Kafka brokers, or ZooKeeper members. StatefulSets rely on headless Services to create stable DNS names for each Pod.</aside>
@@ -676,24 +654,14 @@ spec:
                     <div>
                         <pre><code class="language-yaml" data-trim>apiVersion: v1
 kind: Service
-metadata:
-  name: full-stack-app
+metadata: { name: full-stack-app }
 spec:
-  selector:
-    app: full-stack
+  selector: { app: full-stack }
   ports:
-    - name: http
-      port: 80
-      targetPort: 8080
-    - name: https
-      port: 443
-      targetPort: 8443
-    - name: metrics
-      port: 9090
-      targetPort: metrics
-    - name: grpc
-      port: 50051
-      targetPort: grpc-port</code></pre>
+    - { name: http,    port: 80,    targetPort: 8080 }
+    - { name: https,   port: 443,   targetPort: 8443 }
+    - { name: metrics, port: 9090,  targetPort: metrics }
+    - { name: grpc,    port: 50051, targetPort: grpc-port }</code></pre>
                     </div>
                     <div>
                         <div class="concept-box">
@@ -702,7 +670,6 @@ spec:
                                 <li class="fragment fade-up">Each port <strong>must</strong> have a unique <code>name</code></li>
                                 <li class="fragment fade-up"><code>targetPort</code> can reference a named port on the Pod</li>
                                 <li class="fragment fade-up">SRV records created for each named port</li>
-                                <li class="fragment fade-up">Useful for apps exposing HTTP + gRPC + metrics</li>
                             </ul>
                         </div>
                         <div class="highlight-box success fragment fade-up">
@@ -775,9 +742,6 @@ spec:
                                 <li class="fragment fade-up">Falls back to other zones if no local Pods</li>
                             </ul>
                         </div>
-                        <div class="highlight-box success fragment fade-up">
-                            <strong>AWS benefit:</strong> Cross-AZ traffic costs $0.01/GB. Topology-aware routing can significantly reduce your data transfer bill.
-                        </div>
                     </div>
                     <div>
                         <pre><code class="language-yaml" data-trim>apiVersion: v1
@@ -792,12 +756,9 @@ spec:
   ports:
     - port: 80
       targetPort: 8080</code></pre>
-                        <div class="highlight-box warning fragment fade-up">
-                            <strong>Requirement:</strong> Nodes must have <code>topology.kubernetes.io/zone</code> labels (auto-set on EKS).
-                        </div>
                     </div>
                 </div>
-                <aside class="notes">Topology-aware routing is especially relevant for multi-AZ EKS clusters. By annotating a Service with topology-mode Auto, kube-proxy preferentially routes traffic to Pods in the same availability zone. This reduces cross-AZ data transfer, which costs money on AWS. EKS nodes automatically have zone labels set, so this works out of the box. Be aware that if Pod distribution is uneven across zones, some Pods may get more traffic than others.</aside>
+                <aside class="notes">Tip: Cross-AZ traffic costs $0.01/GB — topology-aware routing can significantly reduce data transfer bills. Nodes must have topology.kubernetes.io/zone labels (auto-set on EKS). Be aware that uneven Pod distribution across zones can cause uneven load.</aside>
             </section>
 
             <!-- Service Mesh Introduction -->
@@ -807,28 +768,22 @@ spec:
                     <div class="card">
                         <h4>What It Adds</h4>
                         <ul>
-                            <li>mTLS encryption</li>
-                            <li>Traffic management &amp; canaries</li>
-                            <li>Observability (traces, metrics)</li>
-                            <li>Circuit breaking</li>
+                            <li>mTLS encryption between services</li>
+                            <li>Traffic management, canaries, and circuit breaking</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Istio</h4>
                         <ul>
-                            <li>Feature-rich, Envoy sidecar</li>
-                            <li>VirtualService / DestinationRule</li>
-                            <li>Ambient mode (no sidecars)</li>
-                            <li>Higher resource overhead</li>
+                            <li>Feature-rich Envoy sidecar (or ambient mode)</li>
+                            <li>VirtualService / DestinationRule CRDs</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Linkerd</h4>
                         <ul>
-                            <li>Lightweight, Rust-based proxy</li>
-                            <li>Simpler operational model</li>
-                            <li>Lower resource footprint</li>
-                            <li>Graduated CNCF project</li>
+                            <li>Lightweight Rust-based proxy</li>
+                            <li>Lower overhead, graduated CNCF project</li>
                         </ul>
                     </div>
                 </div>
@@ -858,12 +813,10 @@ metadata:
     service.beta.kubernetes.io/aws-load-balancer-type: "external"
     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
     service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
-    service.beta.kubernetes.io/aws-load-balancer-subnets: "subnet-abc,subnet-def"
 spec:
   type: LoadBalancer
   loadBalancerClass: service.k8s.aws/nlb
-  selector:
-    app: production-api
+  selector: { app: production-api }
   ports:
     - port: 443
       targetPort: 8443</code></pre>
@@ -911,24 +864,21 @@ spec:
                 <div class="concept-box">
                     <h4>Common Issues and Commands</h4>
                 </div>
-                <pre><code class="language-bash" data-trim># 1. Check Service exists and has a ClusterIP
+                <pre><code class="language-bash" data-trim># 1. Check Service exists and has endpoints (most common issue!)
 kubectl get svc my-service -o wide
-
-# 2. Verify endpoints are populated (most common issue!)
 kubectl get endpoints my-service
-kubectl get endpointslices -l kubernetes.io/service-name=my-service
 
-# 3. Confirm Pod labels match the Service selector
+# 2. Confirm Pod labels match the Service selector
 kubectl get pods --show-labels -l app=my-app
 
-# 4. Test DNS resolution from inside the cluster
+# 3. Test DNS resolution from inside the cluster
 kubectl run dns-test --rm -it --image=busybox -- nslookup my-service
 
-# 5. Test connectivity from inside the cluster
+# 4. Test connectivity from inside the cluster
 kubectl run curl-test --rm -it --image=curlimages/curl -- \
   curl -v http://my-service:80
 
-# 6. Check kube-proxy logs for errors
+# 5. Check kube-proxy logs for errors
 kubectl logs -n kube-system -l k8s-app=kube-proxy --tail=50</code></pre>
                 <aside class="notes">Debugging Services follows a systematic approach. Start by checking the Service exists and has a ClusterIP. Then verify endpoints are populated — empty endpoints is the number one issue and usually means a label mismatch. Check Pod labels against the Service selector. Test DNS from inside the cluster with a temporary Pod. Finally, check kube-proxy logs for any errors in programming iptables or IPVS rules.</aside>
             </section>
@@ -991,8 +941,7 @@ kubectl logs -n kube-system -l k8s-app=kube-proxy --tail=50</code></pre>
                         <ul>
                             <li>Services provide stable IPs and DNS over ephemeral Pods</li>
                             <li>Four types: ClusterIP, NodePort, LoadBalancer, ExternalName</li>
-                            <li>Selectors match Pod labels for endpoint discovery</li>
-                            <li>EndpointSlices replaced Endpoints for scale</li>
+                            <li>Selectors match Pod labels; EndpointSlices track backends</li>
                             <li>Headless Services return Pod IPs directly</li>
                         </ul>
                     </div>
@@ -1001,9 +950,7 @@ kubectl logs -n kube-system -l k8s-app=kube-proxy --tail=50</code></pre>
                         <ul>
                             <li>CoreDNS provides automatic DNS-based discovery</li>
                             <li>kube-proxy implements routing via iptables or IPVS</li>
-                            <li>Traffic policies control source IP and hop behavior</li>
-                            <li>Topology-aware routing reduces cross-AZ costs</li>
-                            <li>AWS LB Controller with IP-mode for production</li>
+                            <li>Traffic policies control source IP; topology-aware routing reduces AZ costs</li>
                         </ul>
                     </div>
                 </div>

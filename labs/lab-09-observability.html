@@ -360,12 +360,8 @@ kubectl create namespace observability-lab
 # Set as the current context
 kubectl config set-context --current --namespace=observability-lab
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong><br>
-                    <code>namespace/observability-lab created</code><br>
-                    <code>Context modified.</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: namespace/observability-lab created Context modified.
+                    
                     Starting with a clean namespace keeps the lab isolated and makes cleanup straightforward at the end.
                 </aside>
             </section>
@@ -377,10 +373,12 @@ kubectl config set-context --current --namespace=observability-lab
 kubectl run log-generator --image=busybox \
   --restart=Never -- \
   sh -c 'i=0; while true; do
-    echo "$(date +%Y-%m-%dT%H:%M:%S) INFO  request_id=$i status=200 path=/api/health duration=12ms";
+    echo "$(date +%Y-%m-%dT%H:%M:%S) INFO  request_id=$i \
+      status=200 path=/api/health duration=12ms";
     echo "$(date +%Y-%m-%dT%H:%M:%S) DEBUG request_id=$i cache_hit=true";
     if [ $((i % 10)) -eq 0 ]; then
-      echo "$(date +%Y-%m-%dT%H:%M:%S) WARN  request_id=$i high_latency=true duration=1500ms";
+      echo "$(date +%Y-%m-%dT%H:%M:%S) WARN  request_id=$i \
+        high_latency=true duration=1500ms";
     fi;
     i=$((i+1)); sleep 2;
   done'
@@ -411,17 +409,8 @@ kubectl logs log-generator --since=5m
 # View logs with timestamps
 kubectl logs log-generator --timestamps
                 </code></pre>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; Key Flags:</strong>
-                    <ul>
-                        <li><code>-f</code> &mdash; Follow (stream) logs in real time</li>
-                        <li><code>--previous</code> &mdash; Show logs from a previous container instance</li>
-                        <li><code>-c &lt;name&gt;</code> &mdash; Select a specific container in multi-container pods</li>
-                        <li><code>--tail=N</code> &mdash; Show only the last N lines</li>
-                        <li><code>--since=duration</code> &mdash; Show logs newer than a relative duration</li>
-                    </ul>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Key Flags: -f -- Follow (stream) logs in real time --previous -- Show logs from a previous container instance -c <name> -- Select a specific container in multi-container pods --tail=N -- Show only the last N lines --since=duration -- Show logs newer than a relative duration
+                    
                     The --previous flag is extremely valuable for debugging CrashLoopBackOff situations where the container has already restarted and the current logs are empty. The -c flag is essential for multi-container pods like those with sidecars.
                 </aside>
             </section>
@@ -429,7 +418,6 @@ kubectl logs log-generator --timestamps
             <section>
                 <h2>&#x1F4E6; Multi-Container Pod Logs</h2>
                 <pre><code class="yaml" data-trim>
-# Save as multi-container-pod.yaml
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: v1
 kind: Pod
@@ -440,10 +428,12 @@ spec:
   containers:
   - name: app
     image: busybox
-    command: ['sh', '-c', 'while true; do echo "$(date) APP: Processing request"; sleep 3; done']
+    command: ['sh', '-c', 'while true; do echo "$(date) APP: \
+      Processing request"; sleep 3; done']
   - name: sidecar
     image: busybox
-    command: ['sh', '-c', 'while true; do echo "$(date) SIDECAR: Collecting metrics"; sleep 5; done']
+    command: ['sh', '-c', 'while true; do echo "$(date) SIDECAR: \
+      Collecting metrics"; sleep 5; done']
 EOF
                 </code></pre>
                 <div class="fragment">
@@ -476,22 +466,21 @@ kubectl logs multi-container-app --all-containers=true
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: json-logger
-  namespace: observability-lab
+metadata: { name: json-logger, namespace: observability-lab }
 spec:
   replicas: 2
   selector:
     matchLabels: { app: json-logger }
   template:
-    metadata:
-      labels: { app: json-logger }
+    metadata: { labels: { app: json-logger } }
     spec:
       containers:
       - name: logger
         image: busybox
         command: ['sh', '-c', 'i=0; while true; do
-          printf "{\"timestamp\":\"%s\",\"level\":\"info\",\"service\":\"order-api\",\"request_id\":\"%d\",\"status\":200}\n"
+          printf "{\"timestamp\":\"%s\",\"level\":\"info\",
+          \"service\":\"order-api\",\"request_id\":\"%d\",
+          \"status\":200}\n"
           "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$i";
           sleep 1; i=$((i+1)); done']
 EOF
@@ -513,11 +502,8 @@ kubectl logs deployment/json-logger -f --max-log-requests=5
 # Use label selector to get logs from specific pods
 kubectl logs -l app=json-logger --tail=10
                 </code></pre>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; Tip:</strong> You can pipe JSON logs through <code>jq</code> for local filtering:<br>
-                    <code>kubectl logs -l app=json-logger --tail=20 | jq 'select(.status != 200)'</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Tip: You can pipe JSON logs through jq for local filtering: kubectl logs -l app=json-logger --tail=20 | jq 'select(.status != 200)'
+                    
                     The label selector approach is powerful because it works regardless of how many pod replicas exist. The jq tool is invaluable for local log analysis.
                 </aside>
             </section>
@@ -575,16 +561,9 @@ kubectl get deployment metrics-server -n kube-system
 # Verify the API is available
 kubectl get apiservice v1beta1.metrics.k8s.io
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong><br>
-                    <code>NAME             READY   UP-TO-DATE   AVAILABLE</code><br>
-                    <code>metrics-server   1/1     1            1</code>
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0;&#xFE0F; If Not Installed:</strong> Install with:<br>
-                    <code>kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: NAME READY UP-TO-DATE AVAILABLE metrics-server 1/1 1 1
+                    If Not Installed: Install with: kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+                    
                     Metrics Server collects resource metrics from kubelets and exposes them via the Kubernetes Metrics API. It refreshes every 15 seconds by default.
                 </aside>
             </section>
@@ -592,31 +571,20 @@ kubectl get apiservice v1beta1.metrics.k8s.io
             <section>
                 <h2>&#x1F4CA; kubectl top: Node and Pod Metrics</h2>
                 <pre><code class="bash" data-trim>
-# View node resource usage
 kubectl top nodes
 
-# View pod resource usage in current namespace
 kubectl top pods
 
-# View pod resource usage across all namespaces
 kubectl top pods -A
 
-# Sort by CPU usage
 kubectl top pods --sort-by=cpu
 
-# Sort by memory usage
 kubectl top pods --sort-by=memory
 
-# Show resource usage per container
 kubectl top pods --containers
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Sample Output:</strong><br>
-                    <code>NAME&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU(cores)&nbsp;&nbsp;MEMORY(bytes)</code><br>
-                    <code>ip-10-0-1-100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;250m&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1824Mi</code><br>
-                    <code>ip-10-0-2-101&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;180m&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1456Mi</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Sample Output: NAME CPU(cores) MEMORY(bytes) ip-10-0-1-100 250m 1824Mi ip-10-0-2-101 180m 1456Mi
+                    
                     kubectl top is the quickest way to spot resource pressure. The --containers flag is particularly useful for identifying which container in a multi-container pod is consuming the most resources.
                 </aside>
             </section>
@@ -643,8 +611,8 @@ spec:
       containers:
       - name: stress
         image: busybox
-        command: ['sh', '-c', 'while true; do dd if=/dev/urandom bs=1024 count=1024 of=/dev/null 2>/dev/null; done']
-        # ... resource requests/limits omitted for brevity
+        command: ['sh', '-c', 'while true; do dd if=/dev/urandom \
+          bs=1024 count=1024 of=/dev/null 2>/dev/null; done']
 EOF
                 </code></pre>
                 <div class="fragment">
@@ -697,14 +665,13 @@ helm repo update
 helm install monitoring prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   --create-namespace \
-  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+  --set prometheus.prometheusSpec\
+.serviceMonitorSelectorNilUsesHelmValues=false \
   --set grafana.adminPassword=admin123 \
   --wait --timeout 5m
                 </code></pre>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0;&#xFE0F; Note:</strong> This installation takes 2-4 minutes. The <code>--wait</code> flag ensures all components are ready before the command returns.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Note: This installation takes 2-4 minutes. The --wait flag ensures all components are ready before the command returns.
+                    
                     If the stack is already installed, students can skip the install and verify the existing deployment. The serviceMonitorSelectorNilUsesHelmValues flag allows Prometheus to discover ServiceMonitors in all namespaces.
                 </aside>
             </section>
@@ -718,17 +685,8 @@ kubectl get pods -n monitoring
 # Check the services
 kubectl get svc -n monitoring
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Pods:</strong>
-                    <ul>
-                        <li><code>prometheus-monitoring-kube-prometheus-prometheus-0</code></li>
-                        <li><code>monitoring-grafana-*</code></li>
-                        <li><code>alertmanager-monitoring-kube-prometheus-alertmanager-0</code></li>
-                        <li><code>monitoring-kube-state-metrics-*</code></li>
-                        <li><code>monitoring-prometheus-node-exporter-*</code></li>
-                    </ul>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Pods: prometheus-monitoring-kube-prometheus-prometheus-0 monitoring-grafana-* alertmanager-monitoring-kube-prometheus-alertmanager-0 monitoring-kube-state-metrics-* monitoring-prometheus-node-exporter-*
+                    
                     The stack deploys many components. kube-state-metrics generates metrics about Kubernetes objects, while node-exporter provides host-level metrics.
                 </aside>
             </section>
@@ -751,10 +709,8 @@ kubectl port-forward -n monitoring \
 
 echo "Prometheus UI: http://localhost:9090"
                 </code></pre>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; Tip:</strong> Open <code>http://localhost:9090</code> in your browser. Navigate to <strong>Status &rarr; Targets</strong> to see all scrape targets.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Tip: Open http://localhost:9090 in your browser. Navigate to Status &rarr; Targets to see all scrape targets.
+                    
                     The Targets page shows all endpoints Prometheus is scraping. Green means healthy; red indicates a scrape failure that needs investigation.
                 </aside>
             </section>
@@ -777,15 +733,8 @@ sum(rate(container_cpu_usage_seconds_total{
 # Container restart count
 sum(kube_pod_container_status_restarts_total) by (namespace, pod)
                 </code></pre>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; Key PromQL Concepts:</strong>
-                    <ul>
-                        <li><code>rate()</code> &mdash; Per-second rate of increase for counters</li>
-                        <li><code>sum() by (label)</code> &mdash; Aggregate and group results</li>
-                        <li><code>[5m]</code> &mdash; Range vector selector (lookback window)</li>
-                    </ul>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Key PromQL Concepts: rate() -- Per-second rate of increase for counters sum() by (label) -- Aggregate and group results [5m] -- Range vector selector (lookback window)
+                    
                     Encourage students to switch between the Console and Graph views to see both raw numbers and time-series visualizations. The rate function is essential because CPU counters are cumulative.
                 </aside>
             </section>
@@ -793,17 +742,13 @@ sum(kube_pod_container_status_restarts_total) by (namespace, pod)
             <section>
                 <h2>&#x1F50E; Useful Cluster Queries</h2>
                 <pre><code class="promql" data-trim>
-# Number of pods by namespace
 count(kube_pod_info) by (namespace)
 
-# Pods in CrashLoopBackOff
 kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}
 
-# Available vs desired replicas per deployment
 kube_deployment_status_replicas_available
   / kube_deployment_spec_replicas
 
-# Top 5 pods by memory usage
 topk(5, container_memory_working_set_bytes{
   container!="", container!="POD"
 })
@@ -836,12 +781,8 @@ echo "Grafana UI: http://localhost:3000"
 echo "Username: admin"
 echo "Password: admin123"
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Login Credentials:</strong><br>
-                    <strong>Username:</strong> admin<br>
-                    <strong>Password:</strong> admin123 (set during Helm install)
-                </div>
-                <aside class="notes">
+                <aside class="notes">Login Credentials: Username: admin Password: admin123 (set during Helm install)
+                    
                     Grafana is the visualization layer. The kube-prometheus-stack ships with a comprehensive set of prebuilt dashboards for cluster, node, and workload monitoring.
                 </aside>
             </section>
@@ -884,10 +825,8 @@ echo "Password: admin123"
                         <li class="fragment">Observe CPU throttling: compare <em>usage</em> vs <em>limit</em></li>
                     </ol>
                 </div>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; Tip:</strong> Grafana dashboards are interactive. Change the time range, hover over graphs for details, and use the namespace/pod dropdowns to filter.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Tip: Grafana dashboards are interactive. Change the time range, hover over graphs for details, and use the namespace/pod dropdowns to filter.
+                    
                     CPU throttling is visible when usage approaches the CPU limit. This is a common production issue where pods have their CPU cycles restricted by CFS quotas.
                 </aside>
             </section>
@@ -920,15 +859,15 @@ spec:
       for: 5m
       labels: { severity: warning }
       annotations:
-        summary: "Pod {{ $labels.pod }} restarted {{ $value }} times"
+        summary: >-
+          Pod {{ $labels.pod }} restarted
+          {{ $value }} times
     - alert: PodCrashLooping
       expr: rate(kube_pod_container_status_restarts_total[15m]) * 60 * 15 > 0
-      for: 5m
       labels: { severity: critical }
 EOF
                 </code></pre>
-                <aside class="notes">
-                    The labels.release must match the Helm release name for the Prometheus operator to pick up this rule. The 'for' clause prevents transient spikes from firing alerts.
+                <aside class="notes">Tip: The labels.release must match the Helm release name for the Prometheus operator to pick up this rule. The 'for' clause prevents transient spikes from firing alerts.
                 </aside>
             </section>
 
@@ -942,14 +881,9 @@ kubectl get prometheusrules -n monitoring
 # Navigate to http://localhost:9090/rules
 # Look for the "pod-restarts" group
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected:</strong> The <code>pod-restart-alert</code> rule appears in the Prometheus Rules page with state <code>inactive</code> (no pods are currently restarting excessively).
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0;&#xFE0F; Troubleshooting:</strong> If the rule does not appear, verify the <code>release: monitoring</code> label matches your Helm release name:<br>
-                    <code>helm list -n monitoring</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected: The pod-restart-alert rule appears in the Prometheus Rules page with state inactive (no pods are currently restarting excessively).
+                    Troubleshooting: If the rule does not appear, verify the release: monitoring label matches your Helm release name: helm list -n monitoring
+                    
                     Rules may take up to 60 seconds to be loaded by Prometheus after creation. The inactive state means the condition is not currently true — that is expected.
                 </aside>
             </section>
@@ -987,10 +921,8 @@ kubectl get pods -n amazon-cloudwatch
                         </ul>
                     </div>
                 </div>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; Note:</strong> Container Insights complements Prometheus. Use Prometheus for detailed application metrics and CloudWatch for AWS-native alerting and centralized logging across accounts.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Note: Container Insights complements Prometheus. Use Prometheus for detailed application metrics and CloudWatch for AWS-native alerting and centralized logging across accounts.
+                    
                     If Container Insights is not enabled, discuss the concept and move on. Many organizations use both Prometheus for detailed metrics and CloudWatch for infrastructure-level monitoring and billing visibility.
                 </aside>
             </section>
@@ -1010,24 +942,19 @@ kubectl get pods -n amazon-cloudwatch
 cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: buggy-app
-  namespace: observability-lab
+metadata: { name: buggy-app, namespace: observability-lab }
 spec:
   replicas: 3
   selector:
-    matchLabels:
-      app: buggy-app
+    matchLabels: { app: buggy-app }
   template:
-    metadata:
-      labels:
-        app: buggy-app
+    metadata: { labels: { app: buggy-app } }
     spec:
       containers:
       - name: app
         image: busybox
-        command: ['sh', '-c', 'echo "Starting app..."; sleep $((RANDOM % 10 + 5)); echo "ERROR: Out of memory"; exit 137']
-        # ... resource requests/limits omitted for brevity
+        command: ['sh', '-c', 'echo "Starting app..."; sleep \
+          $((RANDOM % 10 + 5)); echo "ERROR: Out of memory"; exit 137']
 EOF
                 </code></pre>
                 <aside class="notes">
@@ -1048,15 +975,8 @@ kubectl get events --sort-by='.lastTimestamp' \
 # Describe a specific crashing pod
 kubectl describe pod -l app=buggy-app | grep -A 10 "State:"
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; What to Look For:</strong>
-                    <ul>
-                        <li>Pod status: <code>CrashLoopBackOff</code></li>
-                        <li>Last State: <code>Terminated</code> with exit code <code>137</code></li>
-                        <li>Restart count increasing</li>
-                    </ul>
-                </div>
-                <aside class="notes">
+                <aside class="notes">What to Look For: Pod status: CrashLoopBackOff Last State: Terminated with exit code 137 Restart count increasing
+                    
                     Exit code 137 means the process received SIGKILL, which typically indicates an OOM kill. The describe command shows both current and last state.
                 </aside>
             </section>
@@ -1070,11 +990,7 @@ kubectl logs -l app=buggy-app --tail=20
 # View PREVIOUS container logs (from before the crash)
 kubectl logs -l app=buggy-app --previous --tail=20
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong><br>
-                    <code>Starting app...</code><br>
-                    <code>ERROR: Out of memory - cannot allocate buffer</code>
-                </div>
+                <aside class="notes">Expected Output: Starting app... ERROR: Out of memory - cannot allocate buffer</aside>
                 <div class="key-point fragment">
                     <strong>&#x1F511; Key Insight:</strong> The <code>--previous</code> flag is essential when a container has crashed and restarted. Without it, you only see the current (possibly empty) container's logs.
                 </div>
@@ -1138,15 +1054,9 @@ pkill -f "port-forward.*3000" 2>/dev/null
 # helm uninstall monitoring -n monitoring
 # kubectl delete namespace monitoring
                 </code></pre>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0;&#xFE0F; Recommendation:</strong> Keep the monitoring namespace and Prometheus stack installed &mdash; it will be useful in subsequent labs for observing workload behavior.
-                </div>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Verify Cleanup:</strong><br>
-                    <code>kubectl get namespace observability-lab</code><br>
-                    Expected: <code>Error from server (NotFound): namespaces "observability-lab" not found</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Recommendation: Keep the monitoring namespace and Prometheus stack installed -- it will be useful in subsequent labs for observing workload behavior.
+                    Verify Cleanup: kubectl get namespace observability-lab Expected: Error from server (NotFound): namespaces "observability-lab" not found
+                    
                     Deleting the namespace is the cleanest way to remove all lab resources. The monitoring stack should remain for future labs.
                 </aside>
             </section>

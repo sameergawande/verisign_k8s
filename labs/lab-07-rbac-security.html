@@ -435,12 +435,7 @@ metadata:
   name: pod-reader
 rules:
 - apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: [""]
-  resources: ["pods/log"]
-  verbs: ["get"]
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Apply the Role
@@ -508,13 +503,7 @@ metadata:
   namespace: lab07
 subjects:
 - kind: ServiceAccount
-  name: pod-viewer
-  namespace: lab07
-roleRef:
-  kind: Role
-  name: pod-reader
-  apiGroup: rbac.authorization.k8s.io
-                    </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 </div>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
@@ -525,12 +514,9 @@ kubectl apply -f pod-reader-binding.yaml
 kubectl describe rolebinding read-pods -n lab07
                     </code></pre>
                 </div>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The RoleBinding <code>read-pods</code> should show the <code>pod-viewer</code> ServiceAccount as a subject and <code>pod-reader</code> as the referenced Role.
-                </div>
                 <aside class="notes">
                     Explain the three parts of RBAC: the Role (what permissions), the Subject (who gets them), and the RoleBinding (connecting the two). The roleRef is immutable once created — you must delete and recreate the binding to change it.
-                </aside>
+                 | &#x2705; Expected Output: The RoleBinding read-pods should show the pod-viewer ServiceAccount as a subject and pod-reader as the referenced Role.</aside>
             </section>
 
             <!-- ========== STEP 4: Test Permissions ========== -->
@@ -634,11 +620,7 @@ metadata:
   namespace: lab07
 spec:
   serviceAccountName: pod-viewer
-  containers:
-  - name: kubectl
-    image: bitnami/kubectl:latest
-    command: ["sleep", "3600"]
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Deploy the test pod
@@ -659,12 +641,9 @@ kubectl exec rbac-test -n lab07 -- kubectl create deployment \
   test --image=nginx -n lab07
                     </code></pre>
                 </div>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The <code>get pods</code> command succeeds and shows the running pods. The <code>create deployment</code> command fails with a <strong>Forbidden</strong> error, confirming RBAC enforcement.
-                </div>
                 <aside class="notes">
                     This is a powerful demonstration. The pod's ServiceAccount token is automatically mounted and used by kubectl inside the container. Students can see that RBAC is enforced at the API server level, not at the client.
-                </aside>
+                 | &#x2705; Expected Output: The get pods command succeeds and shows the running pods. The create deployment command fails with a Forbidden error, confirming RBAC enforcement.</aside>
             </section>
 
             <!-- ========== STEP 6: Create a ClusterRole ========== -->
@@ -702,11 +681,7 @@ metadata:
 rules:
 - apiGroups: [""]
   resources: ["pods", "pods/log", "services"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: ["apps"]
-  resources: ["deployments", "replicasets"]
-  verbs: ["get", "list", "watch"]
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Apply the ClusterRole
@@ -765,12 +740,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: cluster-viewer
-  namespace: lab07
-roleRef:
-  kind: ClusterRole
-  name: cluster-pod-reader
-  apiGroup: rbac.authorization.k8s.io
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Apply the ClusterRoleBinding
@@ -781,22 +751,10 @@ kubectl auth can-i list pods -n kube-system \
   --as=system:serviceaccount:lab07:cluster-viewer
 
 # Test: Can cluster-viewer list pods in default? (should be YES)
-kubectl auth can-i list pods -n default \
-  --as=system:serviceaccount:lab07:cluster-viewer
-
-# Test: Can cluster-viewer delete pods anywhere? (should be NO)
-kubectl auth can-i delete pods -n kube-system \
-  --as=system:serviceaccount:lab07:cluster-viewer
-                    </code></pre>
-                </div>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The <code>cluster-viewer</code> can list pods in <strong>any</strong> namespace (yes, yes) but cannot delete pods anywhere (no). This confirms cluster-wide read-only access.
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Production Warning:</strong> ClusterRoleBindings grant access across <strong>all</strong> namespaces, including system namespaces like <code>kube-system</code>. Use them sparingly and prefer namespace-scoped RoleBindings when possible.
+# ... (more output)</code></pre>
                 </div>
                 <aside class="notes">
-                    Contrast this with the namespace-scoped pod-viewer from earlier. The cluster-viewer can now see pods in kube-system, default, and every other namespace. This is the difference between RoleBinding and ClusterRoleBinding.
+                    Expected Output: The cluster-viewer can list pods in any namespace (yes, yes) but cannot delete pods anywhere (no). This confirms cluster-wide read-only access. Production Warning: ClusterRoleBindings grant access across all namespaces, including system namespaces like kube-system. Use them sparingly and prefer namespace-scoped RoleBindings when possible. Contrast this with the namespace-scoped pod-viewer from earlier.
                 </aside>
             </section>
 
@@ -835,10 +793,7 @@ kubectl label namespace lab07-restricted \
   pod-security.kubernetes.io/enforce=restricted \
   pod-security.kubernetes.io/enforce-version=latest \
   pod-security.kubernetes.io/warn=restricted \
-  pod-security.kubernetes.io/warn-version=latest \
-  pod-security.kubernetes.io/audit=restricted \
-  pod-security.kubernetes.io/audit-version=latest
-                </code></pre>
+# ... (more output)</code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Verify the labels
@@ -847,9 +802,6 @@ kubectl get namespace lab07-restricted --show-labels
 # View the labels in YAML format
 kubectl get namespace lab07-restricted -o yaml
                     </code></pre>
-                </div>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The namespace should have all six <code>pod-security.kubernetes.io</code> labels set to <code>restricted</code>. Three modes are active: <strong>enforce</strong> (blocks violations), <strong>warn</strong> (shows warnings), and <strong>audit</strong> (logs violations).
                 </div>
                 <div class="concept-box fragment">
                     <h4>Pod Security Standard Profiles</h4>
@@ -861,7 +813,7 @@ kubectl get namespace lab07-restricted -o yaml
                 </div>
                 <aside class="notes">
                     Explain the three enforcement modes: enforce blocks the pod from being created, warn shows a warning to the user but allows it, and audit logs the violation but allows it. In production, you might start with warn/audit and migrate to enforce once workloads are compliant.
-                </aside>
+                 | &#x2705; Expected Output: The namespace should have all six pod-security.kubernetes.io labels set to restricted. Three modes are active: enforce (blocks violations), warn (shows warnings), and audit (logs violations).</aside>
             </section>
 
             <!-- ========== STEP 9: Test Pod Security ========== -->
@@ -897,22 +849,12 @@ kind: Pod
 metadata:
   name: privileged-test
   namespace: lab07-restricted
-spec:
-  containers:
-  - name: nginx
-    image: nginx:1.25
-    securityContext:
-      privileged: true
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Try to create the privileged pod (should FAIL)
 kubectl apply -f privileged-pod.yaml
                     </code></pre>
-                </div>
-                <div class="highlight-box danger fragment">
-                    <strong>&#x274C; Expected Error:</strong> The pod creation is <strong>blocked</strong> with a message like:<br>
-                    <code>Error: pods "privileged-test" is forbidden: violates PodSecurity "restricted:latest" - privileged</code>
                 </div>
                 <div class="fragment">
                     <p>Try another violation &mdash; running as root:</p>
@@ -923,23 +865,13 @@ kind: Pod
 metadata:
   name: root-test
   namespace: lab07-restricted
-spec:
-  containers:
-  - name: nginx
-    image: nginx:1.25
-    # No securityContext - defaults to running as root
-                    </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                     <pre><code class="bash" data-trim>
 # Try to create the root pod (should FAIL)
 kubectl apply -f root-pod.yaml
                     </code></pre>
                 </div>
-                <div class="highlight-box danger fragment">
-                    <strong>&#x274C; Expected Error:</strong> Blocked again. The restricted profile requires <code>runAsNonRoot: true</code>, <code>allowPrivilegeEscalation: false</code>, and dropping all capabilities.
-                </div>
-                <aside class="notes">
-                    Both of these should fail. Walk through the error messages carefully — they list every violation. This is the enforce mode at work. If you had only set warn mode, the pods would be created with a warning.
-                </aside>
+                <aside class="notes">Expected Error: Blocked again. The restricted profile requires runAsNonRoot: true, allowPrivilegeEscalation: false, and dropping all capabilities. Both pods should fail. Walk through the error messages carefully.</aside>
             </section>
 
             <!-- ========== STEP 10: Configure SecurityContext ========== -->
@@ -977,22 +909,7 @@ spec:
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
-    seccompProfile: { type: RuntimeDefault }
-  containers:
-  - name: app
-    image: python:3.11-slim
-    command: ["python", "-m", "http.server", "8080"]
-    securityContext:
-      allowPrivilegeEscalation: false
-      readOnlyRootFilesystem: true
-      capabilities: { drop: [ALL] }
-    resources: { limits: { memory: "128Mi", cpu: "250m" },
-                 requests: { memory: "64Mi", cpu: "125m" } }
-    volumeMounts: [{ name: tmp, mountPath: /tmp }]
-  volumes: [{ name: tmp, emptyDir: {} }]
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Deploy the secure pod (should SUCCEED)
@@ -1002,8 +919,8 @@ kubectl apply -f secure-pod.yaml
 kubectl get pod secure-app -n lab07-restricted
 
 # Examine the security settings
-kubectl get pod secure-app -n lab07-restricted -o jsonpath='{.spec.containers[0].securityContext}' | python3 -m json.tool
-                    </code></pre>
+kubectl get pod secure-app -n lab07-restricted -o \
+# ... (more output)</code></pre>
                 </div>
                 <div class="highlight-box success fragment">
                     <strong>&#x2705; Checkpoint:</strong> The <code>secure-app</code> pod should be Running. It passes the restricted profile because it: runs as non-root, drops all capabilities, disallows privilege escalation, uses a read-only root filesystem, and has a RuntimeDefault seccomp profile.
@@ -1083,9 +1000,12 @@ kubectl delete namespace lab07
 kubectl delete namespace lab07-restricted
 
 # Verify cleanup
-kubectl get clusterrole cluster-pod-reader 2>/dev/null || echo "ClusterRole deleted"
-kubectl get namespace lab07 2>/dev/null || echo "Namespace lab07 deleted"
-kubectl get namespace lab07-restricted 2>/dev/null || echo "Namespace lab07-restricted deleted"
+kubectl get clusterrole cluster-pod-reader 2>/dev/null \
+  || echo "ClusterRole deleted"
+kubectl get namespace lab07 2>/dev/null \
+  || echo "Namespace lab07 deleted"
+kubectl get namespace lab07-restricted 2>/dev/null \
+  || echo "Namespace lab07-restricted deleted"
                 </code></pre>
                 <div class="highlight-box success fragment">
                     <strong>&#x2705; Checkpoint:</strong> All three verification commands should show the &ldquo;deleted&rdquo; messages. Both namespaces and the cluster-scoped resources are gone.

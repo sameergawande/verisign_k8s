@@ -228,8 +228,7 @@ metadata:
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
-    matchLabels:
-      app: {{ .Release.Name }}
+    matchLabels: { app: {{ .Release.Name }} }
   template:
     spec:
       containers:
@@ -238,7 +237,7 @@ spec:
           ports:
             - containerPort: {{ .Values.service.port }}</code></pre>
                 <div class="highlight-box fragment">
-                    <strong>Double curly braces</strong> <code>{{ }}</code> delimit template actions. The dot (<code>.</code>) is the root context object.
+                    <strong>Double curly braces</strong> <code>{{ }}</code> delimit actions. The dot (<code>.</code>) is the root context object.
                 </div>
                 <aside class="notes">Everything inside double curly braces is evaluated by the Go template engine. The dot-notation accesses the hierarchical data passed into the template. Values come from values.yaml, Release metadata comes from the Helm runtime, and Chart metadata comes from Chart.yaml.</aside>
             </section>
@@ -323,9 +322,7 @@ metadata:
 nodeSelector:
   {{- toYaml . | nindent 2 }}
 {{- end }}</code></pre>
-                <div class="highlight-box warning fragment">
-                    <strong>Whitespace control:</strong> Use <code>{{-</code> and <code>-}}</code> to trim whitespace before/after template actions. Incorrect whitespace is the #1 source of templating bugs.
-                </div>
+                <aside class="notes">Tip: Use {{- and -}} to trim whitespace before/after template actions. Incorrect whitespace is the #1 source of templating bugs.</aside>
                 <aside class="notes">The dash inside the curly braces trims whitespace on that side. Without it, you get blank lines in your rendered output that can cause YAML parsing issues. The 'with' block changes the dot context, so inside a 'with .Values.nodeSelector' block, dot refers to nodeSelector itself.</aside>
             </section>
 
@@ -771,8 +768,7 @@ helm show chart oci://registry.example.com/charts/mychart \
   "required": ["image", "service"],
   "properties": {
     "replicaCount": {
-      "type": "integer",
-      "minimum": 1, "maximum": 20
+      "type": "integer", "minimum": 1, "maximum": 20
     },
     "image": {
       "type": "object",
@@ -780,14 +776,14 @@ helm show chart oci://registry.example.com/charts/mychart \
       "properties": {
         "repository": { "type": "string" },
         "tag": { "type": "string" },
-        "pullPolicy": { "enum": ["Always", "IfNotPresent", "Never"] }
+        "pullPolicy": {
+          "enum": ["Always", "IfNotPresent", "Never"]
+        }
       }
     }
   }
 }</code></pre>
-                <div class="highlight-box fragment">
-                    <strong>Placement:</strong> Place <code>values.schema.json</code> at the chart root alongside <code>values.yaml</code>.
-                </div>
+                <aside class="notes">Tip: Place values.schema.json at the chart root alongside values.yaml. Helm validates all supplied values against this schema before rendering.</aside>
                 <aside class="notes">The values.schema.json file is placed at the chart root alongside values.yaml. Helm validates all supplied values against this schema before rendering templates.</aside>
             </section>
 
@@ -807,7 +803,33 @@ helm show chart oci://registry.example.com/charts/mychart \
                 <aside class="notes">This catches configuration errors before they become runtime failures. It's especially valuable for charts consumed by other teams who may not know all the valid options.</aside>
             </section>
 
-            <!-- Slide 30: Lab Callout -->
+            <!-- Slide 30: Module Summary -->
+            <section>
+                <h2>&#128203; Module Summary</h2>
+                <ul>
+                    <li>Helm is a package manager for Kubernetes using charts, templates, and values</li>
+                    <li>Go templates with values.yaml enable reusable, parameterized deployments</li>
+                    <li>Named templates in _helpers.tpl promote DRY patterns across resources</li>
+                    <li>Helm tracks release history enabling rollback to any previous revision</li>
+                    <li>OCI registry support stores charts alongside container images</li>
+                    <li>Helm and Kustomize complement each other for packaging and environment overlays</li>
+                </ul>
+            </section>
+
+            <!-- Slide 31: Key Takeaways -->
+            <section>
+                <h2>&#127919; Key Takeaways</h2>
+                <div class="highlight-box success">
+                    <strong>Remember These Points</strong>
+                    <ol>
+                        <li>Use <code>helm create</code> to scaffold charts and follow the official best practices guide</li>
+                        <li>Version charts independently from applications and never put secrets in values.yaml</li>
+                        <li>Add a values.schema.json for validation to catch configuration errors before deployment</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- Slide 32: Lab Callout -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout" style="text-align: center;">
                 <h2>&#128736;&#65039; Lab 12: Helm and Templating</h2>
                 <h3>Estimated Time: ~45 minutes</h3>

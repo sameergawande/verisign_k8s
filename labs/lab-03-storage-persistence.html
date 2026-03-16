@@ -417,11 +417,8 @@ $ kubectl apply -f lab-pvc.yaml
 # Check the PVC status
 $ kubectl get pvc -n lab-storage
                 </code></pre>
-                <div class="highlight-box warning">
-                    <p style="margin:0;"><strong>Note:</strong> The PVC status will show <code>Pending</code> because the binding mode is <code>WaitForFirstConsumer</code>. The volume will not be provisioned until a pod references this PVC. This is expected behavior.</p>
-                </div>
                 <aside class="notes">
-                    Students may be confused by the Pending status. Emphasize that this is expected with WaitForFirstConsumer. The volume does not get created until a pod actually mounts it. This prevents creating volumes in the wrong availability zone. ReadWriteOnce means only one node can mount the volume at a time, which is the standard mode for EBS volumes.
+                    Note: The PVC status will show Pending because the binding mode is WaitForFirstConsumer. The volume will not be provisioned until a pod references this PVC. This is expected behavior. Students may be confused by the Pending status. Emphasize that this is expected with WaitForFirstConsumer. The volume does not get created until a pod actually mounts it. This prevents creating volumes in the wrong availability zone. ReadWriteOnce means only one node can mount the volume at a time, which is the standard mode for EBS volumes.
                 </aside>
             </section>
 
@@ -448,21 +445,7 @@ spec:
   containers:
     - name: writer
       image: busybox:1.36
-      command: ["/bin/sh", "-c"]
-      args:
-        - |
-          echo "Written at $(date)" > /data/testfile.txt
-          echo "Hostname: $(hostname)" >> /data/testfile.txt
-          cat /data/testfile.txt
-          sleep 3600
-      volumeMounts:
-        - name: lab-volume
-          mountPath: /data
-  volumes:
-    - name: lab-volume
-      persistentVolumeClaim:
-        claimName: lab-data-pvc
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <pre><code class="language-bash" data-trim>
 # Apply the pod
 $ kubectl apply -f lab-writer-pod.yaml
@@ -534,17 +517,7 @@ spec:
   containers:
     - name: reader
       image: busybox:1.36
-      command: ["/bin/sh", "-c"]
-      args:
-        - echo "=== Data from previous pod ===" && cat /data/testfile.txt && sleep 3600
-      volumeMounts:
-        - name: lab-volume
-          mountPath: /data
-  volumes:
-    - name: lab-volume
-      persistentVolumeClaim:
-        claimName: lab-data-pvc
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <pre><code class="language-bash" data-trim>
 # Apply the reader pod
 $ kubectl apply -f lab-reader-pod.yaml
@@ -552,12 +525,10 @@ $ kubectl apply -f lab-reader-pod.yaml
 # Verify data from the previous pod is still there
 $ kubectl logs data-reader -n lab-storage
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Success:</strong> The file written by <code>data-writer</code> is still present in the volume, even though that pod no longer exists. The original timestamp proves this is the same data.</p>
-                </div>
+
                 <aside class="notes">
                     This is the key insight of the lab. The PVC and its underlying PV persist independently of any pod. The data written by the first pod is still available to the second pod. This is exactly how databases, message queues, and other stateful services maintain data across pod restarts and rescheduling events. Point out that the PVC remained Bound even after the pod was deleted.
-                </aside>
+                 | Success: The file written by data-writer is still present in the volume, even though that pod no longer exists. The original timestamp proves this is the same data.</aside>
             </section>
 
             <!-- Step 5: Explore the Dynamically Provisioned PV -->
@@ -577,7 +548,9 @@ $ kubectl logs data-reader -n lab-storage
 $ kubectl get pv
 
 # Describe the PV (use the name from the output above)
-$ kubectl describe pv $(kubectl get pvc lab-data-pvc -n lab-storage -o jsonpath='{.spec.volumeName}')
+$ PV_NAME=$(kubectl get pvc lab-data-pvc -n lab-storage \
+  -o jsonpath='{.spec.volumeName}')
+$ kubectl describe pv $PV_NAME
                 </code></pre>
                 <div class="highlight-box success">
                     <p style="margin:0;"><strong>Key Fields in the Output:</strong></p>
@@ -623,20 +596,7 @@ spec:
   selector: { matchLabels: { app: web } }
   template:
     metadata: { labels: { app: web } }
-    spec:
-      containers:
-        - name: nginx
-          image: nginx:1.25
-          ports: [{ containerPort: 80 }]
-          volumeMounts:
-            - { name: web-data, mountPath: /usr/share/nginx/html }
-  volumeClaimTemplates:
-    - metadata: { name: web-data }
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        storageClassName: gp2
-        resources: { requests: { storage: 1Gi } }
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <aside class="notes">
                     Point out the key differences from a Deployment: the serviceName field links to a headless Service, and volumeClaimTemplates automatically creates a unique PVC for each replica. Each pod gets its own dedicated volume rather than sharing one. The naming convention is predictable: web-data-web-0, web-data-web-1, web-data-web-2.
                 </aside>
@@ -668,12 +628,10 @@ $ kubectl apply -f lab-statefulset.yaml
 # Watch pods come up in order
 $ kubectl get pods -n lab-storage -l app=web -w
                 </code></pre>
-                <div class="highlight-box">
-                    <p style="margin:0;"><strong>Observe:</strong> Pods are created sequentially: <code>web-0</code> must be Running and Ready before <code>web-1</code> starts, and so on. This ordered startup is a key StatefulSet guarantee.</p>
-                </div>
+
                 <aside class="notes">
                     The headless Service (clusterIP: None) is required for StatefulSets. It does not load-balance traffic but instead creates DNS records for each individual pod. Students should observe the ordered creation: web-0 starts first, then web-1, then web-2. Press Ctrl+C to exit the watch once all three pods are Running.
-                </aside>
+                 | Observe: Pods are created sequentially: web-0 must be Running and Ready before web-1 starts, and so on. This ordered startup is a key StatefulSet guarantee.</aside>
             </section>
 
             <!-- Step 7: Verify Stable Identities -->
@@ -736,13 +694,16 @@ web-data-web-2      Bound    pvc-...       1Gi
                 <pre><code class="language-bash" data-trim>
 # Write unique data to each pod
 $ kubectl exec web-0 -n lab-storage -- \
-  sh -c 'echo "&lt;h1&gt;Hello from web-0&lt;/h1&gt;" > /usr/share/nginx/html/index.html'
+  sh -c 'echo "Hello from web-0" \
+  > /usr/share/nginx/html/index.html'
 
 $ kubectl exec web-1 -n lab-storage -- \
-  sh -c 'echo "&lt;h1&gt;Hello from web-1&lt;/h1&gt;" > /usr/share/nginx/html/index.html'
+  sh -c 'echo "Hello from web-1" \
+  > /usr/share/nginx/html/index.html'
 
 $ kubectl exec web-2 -n lab-storage -- \
-  sh -c 'echo "&lt;h1&gt;Hello from web-2&lt;/h1&gt;" > /usr/share/nginx/html/index.html'
+  sh -c 'echo "Hello from web-2" \
+  > /usr/share/nginx/html/index.html'
 
 # Verify each pod serves its own content
 $ for i in 0 1 2; do
@@ -868,14 +829,8 @@ $ kubectl patch pvc web-data-web-0 -n lab-storage \
 # Monitor the expansion
 $ kubectl get pvc web-data-web-0 -n lab-storage -w
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected:</strong> The PVC capacity will update to 2Gi. The underlying EBS volume is resized by the CSI driver. Filesystem expansion happens automatically when the pod is restarted or in-place on newer drivers.</p>
-                </div>
-                <div class="highlight-box danger">
-                    <p style="margin:0;"><strong>Warning:</strong> Volume expansion is a one-way operation. You cannot shrink a PVC after expanding it. Always verify the target size before applying.</p>
-                </div>
                 <aside class="notes">
-                    Volume expansion is supported by most modern CSI drivers including the EBS CSI driver. The process involves two steps: the API server updates the PVC spec, and the CSI driver resizes the underlying volume. Filesystem expansion may require a pod restart depending on the driver version. Emphasize that expansion cannot be reversed. In production, always coordinate volume expansion with the application team.
+                    Expected: The PVC capacity will update to 2Gi. The underlying EBS volume is resized by the CSI driver. Filesystem expansion happens automatically when the pod is restarted or in-place on newer drivers. Warning: Volume expansion is a one-way operation. You cannot shrink a PVC after expanding it. Always verify the target size before applying. Volume expansion is supported by most modern CSI drivers including the EBS CSI driver. Emphasize that expansion cannot be reversed. In production, always coordinate volume expansion with the application team.
                 </aside>
             </section>
 

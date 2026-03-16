@@ -386,12 +386,8 @@ kubectl create namespace probes-lab
 # Set as the current context
 kubectl config set-context --current --namespace=probes-lab
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong><br>
-                    <code>namespace/probes-lab created</code><br>
-                    <code>Context modified.</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: namespace/probes-lab created Context modified.
+                    
                     Starting with a clean namespace as always for isolation and easy cleanup.
                 </aside>
             </section>
@@ -419,7 +415,6 @@ spec:
         ports:
         - containerPort: 80
 ---
-# ... Service: no-probes-svc (port 80 -> 80)
 EOF
                 </code></pre>
                 <aside class="notes">
@@ -432,17 +427,17 @@ EOF
                 <pre><code class="bash" data-trim>
 # Verify the app is running and serving traffic
 kubectl get pods -l app=no-probes-app
-curl_pod=$(kubectl get pod -l app=no-probes-app -o jsonpath='{.items[0].metadata.name}')
+curl_pod=$(kubectl get pod -l app=no-probes-app -o \
+  jsonpath='{.items[0].metadata.name}')
 
 # Simulate nginx becoming unresponsive (delete the config)
-kubectl exec $curl_pod -- sh -c "rm /etc/nginx/conf.d/default.conf && nginx -s reload"
+kubectl exec $curl_pod -- sh -c "rm \
+  /etc/nginx/conf.d/default.conf && nginx -s reload"
 
 # Try to access the service — it will fail but the pod stays "Running"
 kubectl exec $curl_pod -- curl -s -o /dev/null -w "%{http_code}" localhost:80
                 </code></pre>
-                <div class="highlight-box danger fragment">
-                    <strong>&#x274C; Problem:</strong> The pod shows <code>Running</code> and <code>1/1 Ready</code> even though it is returning errors. Kubernetes has no way to detect this failure without probes!
-                </div>
+                <aside class="notes">Problem: The pod shows Running and 1/1 Ready even though it is returning errors. Kubernetes has no way to detect this failure without probes!</aside>
                 <div class="key-point fragment">
                     <strong>&#x1F511; Key Insight:</strong> Without probes, a pod remains in the Service endpoint list even when it cannot serve traffic, causing client-facing errors.
                 </div>
@@ -472,8 +467,7 @@ spec:
   selector:
     matchLabels: { app: liveness-http }
   template:
-    metadata:
-      labels: { app: liveness-http }
+    metadata: { labels: { app: liveness-http } }
     spec:
       containers:
       - name: server
@@ -483,11 +477,10 @@ spec:
           httpGet: { path: /, port: 80 }
           initialDelaySeconds: 5
           periodSeconds: 10
-          failureThreshold: 3
 EOF
                 </code></pre>
                 <aside class="notes">
-                    Probe Parameters: initialDelaySeconds: 5 (wait 5s before first probe), periodSeconds: 10 (check every 10s), failureThreshold: 3 (3 consecutive failures to declare unhealthy), timeoutSeconds: 2 (probe must respond within 2s). The kubelet sends an HTTP GET request. Any status code between 200 and 399 counts as success. 400+ or a timeout counts as failure.
+                    Full probe parameters: initialDelaySeconds: 5 (wait 5s before first probe), periodSeconds: 10 (check every 10s), failureThreshold: 3 (default, 3 consecutive failures to declare unhealthy), timeoutSeconds: 1 (default, probe must respond within 1s). The kubelet sends an HTTP GET request. Any status code between 200 and 399 counts as success. 400+ or a timeout counts as failure.
                 </aside>
             </section>
 
@@ -505,12 +498,7 @@ kubectl exec $LIVE_POD -- rm /usr/share/nginx/html/index.html
 # (3 failures x 10 second period)
 kubectl get pods -l app=liveness-http -w
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Behavior:</strong><br>
-                    <code>NAME&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;READY&nbsp;&nbsp;STATUS&nbsp;&nbsp;&nbsp;RESTARTS</code><br>
-                    <code>liveness-http-xxx&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;&nbsp;Running&nbsp;&nbsp;0</code><br>
-                    <code>liveness-http-xxx&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;&nbsp;Running&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← restarted!</code>
-                </div>
+                <aside class="notes">Expected Behavior: NAME READY STATUS RESTARTS liveness-http-xxx 1/1 Running 0 liveness-http-xxx 1/1 Running 1 ← restarted!</aside>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Check the events to see probe failure details
@@ -553,7 +541,6 @@ metadata: { name: readiness-app, namespace: probes-lab }
         livenessProbe:
           httpGet: { path: /, port: 80 }
 ---
-# ... Service: readiness-svc (port 80 -> 80)
 EOF
                 </code></pre>
                 <aside class="notes">
@@ -577,10 +564,8 @@ kubectl get pods -l app=readiness-app
 # Verify endpoints are populated
 kubectl get endpoints readiness-svc
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected:</strong> All 3 pods show <code>1/1 Ready</code> and the endpoints list shows 3 IP addresses.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected: All 3 pods show 1/1 Ready and the endpoints list shows 3 IP addresses.
+                    
                     The pods start as not-ready because /ready does not exist initially. Once we create the file, the readiness probe succeeds and the pods are added to the Service endpoints.
                 </aside>
             </section>
@@ -599,11 +584,7 @@ kubectl get pods -l app=readiness-app -w
 # Check endpoints — the unready pod is REMOVED
 kubectl get endpoints readiness-svc
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected:</strong><br>
-                    <code>readiness-app-xxx&nbsp;&nbsp;0/1&nbsp;&nbsp;&nbsp;&nbsp;Running&nbsp;&nbsp;0</code> &larr; Not ready, but NOT restarted<br>
-                    Endpoints now show only 2 IP addresses instead of 3.
-                </div>
+                <aside class="notes">Expected: readiness-app-xxx 0/1 Running 0 &larr; Not ready, but NOT restarted Endpoints now show only 2 IP addresses instead of 3.</aside>
                 <div class="key-point fragment">
                     <strong>&#x1F511; Key Difference:</strong> Readiness failure <strong>removes</strong> the pod from Service endpoints. Liveness failure <strong>restarts</strong> the container. They serve different purposes.
                 </div>
@@ -625,10 +606,8 @@ kubectl get pods -l app=readiness-app -w
 # Verify endpoints are restored
 kubectl get endpoints readiness-svc
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected:</strong> After ~10 seconds (2 successful checks at 5s intervals), the pod returns to <code>1/1 Ready</code> and its IP reappears in the endpoints list.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected: After ~10 seconds (2 successful checks at 5s intervals), the pod returns to 1/1 Ready and its IP reappears in the endpoints list.
+                    
                     The successThreshold of 2 provides hysteresis — it prevents a pod from flapping between ready and not-ready too quickly.
                 </aside>
             </section>
@@ -681,19 +660,9 @@ kubectl get pods -l app=slow-start-app -w
 kubectl get events --field-selector reason=Unhealthy \
   -n probes-lab -w
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Timeline:</strong>
-                    <ul>
-                        <li>0-5s: Container starting, startup probe not yet active</li>
-                        <li>5-30s: Startup probe fails (app still initializing) &mdash; this is OK</li>
-                        <li>~35s: App becomes responsive, startup probe passes</li>
-                        <li>~35s+: Liveness and readiness probes begin</li>
-                    </ul>
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0;&#xFE0F; Without Startup Probe:</strong> The liveness probe would kill the container after 3 failures (30 seconds), before the app even finishes initializing!
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Timeline: 0-5s: Container starting, startup probe not yet active 5-30s: Startup probe fails (app still initializing) -- this is OK ~35s: App becomes responsive, startup probe passes ~35s+: Liveness and readiness probes begin
+                    Without Startup Probe: The liveness probe would kill the container after 3 failures (30 seconds), before the app even finishes initializing!
+                    
                     This clearly demonstrates why startup probes exist. Before they were available, operators had to set very long initialDelaySeconds on liveness probes, which delayed failure detection.
                 </aside>
             </section>
@@ -774,7 +743,6 @@ kubectl get events --field-selector reason=Unhealthy \
                 <h2>&#x1F4CA; Tuning Exercise</h2>
                 <pre><code class="yaml" data-trim>
 cat &lt;&lt;'EOF' | kubectl apply -f -
-# Deployment: tuned-probes (namespace: probes-lab)
 # ... standard metadata/selector/template (app: tuned-probes)
     spec:
       containers:
@@ -830,15 +798,8 @@ metadata: { name: tcp-probe-app, namespace: probes-lab }
           initialDelaySeconds: 3
 EOF
                 </code></pre>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; When to Use TCP Probes:</strong>
-                    <ul>
-                        <li>Services that speak non-HTTP protocols (Redis, PostgreSQL, MQTT)</li>
-                        <li>When you only need to verify the port is accepting connections</li>
-                        <li>Lower overhead than HTTP probes</li>
-                    </ul>
-                </div>
-                <aside class="notes">
+                <aside class="notes">When to Use TCP Probes: Services that speak non-HTTP protocols (Redis, PostgreSQL, MQTT) When you only need to verify the port is accepting connections Lower overhead than HTTP probes
+                    
                     TCP probes verify that a TCP connection can be established. They are less thorough than HTTP probes (they do not verify the application is actually functional) but work with any TCP-based service.
                 </aside>
             </section>
@@ -854,10 +815,7 @@ TCP_POD=$(kubectl get pod -l app=tcp-probe-app \
   -o jsonpath='{.items[0].metadata.name}')
 kubectl exec $TCP_POD -- redis-cli ping
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong><br>
-                    <code>PONG</code>
-                </div>
+                <aside class="notes">Expected Output: PONG</aside>
                 <pre class="fragment"><code class="bash" data-trim>
 # View probe-related events
 kubectl describe pod $TCP_POD | grep -A 3 "Liveness\|Readiness"
@@ -893,42 +851,34 @@ spec:
       containers:
       - name: app
         image: busybox
-        command: ['sh', '-c', 'touch /tmp/healthy; while true; do sleep 5; done']
+        command: ['sh', '-c', 'touch /tmp/healthy; while true; do \
+          sleep 5; done']
         livenessProbe:
-          exec:
-            command: [cat, /tmp/healthy]
+          exec: { command: [cat, /tmp/healthy] }
           initialDelaySeconds: 5
           periodSeconds: 5
-          failureThreshold: 3
 EOF
                 </code></pre>
                 <aside class="notes">
-                    How It Works: The probe runs cat /tmp/healthy inside the container. Exit code 0 = success, non-zero = failure. File-based health checks are a simple pattern. The application creates a sentinel file to indicate health and removes it when unhealthy. The exec probe checks for the file's existence.
+                    How It Works: The probe runs cat /tmp/healthy inside the container. Exit code 0 = success, non-zero = failure. failureThreshold defaults to 3 (3 consecutive failures to declare unhealthy). File-based health checks are a simple pattern. The application creates a sentinel file to indicate health and removes it when unhealthy. The exec probe checks for the file's existence.
                 </aside>
             </section>
 
             <section>
                 <h2>&#x1F4A5; Test the Exec Probe</h2>
                 <pre><code class="bash" data-trim>
-# Get the pod name
 EXEC_POD=$(kubectl get pod -l app=exec-probe-app \
   -o jsonpath='{.items[0].metadata.name}')
 
-# Verify it's healthy
 kubectl exec $EXEC_POD -- cat /tmp/healthy
 echo "Exit code: $?"
 
-# Make it unhealthy by removing the file
 kubectl exec $EXEC_POD -- rm /tmp/healthy
 
-# Watch the pod — it will restart after ~15 seconds
-# (3 failures x 5 second period)
 kubectl get pods -l app=exec-probe-app -w
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected:</strong> The restart count increases after approximately 15-20 seconds. After restart, the container re-creates <code>/tmp/healthy</code> and becomes stable again.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected: The restart count increases after approximately 15-20 seconds. After restart, the container re-creates /tmp/healthy and becomes stable again.
+                    
                     Exec probes are powerful because you can run any command. Common uses include checking if a lock file exists, verifying database connectivity with a CLI client, or running a custom health-check script.
                 </aside>
             </section>
@@ -986,9 +936,7 @@ kubectl delete pod $GRACEFUL_POD
 
 # Note the time between the delete command and actual termination
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected:</strong> The pod enters <code>Terminating</code> state and takes approximately 10+ seconds to fully terminate (due to the <code>sleep 10</code> in the preStop hook).
-                </div>
+                <aside class="notes">Expected: The pod enters Terminating state and takes approximately 10+ seconds to fully terminate (due to the sleep 10 in the preStop hook).</aside>
                 <div class="concept-box fragment">
                     <h4>&#x1F504; Shutdown Sequence</h4>
                     <ol>
@@ -1052,11 +1000,7 @@ kubectl get pdb -n probes-lab
 # Describe for details
 kubectl describe pdb pdb-app-pdb -n probes-lab
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong><br>
-                    <code>NAME&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MIN AVAILABLE&nbsp;&nbsp;MAX UNAVAILABLE&nbsp;&nbsp;ALLOWED DISRUPTIONS&nbsp;&nbsp;AGE</code><br>
-                    <code>pdb-app-pdb&nbsp;&nbsp;2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N/A&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;10s</code>
-                </div>
+                <aside class="notes">Expected Output: NAME MIN AVAILABLE MAX UNAVAILABLE ALLOWED DISRUPTIONS AGE pdb-app-pdb 2 N/A 2 10s</aside>
                 <div class="key-point fragment">
                     <strong>&#x1F511; ALLOWED DISRUPTIONS:</strong> With 4 replicas and minAvailable=2, Kubernetes allows <strong>2 pods</strong> to be disrupted simultaneously while maintaining the minimum.
                 </div>
@@ -1087,10 +1031,8 @@ kubectl delete pod -l app=pdb-app --grace-period=0 --force &
 # Immediately check PDB status
 kubectl get pdb pdb-app-pdb -n probes-lab -w
                 </code></pre>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0;&#xFE0F; Note:</strong> Direct <code>kubectl delete pod</code> does NOT respect PDBs. PDBs are enforced by the <strong>Eviction API</strong>, used by <code>kubectl drain</code> and cluster autoscaler.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Note: Direct kubectl delete pod does NOT respect PDBs. PDBs are enforced by the Eviction API, used by kubectl drain and cluster autoscaler.
+                    
                     This is a common misconception. PDBs only protect against eviction-based disruptions, not direct pod deletion. The next slide demonstrates the correct test.
                 </aside>
             </section>
@@ -1098,27 +1040,18 @@ kubectl get pdb pdb-app-pdb -n probes-lab -w
             <section>
                 <h2>&#x1F6E1;&#xFE0F; Test PDB with Node Drain</h2>
                 <pre><code class="bash" data-trim>
-# Identify a node hosting pdb-app pods
 NODE_NAME=$(kubectl get pods -l app=pdb-app \
   -o jsonpath='{.items[0].spec.nodeName}')
 
 echo "Will attempt to drain node: $NODE_NAME"
 
-# Attempt to drain the node (respects PDBs)
-# Use --dry-run first to see what would happen
 kubectl drain $NODE_NAME \
   --ignore-daemonsets \
   --delete-emptydir-data \
   --dry-run=client
 
-# If satisfied, run the actual drain:
-# kubectl drain $NODE_NAME \
-#   --ignore-daemonsets \
-#   --delete-emptydir-data
                 </code></pre>
-                <div class="highlight-box danger fragment">
-                    <strong>&#x1F6A8; Caution:</strong> Only drain a node in a multi-node cluster! If you only have one node, the drain will block because the PDB cannot be satisfied.
-                </div>
+                <aside class="notes">Caution: Only drain a node in a multi-node cluster! If you only have one node, the drain will block because the PDB cannot be satisfied.</aside>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Don't forget to uncordon the node afterward!
@@ -1148,15 +1081,9 @@ kubectl delete namespace probes-lab
 # Verify cleanup
 kubectl get namespace probes-lab
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected:</strong><br>
-                    <code>Error from server (NotFound): namespaces "probes-lab" not found</code>
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0;&#xFE0F; Reminder:</strong> If you drained a node in Step 10, make sure to uncordon it:<br>
-                    <code>kubectl uncordon $NODE_NAME</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected: Error from server (NotFound): namespaces "probes-lab" not found
+                    Reminder: If you drained a node in Step 10, make sure to uncordon it: kubectl uncordon $NODE_NAME
+                    
                     Verify the node is uncordoned if it was drained. A cordoned node will not accept new pods and can cause scheduling issues for other workloads.
                 </aside>
             </section>

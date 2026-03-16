@@ -326,12 +326,8 @@
                     </ul>
                 </div>
                 <div class="two-columns">
-                    <div class="highlight-box">
-                        <strong>&#9200; Duration:</strong> 45&ndash;60 minutes
-                    </div>
-                    <div class="highlight-box warning">
-                        <strong>&#9888;&#65039; Prerequisites:</strong> Vault running in the <code>vault</code> namespace, ESO installed in <code>external-secrets</code> namespace
-                    </div>
+                    <aside class="notes">Duration: 45 60 minutes
+                    Prerequisites: Vault running in the vault namespace, ESO installed in external-secrets namespace</aside>
                 </div>
                 <aside class="notes">
                     Review the overview and prerequisites. Vault and ESO should already be running in the cluster from the platform bootstrap. If any student's environment is not ready, help them verify before starting.
@@ -352,10 +348,7 @@
                 <h3>Port-forward to Vault</h3>
                 <pre><code class="language-bash"># Start port-forwarding to the Vault service
 kubectl port-forward svc/vault 8200:8200 -n vault</code></pre>
-                <div class="highlight-box fragment fade-up">
-                    <strong>&#127760; Open your browser:</strong> Navigate to <a href="http://localhost:8200">http://localhost:8200</a><br>
-                    Login with the root token: <code>root</code> (dev mode default)
-                </div>
+                <aside class="notes">Open your browser: Navigate to http://localhost:8200 Login with the root token: root (dev mode default)</aside>
                 <div class="fragment fade-up">
                     <h3>Verify via CLI</h3>
                     <pre><code class="language-bash"># Check Vault status from within the pod
@@ -404,10 +397,8 @@ vault kv get secret/lab16/database
 # Read as JSON for structured output
 vault kv get -format=json secret/lab16/database</code></pre>
                 </div>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>&#9989; Checkpoint:</strong> You should see all four key-value pairs (username, password, host, port) in the output. The version should be <code>1</code>.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Checkpoint: You should see all four key-value pairs (username, password, host, port) in the output. The version should be 1 .
+                    
                     Students exec into the Vault pod and use the vault CLI directly. The kv put command stores four key-value pairs at the path secret/lab16/database. The kv get confirms the data was written. The JSON output is useful for scripting and shows metadata like version number.
                 </aside>
             </section>
@@ -480,10 +471,8 @@ vault read auth/kubernetes/role/lab16-role
 # Exit the Vault pod shell
 exit</code></pre>
                 </div>
-                <div class="highlight-box fragment fade-up">
-                    <strong>What this role says:</strong> "If a pod running as ServiceAccount <code>lab16-sa</code> in namespace <code>lab16</code> authenticates, grant it the <code>lab16-readonly</code> policy with a 1-hour TTL."
-                </div>
-                <aside class="notes">
+                <aside class="notes">What this role says: "If a pod running as ServiceAccount lab16-sa in namespace lab16 authenticates, grant it the lab16-readonly policy with a 1-hour TTL."
+                    
                     The role binds three things together: the ServiceAccount name, the namespace, and the Vault policy. Only pods running as lab16-sa in the lab16 namespace will be able to authenticate with this role. The TTL means the Vault token expires after 1 hour. After verifying the role, students should exit the Vault pod shell.
                 </aside>
             </section>
@@ -505,13 +494,9 @@ kubectl get clustersecretstore
 
 # Describe the vault-backend store for details
 kubectl describe clustersecretstore vault-backend</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>&#9989; Expected output:</strong> The ClusterSecretStore should show <code>STATUS: Ready</code>. The describe output should show the Vault server URL and Kubernetes auth configuration.
-                </div>
-                <div class="highlight-box danger fragment fade-up">
-                    <strong>&#10060; If not Ready:</strong> Check that Vault is running (<code>kubectl get pods -n vault</code>), verify the Vault address in the ClusterSecretStore spec, and check ESO controller logs (<code>kubectl logs -l app.kubernetes.io/name=external-secrets -n external-secrets</code>).
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected output: The ClusterSecretStore should show STATUS: Ready. The describe output should show the Vault server URL and Kubernetes auth configuration.
+                    If not Ready: Check that Vault is running ( kubectl get pods -n vault ), verify the Vault address in the ClusterSecretStore spec, and check ESO controller logs ( kubectl logs -l app.kubernetes.io/name=external-secrets -n external-secrets ).
+                    
                     The ClusterSecretStore is provisioned by the platform. Students just need to verify it is in a Ready state. If it is not Ready, walk through the troubleshooting steps. The most common issue is Vault not being accessible at the configured address.
                 </aside>
             </section>
@@ -563,23 +548,16 @@ kubectl get serviceaccount lab16-sa -n lab16</code></pre>
                 <pre><code class="language-bash">cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
-metadata:
-  name: db-credentials
-  namespace: lab16
+metadata: { name: db-credentials, namespace: lab16 }
 spec:
   refreshInterval: "1m"
-  secretStoreRef:
-    name: vault-backend
-    kind: ClusterSecretStore
-  target:
-    name: db-credentials
-    creationPolicy: Owner
+  secretStoreRef: { name: vault-backend, kind: ClusterSecretStore }
+  target: { name: db-credentials, creationPolicy: Owner }
   data:
     - secretKey: username
       remoteRef: { key: secret/lab16/database, property: username }
     - secretKey: password
       remoteRef: { key: secret/lab16/database, property: password }
-    # ... host and port entries follow same pattern
 EOF</code></pre>
                 <aside class="notes">
                     Walk through each field: refreshInterval is set to 1 minute for lab purposes (in production you might use 5m). secretStoreRef points to the platform-provisioned ClusterSecretStore. The target defines the K8s Secret name. Each data entry maps a Vault field to a key in the K8s Secret. The remoteRef key uses the Vault CLI path (without /data/) — ESO handles the translation.
@@ -618,10 +596,8 @@ kubectl get secret db-credentials -n lab16 \
 kubectl get secret db-credentials -n lab16 \
   -o jsonpath='{.data.port}' | base64 -d && echo</code></pre>
                 </div>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>&#9989; Checkpoint:</strong> Decoded values should match what you stored in Vault: <code>admin</code>, <code>s3cureP@ss</code>, <code>postgres.lab16.svc.cluster.local</code>, <code>5432</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Checkpoint: Decoded values should match what you stored in Vault: admin , s3cureP@ss , postgres.lab16.svc.cluster.local , 5432
+                    
                     The ExternalSecret status should show SecretSynced. If it shows an error, use describe to see the error message. The K8s Secret contains base64-encoded values — the jsonpath and base64 decode commands let us verify the actual values match what we stored in Vault. This proves the end-to-end sync is working.
                 </aside>
             </section>
@@ -641,23 +617,18 @@ kubectl get secret db-credentials -n lab16 \
                 <pre><code class="language-bash">cat &lt;&lt;'EOF' | kubectl apply -f -
 apiVersion: v1
 kind: Pod
-metadata:
-  name: secret-consumer
-  namespace: lab16
+metadata: { name: secret-consumer, namespace: lab16 }
 spec:
   serviceAccountName: lab16-sa
   containers:
   - name: app
     image: busybox:1.36
     command: ["sleep", "3600"]
-    env:
-    - { name: DB_USERNAME, valueFrom: { secretKeyRef: { name: db-credentials, key: username }}}
-    - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: db-credentials, key: password }}}
-    - { name: DB_HOST, valueFrom: { secretKeyRef: { name: db-credentials, key: host }}}
-    - { name: DB_PORT, valueFrom: { secretKeyRef: { name: db-credentials, key: port }}}
+    envFrom:
+    - secretRef: { name: db-credentials }
 EOF</code></pre>
                 <aside class="notes">
-                    This pod uses the lab16-sa ServiceAccount and consumes all four keys from the db-credentials Secret as environment variables. The pod runs busybox with a sleep command so we can exec in and inspect the environment.
+                    This pod uses the lab16-sa ServiceAccount and loads all keys from the db-credentials Secret as environment variables via envFrom. The pod runs busybox with a sleep command so we can exec in and inspect the environment. The envFrom approach is more concise than individual env entries — it maps every key in the Secret to an env var of the same name.
                 </aside>
             </section>
 
@@ -668,13 +639,7 @@ kubectl wait --for=condition=Ready pod/secret-consumer -n lab16 --timeout=60s
 
 # Exec into the pod and check environment variables
 kubectl exec -it secret-consumer -n lab16 -- env | grep DB_</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>&#9989; Expected output:</strong>
-                    <pre style="margin: 10px 0; background: #fff; padding: 10px; border-radius: 4px;"><code>DB_USERNAME=admin
-DB_PASSWORD=s3cureP@ss
-DB_HOST=postgres.lab16.svc.cluster.local
-DB_PORT=5432</code></pre>
-                </div>
+                <aside class="notes">Expected output: DB_USERNAME=admin DB_PASSWORD=s3cureP@ss DB_HOST=postgres.lab16.svc.cluster.local DB_PORT=5432</aside>
                 <div class="key-point fragment fade-up">
                     <strong>&#128161; The complete chain:</strong> Vault &rarr; ESO (via ClusterSecretStore + ExternalSecret) &rarr; K8s Secret &rarr; Pod env vars. The application has no idea Vault exists &mdash; it just reads standard environment variables.
                 </div>
@@ -706,9 +671,7 @@ kubectl exec -it vault-0 -n vault -- \
 # Verify the update in Vault
 kubectl exec -it vault-0 -n vault -- \
   vault kv get secret/lab16/database</code></pre>
-                <div class="highlight-box fragment fade-up">
-                    <strong>&#9200; Wait for the refreshInterval</strong> (1 minute in our ExternalSecret), then check if the K8s Secret was updated.
-                </div>
+                <aside class="notes">Wait for the refreshInterval (1 minute in our ExternalSecret), then check if the K8s Secret was updated.</aside>
                 <div class="fragment fade-up">
                     <pre><code class="language-bash"># After ~1 minute, check the K8s Secret
 kubectl get secret db-credentials -n lab16 \
@@ -723,9 +686,7 @@ kubectl get secret db-credentials -n lab16 \
 
             <section>
                 <h2>Step 10: Env Vars vs Volume Mounts</h2>
-                <div class="highlight-box warning">
-                    <strong>&#9888;&#65039; Important:</strong> The K8s Secret was updated, but our pod still has the OLD password in its environment variables.
-                </div>
+                <aside class="notes">Important: The K8s Secret was updated, but our pod still has the OLD password in its environment variables.</aside>
                 <pre><code class="language-bash"># Check the pod's env — still shows old password!
 kubectl exec -it secret-consumer -n lab16 -- env | grep DB_PASSWORD
 # Output: DB_PASSWORD=s3cureP@ss  (old value!)
@@ -797,9 +758,7 @@ kubectl get externalsecret unauthorized-secret -n lab16
 
 # Describe for the error message
 kubectl describe externalsecret unauthorized-secret -n lab16</code></pre>
-                <div class="highlight-box danger fragment fade-up">
-                    <strong>&#10060; Expected result:</strong> The ExternalSecret should show a <code>SecretSyncedError</code> status. The describe output will show a permission denied error from Vault.
-                </div>
+                <aside class="notes">Expected result: The ExternalSecret should show a SecretSyncedError status. The describe output will show a permission denied error from Vault.</aside>
                 <div class="key-point fragment fade-up">
                     <strong>&#128161; This confirms:</strong> Vault policies enforce least-privilege access. The <code>lab16-readonly</code> policy only permits access to <code>secret/data/lab16/*</code>. Requests to any other path are denied, regardless of what the ExternalSecret requests.
                 </div>
@@ -840,10 +799,8 @@ kubectl get namespace lab16
 kubectl exec -it vault-0 -n vault -- vault policy list | grep lab16
 # Expected: no output</code></pre>
                 </div>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>&#9989; Cleanup complete.</strong> All lab resources have been removed from the cluster and Vault.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Cleanup complete. All lab resources have been removed from the cluster and Vault.
+                    
                     Deleting the namespace removes all K8s resources within it (pods, secrets, ExternalSecrets, ServiceAccounts). The Vault cleanup removes the secret data, the auth role, and the policy. Verify both are clean before moving on.
                 </aside>
             </section>

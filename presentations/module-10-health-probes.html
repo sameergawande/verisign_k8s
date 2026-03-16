@@ -255,22 +255,17 @@ spec:
                 </div>
                 <pre><code class="language-yaml">apiVersion: v1
 kind: Pod
-metadata:
-  name: legacy-app
+metadata: { name: legacy-app }
 spec:
   containers:
   - name: app
     image: legacy-app:2.0
     startupProbe:
-      httpGet:
-        path: /healthz
-        port: 8080
+      httpGet: { path: /healthz, port: 8080 }
       failureThreshold: 30
       periodSeconds: 10
     livenessProbe:
-      httpGet:
-        path: /healthz
-        port: 8080
+      httpGet: { path: /healthz, port: 8080 }
       periodSeconds: 10</code></pre>
                 <ul>
                     <li class="fragment fade-up">Liveness and readiness probes <strong>disabled until startup probe succeeds</strong></li>
@@ -416,21 +411,18 @@ spec:
   containers:
   - name: redis
     image: redis:7
-    ports:
-    - containerPort: 6379
+    ports: [{ containerPort: 6379 }]
     readinessProbe:
-      tcpSocket:
-        port: 6379
+      tcpSocket: { port: 6379 }
       initialDelaySeconds: 5
       periodSeconds: 10
     livenessProbe:
-      tcpSocket:
-        port: 6379
+      tcpSocket: { port: 6379 }
       initialDelaySeconds: 15
       periodSeconds: 20</code></pre>
                 <div class="two-columns">
                     <div class="highlight-box success">
-                        <strong>Best For:</strong> Databases, caches, message brokers, and any service that doesn't speak HTTP.
+                        <strong>Best For:</strong> Databases, caches, message brokers &mdash; any service that doesn't speak HTTP.
                     </div>
                     <div class="highlight-box warning">
                         <strong>Limitation:</strong> Only confirms the port is open &mdash; does not verify the application is functioning correctly.
@@ -523,25 +515,22 @@ spec:
                         <ul>
                             <li><code>periodSeconds: 1</code></li>
                             <li><code>failureThreshold: 1</code></li>
-                            <li>Causes restart loops on transient issues</li>
-                            <li>Wastes kubelet CPU cycles</li>
+                            <li>Restart loops on transient issues</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>&#128308; Checking Dependencies</h4>
                         <ul>
                             <li>Liveness checks DB connection</li>
-                            <li>DB goes down &rarr; all pods restart</li>
-                            <li>DB comes back &rarr; thundering herd</li>
-                            <li>Self-inflicted cascading failure</li>
+                            <li>DB down &rarr; all pods restart</li>
+                            <li>Cascading failure</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>&#128308; Expensive Operations</h4>
                         <ul>
-                            <li>Running full test suites</li>
                             <li>Heavy database queries</li>
-                            <li>Probe takes longer than <code>timeoutSeconds</code></li>
+                            <li>Probe exceeds <code>timeoutSeconds</code></li>
                             <li>Causes false failures</li>
                         </ul>
                     </div>
@@ -587,8 +576,7 @@ spec:
   containers:
   - name: web
     image: web-app:3.2
-    ports:
-    - containerPort: 8080
+    ports: [{ containerPort: 8080 }]
     startupProbe:
       httpGet: { path: /healthz, port: 8080 }
       failureThreshold: 30
@@ -601,11 +589,10 @@ spec:
     readinessProbe:
       httpGet: { path: /ready, port: 8080 }
       periodSeconds: 5
-      timeoutSeconds: 3
       successThreshold: 2
       failureThreshold: 3</code></pre>
                 <div class="highlight-box">
-                    <strong>Startup:</strong> 150s max to start &bull; <strong>Liveness:</strong> restart after 30s unresponsive &bull; <strong>Readiness:</strong> remove from LB within 15s
+                    <strong>Startup:</strong> 150s max &bull; <strong>Liveness:</strong> restart after 30s &bull; <strong>Readiness:</strong> remove from LB within 15s
                 </div>
                 <aside class="notes">This is a production-ready configuration for a typical web application. The startup probe gives 150 seconds for initialization — enough for dependency injection and cache warming. Liveness checks a lightweight internal endpoint every 10 seconds. Readiness uses a separate endpoint that verifies downstream services, and requires 2 consecutive successes before adding the pod back to the Service, preventing flapping.</aside>
             </section>
@@ -785,19 +772,24 @@ spec:
       - name: app
         image: myapp:2.0
         resources:
-          requests:
-            cpu: "250m"
-            memory: "256Mi"
-          limits:
-            cpu: "1000m"
-            memory: "512Mi"
+          requests: { cpu: "250m", memory: "256Mi" }
+          limits: { cpu: "1000m", memory: "512Mi" }
         startupProbe:
           httpGet: { path: /healthz, port: 8080 }
           failureThreshold: 20
           periodSeconds: 5
-        livenessProbe: { httpGet: { path: /healthz, port: 8080 }, periodSeconds: 10, failureThreshold: 3 }
-        readinessProbe: { httpGet: { path: /ready, port: 8080 }, periodSeconds: 5, failureThreshold: 3 }
-        lifecycle: { preStop: { exec: { command: ["/bin/sh", "-c", "sleep 10"] } } }</code></pre>
+        livenessProbe:
+          httpGet: { path: /healthz, port: 8080 }
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet: { path: /ready, port: 8080 }
+          periodSeconds: 5
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 10"]</code></pre>
                 <aside class="notes">Here's a complete, production-ready pod spec that combines everything we've covered. Three probes for comprehensive health checking, resource limits, a termination grace period, and a preStop hook for clean shutdown. This template is a solid starting point for any production deployment — adjust the timing parameters based on your application's characteristics.</aside>
             </section>
 
@@ -856,7 +848,19 @@ spec:
                 <aside class="notes">Time for hands-on practice. In this lab you'll configure all three probe types on a web application, deliberately break the application to watch Kubernetes self-heal, debug probe failures using the techniques we covered, and set up PDBs. Take your time with the debugging section — understanding probe events is a critical operational skill.</aside>
             </section>
 
-            <!-- Slide 29: Key Takeaways -->
+            <!-- Slide 29: Module Summary -->
+            <section>
+                <h2>&#128203; Module Summary</h2>
+                <ul>
+                    <li>Liveness probes detect stuck containers and trigger automatic restarts</li>
+                    <li>Readiness probes control Service traffic routing to healthy pods only</li>
+                    <li>Startup probes protect slow-starting applications from premature kills</li>
+                    <li>Probe protocols include HTTP, TCP, gRPC, and exec for different workload types</li>
+                    <li>Graceful shutdown requires coordinating preStop hooks, SIGTERM handling, and PDBs</li>
+                </ul>
+            </section>
+
+            <!-- Slide 30: Key Takeaways -->
             <section>
                 <h2>&#127919; Key Takeaways</h2>
                 <ul>

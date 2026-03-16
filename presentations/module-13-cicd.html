@@ -214,8 +214,9 @@
 docker build -t myapp:${GIT_SHA} .
 trivy image --severity HIGH,CRITICAL myapp:${GIT_SHA}
 cosign sign --key cosign.key myapp:${GIT_SHA}
-docker tag myapp:${GIT_SHA} 123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:${GIT_SHA}
-docker push 123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:${GIT_SHA}</code></pre>
+ECR=123456789.dkr.ecr.us-east-1.amazonaws.com
+docker tag myapp:${GIT_SHA} ${ECR}/myapp:${GIT_SHA}
+docker push ${ECR}/myapp:${GIT_SHA}</code></pre>
                 <aside class="notes">The image lifecycle is the backbone of cloud-native CI. Multi-stage builds keep images lean, immutable tags ensure reproducibility, and image signing creates a chain of trust. Using Git SHA as the tag creates a direct link between the code commit and the running image. ECR supports image scanning natively, and Cosign from the Sigstore project provides keyless or key-based signing.</aside>
             </section>
 
@@ -333,7 +334,7 @@ docker push 123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:${GIT_SHA}</code></p
                         <h4>Repo Server</h4>
                         <ul>
                             <li class="fragment">Clones Git repositories</li>
-                            <li class="fragment">Renders manifests (Helm, Kustomize, plain YAML)</li>
+                            <li class="fragment">Renders manifests (Helm, Kustomize)</li>
                             <li class="fragment">Caches rendered output</li>
                             <li class="fragment">Stateless &amp; scalable</li>
                         </ul>
@@ -348,9 +349,7 @@ docker push 123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:${GIT_SHA}</code></p
                         </ul>
                     </div>
                 </div>
-                <div class="highlight-box fragment">
-                    <strong>Additional components:</strong> Redis (caching), Dex (SSO), ApplicationSet Controller (multi-cluster), Notifications Controller (alerts)
-                </div>
+                <aside class="notes">Tip: Additional components include Redis (caching), Dex (SSO), ApplicationSet Controller (multi-cluster), and Notifications Controller (alerts).</aside>
                 <aside class="notes">The three core components work together in a loop. The repo server clones and renders manifests from Git. The application controller compares the rendered manifests against what's actually running in the cluster. When differences are detected, the controller can automatically sync or wait for manual approval depending on the sync policy. The API server provides the UI and access control layer.</aside>
             </section>
 
@@ -415,9 +414,7 @@ spec:
                         </ul>
                     </div>
                 </div>
-                <div class="highlight-box warning fragment">
-                    <strong>Production recommendation:</strong> Enable <code>selfHeal</code> always. Enable <code>automated</code> sync only after establishing confidence. Consider manual sync approval for critical workloads.
-                </div>
+                <aside class="notes">Tip: Production recommendation — Enable selfHeal always. Enable automated sync only after establishing confidence. Consider manual sync approval for critical workloads.</aside>
                 <aside class="notes">These three policies control how aggressively ArgoCD reconciles state. Automated sync means any Git commit triggers deployment. Self-heal reverts manual changes made directly to the cluster. Prune removes resources that no longer exist in Git. In production, many teams start with self-heal enabled but automated sync disabled, requiring manual sync approval through the UI or CLI for an additional safety gate.</aside>
             </section>
 
@@ -430,8 +427,7 @@ spec:
                         <pre><code class="language-yaml"># overlays/production/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources:
-  - ../../base
+resources: [../../base]
 patchesStrategicMerge:
   - replica-patch.yaml
   - resource-patch.yaml
@@ -443,26 +439,19 @@ images:
                         <h3>ApplicationSet</h3>
                         <pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
-metadata:
-  name: frontend
+metadata: { name: frontend }
 spec:
   generators:
     - list:
         elements:
-          - cluster: dev
-            url: https://dev.k8s.local
-          - cluster: staging
-            url: https://staging.k8s.local
-          - cluster: production
-            url: https://prod.k8s.local
+          - { cluster: dev, url: https://dev.k8s.local }
+          - { cluster: staging, url: https://staging.k8s.local }
+          - { cluster: prod, url: https://prod.k8s.local }
   template:
     spec:
       source:
         path: apps/frontend/overlays/{{cluster}}</code></pre>
                     </div>
-                </div>
-                <div class="key-point fragment">
-                    <strong>ApplicationSet</strong> generates Application resources dynamically &mdash; one template, many environments or clusters.
                 </div>
                 <aside class="notes">Kustomize overlays handle per-environment differences like replica counts, resource limits, and image tags. ApplicationSets take this further by generating ArgoCD Application resources from a template. The list generator is the simplest, but you can also use Git directory generators, cluster generators, and pull request generators. This is how large organizations manage hundreds of applications across dozens of clusters.</aside>
             </section>
@@ -520,29 +509,21 @@ spec:
                         <h3>GitRepository</h3>
                         <pre><code class="language-yaml">apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
-metadata:
-  name: app-repo
-  namespace: flux-system
+metadata: { name: app-repo, namespace: flux-system }
 spec:
   interval: 1m
   url: https://github.com/verisign/gitops-repo
-  ref:
-    branch: main
-  secretRef:
-    name: git-credentials</code></pre>
+  ref: { branch: main }
+  secretRef: { name: git-credentials }</code></pre>
                     </div>
                     <div>
                         <h3>Kustomization</h3>
                         <pre><code class="language-yaml">apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
-metadata:
-  name: frontend
-  namespace: flux-system
+metadata: { name: frontend, namespace: flux-system }
 spec:
   interval: 5m
-  sourceRef:
-    kind: GitRepository
-    name: app-repo
+  sourceRef: { kind: GitRepository, name: app-repo }
   path: ./apps/frontend/overlays/prod
   prune: true
   healthChecks:
@@ -550,9 +531,6 @@ spec:
       name: frontend
       namespace: frontend</code></pre>
                     </div>
-                </div>
-                <div class="key-point fragment">
-                    <strong>Two CRDs, one workflow:</strong> GitRepository defines <em>where</em> to fetch. Kustomization defines <em>what</em> to apply and <em>how</em> to verify.
                 </div>
                 <aside class="notes">The GitRepository CRD tells the source controller where to fetch manifests and how often to check for changes. The Kustomization CRD (not to be confused with native Kustomize) tells the kustomize controller which path to apply and includes health checks to verify the deployment succeeded. The interval fields control polling frequency. The prune flag works like ArgoCD's prune - removing resources deleted from Git.</aside>
             </section>
@@ -652,12 +630,10 @@ jobs:
                             <li class="fragment">Pipelines run as Pods in the cluster</li>
                             <li class="fragment">CRDs: Task, Pipeline, PipelineRun</li>
                             <li class="fragment">Reusable task catalog (Tekton Hub)</li>
-                            <li class="fragment">Fine-grained RBAC per pipeline</li>
                         </ul>
                         <pre class="fragment"><code class="language-yaml">apiVersion: tekton.dev/v1beta1
 kind: Task
-metadata:
-  name: build-image
+metadata: { name: build-image }
 spec:
   steps:
     - name: build
@@ -675,11 +651,9 @@ spec:
                             <li class="fragment">Preview environments per PR</li>
                             <li class="fragment">GitOps-native from the start</li>
                         </ul>
-                        <div class="highlight-box fragment">
-                            <strong>Kaniko</strong> builds container images inside Kubernetes without requiring Docker daemon access.
-                        </div>
                     </div>
                 </div>
+                <aside class="notes">Tip: Kaniko builds container images inside Kubernetes without requiring Docker daemon access.</aside>
                 <aside class="notes">Tekton is a powerful option when you want your CI pipelines to run inside Kubernetes itself. Each step runs as a container in a Pod, which means you get all the benefits of Kubernetes scheduling, resource limits, and RBAC. Kaniko is often paired with Tekton since it can build Docker images without the Docker daemon - essential in unprivileged Pod environments. Jenkins X wraps Tekton with higher-level automation and environment promotion workflows.</aside>
             </section>
 
@@ -692,15 +666,12 @@ spec:
                         <ul>
                             <li class="fragment">Open-source (Aqua Security)</li>
                             <li class="fragment">OS packages + language deps</li>
-                            <li class="fragment">IaC scanning (Terraform, K8s YAML)</li>
-                            <li class="fragment">SBOM generation</li>
+                            <li class="fragment">IaC scanning + SBOM generation</li>
                         </ul>
                         <pre class="fragment"><code class="language-bash"># Fail pipeline on critical CVEs
-trivy image \
-  --exit-code 1 \
+trivy image --exit-code 1 \
   --severity CRITICAL \
-  --ignore-unfixed \
-  myapp:v1.2.3
+  --ignore-unfixed myapp:v1.2.3
 
 # Generate SBOM
 trivy image --format spdx-json \
@@ -712,20 +683,16 @@ trivy image --format spdx-json \
                             <li class="fragment">Commercial with free tier</li>
                             <li class="fragment">Deep language dependency analysis</li>
                             <li class="fragment">Fix suggestions and PR automation</li>
-                            <li class="fragment">License compliance checking</li>
                         </ul>
                         <pre class="fragment"><code class="language-bash"># Scan container image
 snyk container test myapp:v1.2.3
 
 # Monitor for new vulnerabilities
 snyk container monitor \
-  myapp:v1.2.3 \
-  --org=verisign</code></pre>
+  myapp:v1.2.3 --org=verisign</code></pre>
                     </div>
                 </div>
-                <div class="highlight-box danger fragment">
-                    <strong>Never deploy unscanned images to production.</strong> Integrate scanning as a mandatory pipeline gate &mdash; not an optional step.
-                </div>
+                <aside class="notes">Tip: Never deploy unscanned images to production. Integrate scanning as a mandatory pipeline gate, not an optional step.</aside>
                 <aside class="notes">Image scanning should be a non-negotiable gate in your CI pipeline. Trivy is the most popular open-source option and covers OS packages, language dependencies, and even infrastructure-as-code misconfigurations. Snyk offers deeper language analysis and automated fix PRs. SBOM generation is increasingly required for compliance. The --ignore-unfixed flag in Trivy is useful to avoid blocking on CVEs that don't have patches yet.</aside>
             </section>
 
@@ -736,44 +703,34 @@ snyk container monitor \
                     <div class="card">
                         <h4>OPA Gatekeeper</h4>
                         <ul>
-                            <li class="fragment">Admission controller using Open Policy Agent</li>
-                            <li class="fragment">Rego policy language</li>
-                            <li class="fragment">ConstraintTemplates define policy logic</li>
-                            <li class="fragment">Constraints apply policies to resources</li>
+                            <li class="fragment">Admission controller (Rego language)</li>
+                            <li class="fragment">ConstraintTemplates + Constraints</li>
                         </ul>
                         <pre class="fragment"><code class="language-yaml">apiVersion: constraints.gatekeeper.sh/v1beta1
 kind: K8sRequiredLabels
-metadata:
-  name: require-team-label
+metadata: { name: require-team-label }
 spec:
   match:
-    kinds:
-      - apiGroups: ["apps"]
-        kinds: ["Deployment"]
+    kinds: [{ apiGroups: ["apps"], kinds: ["Deployment"] }]
   parameters:
     labels: ["team", "cost-center"]</code></pre>
                     </div>
                     <div class="card">
                         <h4>Kyverno</h4>
                         <ul>
-                            <li class="fragment">Kubernetes-native policy engine</li>
-                            <li class="fragment">Policies written in YAML (no Rego)</li>
-                            <li class="fragment">Validate, mutate, and generate resources</li>
-                            <li class="fragment">Lower learning curve</li>
+                            <li class="fragment">Kubernetes-native (YAML, no Rego)</li>
+                            <li class="fragment">Validate, mutate, generate resources</li>
                         </ul>
                         <pre class="fragment"><code class="language-yaml">apiVersion: kyverno.io/v1
 kind: ClusterPolicy
-metadata:
-  name: disallow-latest-tag
+metadata: { name: disallow-latest-tag }
 spec:
   validationFailureAction: Enforce
   rules:
     - name: require-image-tag
-      match:
-        resources:
-          kinds: ["Pod"]
+      match: { resources: { kinds: ["Pod"] } }
       validate:
-        message: "Images must use a specific tag"
+        message: "Must use a specific tag"
         pattern:
           spec:
             containers:
@@ -828,16 +785,13 @@ spec:
             <!-- Slide 27: Secrets Management in CI/CD -->
             <section>
                 <h2>Secrets Management in CI/CD</h2>
-                <div class="highlight-box danger">
-                    <strong>Never store plain-text secrets in Git.</strong> Even in private repositories, secrets must be encrypted or externally referenced.
-                </div>
-                <div class="three-columns fragment">
+                <div class="three-columns">
                     <div class="card">
                         <h4>Sealed Secrets</h4>
                         <ul>
-                            <li>Encrypt with public key</li>
-                            <li>Decrypt only in-cluster</li>
-                            <li>Safe to commit to Git</li>
+                            <li class="fragment">Encrypt with public key</li>
+                            <li class="fragment">Decrypt only in-cluster</li>
+                            <li class="fragment">Safe to commit to Git</li>
                         </ul>
                         <pre><code class="language-bash">kubeseal --format yaml \
   < secret.yaml \
@@ -846,32 +800,28 @@ spec:
                     <div class="card">
                         <h4>External Secrets Operator</h4>
                         <ul>
-                            <li>Sync from AWS Secrets Manager</li>
-                            <li>Sync from HashiCorp Vault</li>
-                            <li>Auto-rotation support</li>
+                            <li class="fragment">Sync from AWS SM / Vault</li>
+                            <li class="fragment">Auto-rotation support</li>
                         </ul>
                         <pre><code class="language-yaml">kind: ExternalSecret
 spec:
   refreshInterval: 1h
-  secretStoreRef:
-    name: aws-secrets
-  target:
-    name: db-creds</code></pre>
+  secretStoreRef: { name: aws-secrets }
+  target: { name: db-creds }</code></pre>
                     </div>
                     <div class="card">
                         <h4>SOPS</h4>
                         <ul>
-                            <li>Mozilla's secret editor</li>
-                            <li>Encrypts values, not keys</li>
-                            <li>KMS / PGP / age encryption</li>
+                            <li class="fragment">Encrypts values, not keys</li>
+                            <li class="fragment">KMS / PGP / age encryption</li>
                         </ul>
-                        <pre><code class="language-bash"># Encrypt with AWS KMS
-sops --encrypt \
+                        <pre><code class="language-bash">sops --encrypt \
   --kms arn:aws:kms:... \
   secrets.yaml > \
   secrets.enc.yaml</code></pre>
                     </div>
                 </div>
+                <aside class="notes">Tip: Never store plain-text secrets in Git. Even in private repositories, secrets must be encrypted or externally referenced.</aside>
                 <aside class="notes">Secrets are the hardest problem in GitOps. Sealed Secrets encrypts the entire secret with a cluster-specific key. External Secrets Operator syncs from external secret stores like AWS Secrets Manager or Vault, keeping secrets completely out of Git. SOPS encrypts individual values within a YAML file while leaving keys readable. For AWS environments, External Secrets Operator with AWS Secrets Manager is typically the best choice because it supports rotation and centralized management.</aside>
             </section>
 
@@ -885,7 +835,6 @@ sops --encrypt \
                             <li class="fragment"><code>git revert &lt;commit&gt;</code> creates a new commit</li>
                             <li class="fragment">Preserves complete history</li>
                             <li class="fragment">ArgoCD/Flux auto-syncs the revert</li>
-                            <li class="fragment">Audit trail remains intact</li>
                         </ul>
                         <pre class="fragment"><code class="language-bash"># Revert a bad deployment
 git revert abc123
@@ -896,20 +845,16 @@ git push origin main
                         <h4>ArgoCD Manual Rollback</h4>
                         <ul>
                             <li class="fragment">Rollback via UI or CLI</li>
-                            <li class="fragment">Restores previous sync state</li>
                             <li class="fragment">Temporary &mdash; next sync overwrites</li>
                             <li class="fragment">Use for emergencies only</li>
                         </ul>
                         <pre class="fragment"><code class="language-bash"># ArgoCD CLI rollback
 argocd app history frontend
-argocd app rollback frontend 3
-
-# Kubernetes native rollback
-kubectl rollout undo deployment/frontend</code></pre>
+argocd app rollback frontend 3</code></pre>
                     </div>
                 </div>
                 <div class="key-point fragment">
-                    <strong>GitOps rollback = Git revert.</strong> The forward-only commit history provides a clear, auditable record of every change and every recovery.
+                    <strong>GitOps rollback = Git revert.</strong> Forward-only commit history provides a clear, auditable record.
                 </div>
                 <aside class="notes">In GitOps, the preferred rollback mechanism is git revert because it maintains a forward-only history. Never use git reset or force push since that destroys audit history. ArgoCD's manual rollback is useful for emergencies but it's temporary - the next sync cycle will revert to whatever is in Git. This reinforces the principle that Git is always the source of truth. The kubectl rollout undo command still works but creates drift that ArgoCD will detect and correct if self-heal is enabled.</aside>
             </section>
@@ -971,7 +916,33 @@ kubectl rollout undo deployment/frontend</code></pre>
                 <aside class="notes">This is the complete picture. Two repositories - one for application source code, one for deployment manifests. CI handles the artifact lifecycle, and the only output is an updated image tag in the GitOps repo. The GitOps agent handles deployment, drift detection, and self-healing. Every change is auditable through Git history. This pattern scales from a single application to hundreds across multiple clusters.</aside>
             </section>
 
-            <!-- Slide 31: Lab Callout -->
+            <!-- Slide 31: Module Summary -->
+            <section>
+                <h2>&#128203; Module Summary</h2>
+                <ul>
+                    <li>GitOps uses Git as the single source of truth for declarative infrastructure</li>
+                    <li>ArgoCD and FluxCD reconcile cluster state with desired state from Git</li>
+                    <li>Directory-based promotion with Kustomize overlays avoids branch divergence</li>
+                    <li>Secrets management in GitOps requires Sealed Secrets, ESO, or SOPS</li>
+                    <li>Git revert is the preferred rollback mechanism preserving audit history</li>
+                    <li>Supply chain security layers scanning, signing, and admission policies</li>
+                </ul>
+            </section>
+
+            <!-- Slide 32: Key Takeaways -->
+            <section>
+                <h2>&#127919; Key Takeaways</h2>
+                <div class="highlight-box success">
+                    <strong>Remember These Points</strong>
+                    <ol>
+                        <li>Separate application repos from GitOps manifest repos for clean separation of concerns</li>
+                        <li>Enable drift detection and self-healing so the cluster always matches Git</li>
+                        <li>Use OIDC for CI authentication and pin action versions by SHA to prevent supply chain attacks</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- Slide 33: Lab Callout -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout" style="text-align: center;">
                 <h2>&#128736;&#65039; Lab 13: CI/CD Integration</h2>
                 <h3>Estimated Time: ~45 minutes</h3>

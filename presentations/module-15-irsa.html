@@ -258,21 +258,20 @@ eksctl utils associate-iam-oidc-provider \
                 <h2>&#128220; Trust Policy Anatomy</h2>
                 <pre><code class="json">{
   "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::111122223333:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLEID"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "oidc.eks.us-east-1.amazonaws.com/id/EXAMPLEID:aud": "sts.amazonaws.com",
-          "oidc.eks.us-east-1.amazonaws.com/id/EXAMPLEID:sub": "system:serviceaccount:my-namespace:my-sa"
-        }
-      }
-    }
-  ]
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "Federated":
+        "arn:aws:iam::111122223333:oidc-provider/\
+         oidc.eks.us-east-1.amazonaws.com/id/EXAMPLEID"
+    },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": { "StringEquals": {
+      "...EXAMPLEID:aud": "sts.amazonaws.com",
+      "...EXAMPLEID:sub":
+        "system:serviceaccount:my-namespace:my-sa"
+    }}
+  }]
 }</code></pre>
                 <ul>
                     <li class="fragment"><strong>Principal.Federated</strong> &mdash; your cluster's OIDC provider ARN</li>
@@ -328,9 +327,13 @@ aws iam list-open-id-connect-providers | \
     },
     {
       "Effect": "Allow",
-      "Action": ["sqs:ReceiveMessage", "sqs:DeleteMessage",
-                  "sqs:GetQueueAttributes"],
-      "Resource": "arn:aws:sqs:us-east-1:111122223333:my-queue"
+      "Action": [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes"
+      ],
+      "Resource":
+        "arn:aws:sqs:us-east-1:111122223333:my-queue"
     }
   ]
 }</code></pre>
@@ -350,17 +353,20 @@ eksctl create iamserviceaccount \
   --namespace my-namespace \
   --cluster my-cluster \
   --role-name my-app-irsa-role \
-  --attach-policy-arn arn:aws:iam::111122223333:policy/my-app-policy \
+  --attach-policy-arn \
+    arn:aws:iam::111122223333:policy/my-app-policy \
   --approve
 
 # Option 2: AWS CLI
 aws iam create-role \
   --role-name my-app-irsa-role \
-  --assume-role-policy-document file://trust-policy.json
+  --assume-role-policy-document \
+    file://trust-policy.json
 
 aws iam attach-role-policy \
   --role-name my-app-irsa-role \
-  --policy-arn arn:aws:iam::111122223333:policy/my-app-policy</code></pre>
+  --policy-arn \
+    arn:aws:iam::111122223333:policy/my-app-policy</code></pre>
                 <div class="key-point fragment">
                     <strong>Tip:</strong> <code>eksctl create iamserviceaccount</code> handles both the IAM role creation <em>and</em> the Kubernetes ServiceAccount annotation in one command.
                 </div>
@@ -377,7 +383,8 @@ metadata:
   name: my-app-sa
   namespace: my-namespace
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-app-irsa-role</code></pre>
+    eks.amazonaws.com/role-arn: >-
+      arn:aws:iam::111122223333:role/my-app-irsa-role</code></pre>
                 <div class="concept-box fragment">
                     <h4>What the Webhook Does Automatically</h4>
                     <ul>
@@ -395,25 +402,22 @@ metadata:
                 <p>Reference the annotated ServiceAccount in your workload spec.</p>
                 <pre><code class="yaml">apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: my-app
-  namespace: my-namespace
+metadata: { name: my-app, namespace: my-namespace }
 spec:
   replicas: 2
   selector:
     matchLabels: { app: my-app }
   template:
-    metadata:
-      labels: { app: my-app }
+    metadata: { labels: { app: my-app } }
     spec:
-      serviceAccountName: my-app-sa   # <-- IRSA-annotated SA
+      serviceAccountName: my-app-sa  # IRSA-annotated SA
       containers:
       - name: my-app
         image: my-app:latest
         resources:
           requests: { cpu: 100m, memory: 128Mi }</code></pre>
                 <div class="highlight-box success fragment">
-                    <strong>No code changes required:</strong> AWS SDKs (boto3, aws-sdk-go, etc.) automatically detect IRSA environment variables.
+                    <strong>No code changes required:</strong> AWS SDKs automatically detect IRSA environment variables.
                 </div>
                 <aside class="notes">The only change to your deployment is setting serviceAccountName. The AWS SDK credential chain picks up the environment variables automatically. This works with all modern AWS SDKs including boto3, Java SDK v2, Go SDK, and Node.js SDK v3.</aside>
             </section>
@@ -529,7 +533,8 @@ aws-load-balancer-controller:
   serviceAccount:
     name: aws-lb-controller-sa
     annotations:
-      eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/alb-controller-role
+      eks.amazonaws.com/role-arn: >-
+        arn:aws:iam::111122223333:role/alb-role
 # ... same pattern for external-dns, cluster-autoscaler, etc.</code></pre>
                 <div class="key-point fragment">
                     <strong>Pattern:</strong> Check the chart's <code>values.yaml</code> for <code>serviceAccount.annotations</code> &mdash; most well-maintained charts support this.
@@ -667,19 +672,15 @@ aws eks create-pod-identity-association \
                         <h4>Kubernetes</h4>
                         <ul>
                             <li>Dedicated SA per deployment</li>
-                            <li>Block IMDS access via NetworkPolicy</li>
+                            <li>Block IMDS via NetworkPolicy</li>
                             <li>Audit SA annotations regularly</li>
                         </ul>
                     </div>
                 </div>
-                <div class="key-point fragment">
-                    <strong>Defense in depth:</strong> Combine IRSA with NetworkPolicy to block IMDS (169.254.169.254) and prevent pods from falling back to the node role.
-                </div>
                 <pre class="fragment"><code class="yaml"># Block IMDS access
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata:
-  name: deny-imds
+metadata: { name: deny-imds }
 spec:
   podSelector: {}
   policyTypes: [Egress]
@@ -688,6 +689,7 @@ spec:
     - ipBlock:
         cidr: 0.0.0.0/0
         except: [169.254.169.254/32]</code></pre>
+                <aside class="notes">Tip: Defense in depth -- combine IRSA with NetworkPolicy to block IMDS (169.254.169.254) and prevent pods from falling back to the node role.</aside>
                 <aside class="notes">Blocking IMDS is a critical complementary control. Even with IRSA configured, if a pod can reach IMDS, a compromised container could still retrieve node-level credentials. The NetworkPolicy ensures pods can only use their IRSA credentials, never the node role.</aside>
             </section>
 
@@ -737,7 +739,32 @@ kubectl logs -n kube-system -l app=pod-identity-webhook  # Webhook logs</code></
                 <aside class="notes">IRSA debugging follows a predictable pattern. Start by checking if the annotation exists on the SA, then verify the webhook injected the env vars, then validate the trust policy matches the token's claims. The most common failure is a namespace or SA name mismatch in the trust policy's :sub condition.</aside>
             </section>
 
-            <!-- Slide 29: Lab Callout -->
+            <!-- Slide 29: Module Summary -->
+            <section>
+                <h2>&#128203; Module Summary</h2>
+                <ul>
+                    <li>IRSA maps Kubernetes ServiceAccounts to IAM roles using OIDC federation</li>
+                    <li>Trust policies with StringEquals conditions scope roles to specific namespaces and SAs</li>
+                    <li>Pod Identity simplifies the setup by removing OIDC provider management</li>
+                    <li>Least privilege requires scoped IAM policies, dedicated SAs, and IMDS blocking</li>
+                    <li>Common debugging follows: check SA annotation, verify webhook injection, validate trust policy</li>
+                </ul>
+            </section>
+
+            <!-- Slide 30: Key Takeaways -->
+            <section>
+                <h2>&#127919; Key Takeaways</h2>
+                <div class="highlight-box success">
+                    <strong>Remember These Points</strong>
+                    <ol>
+                        <li>Always use StringEquals (not StringLike) in trust policies and specify both :aud and :sub conditions</li>
+                        <li>Block IMDS access with NetworkPolicy to prevent pods from falling back to the node IAM role</li>
+                        <li>Assign one IAM role per workload with resource-scoped permissions for true least privilege</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- Slide 31: Lab Callout -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout" style="text-align: center;">
                 <h2>&#128187; Lab 15: Configuring IRSA</h2>
                 <h3>Estimated Time: 45 minutes</h3>

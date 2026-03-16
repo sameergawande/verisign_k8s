@@ -179,18 +179,13 @@
                 <h2>&#128194; GitRepository CRD</h2>
                 <pre><code class="language-yaml">apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
-metadata:
-  name: app-manifests
-  namespace: flux-system
+metadata: { name: app-manifests, namespace: flux-system }
 spec:
   interval: 5m
   url: https://github.com/verisign/k8s-manifests
-  ref:
-    branch: main
-  secretRef:
-    name: git-credentials
+  ref: { branch: main }
+  secretRef: { name: git-credentials }
   ignore: |
-    # Exclude non-deployment files
     /docs/
     /tests/
     /**/*.md</code></pre>
@@ -208,19 +203,15 @@ spec:
                 <h2>&#9878;&#65039; HelmRepository CRD</h2>
                 <pre><code class="language-yaml">apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
-metadata:
-  name: bitnami
-  namespace: flux-system
+metadata: { name: bitnami, namespace: flux-system }
 spec:
   interval: 30m
   url: https://charts.bitnami.com/bitnami
-  type: default    # 'default' for HTTP, 'oci' for OCI registries
+  type: default  # 'default' for HTTP, 'oci' for OCI
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
-metadata:
-  name: ecr-charts
-  namespace: flux-system
+metadata: { name: ecr-charts, namespace: flux-system }
 spec:
   type: oci
   url: oci://123456789.dkr.ecr.us-east-1.amazonaws.com
@@ -239,25 +230,21 @@ spec:
                 <h2>&#128230; OCIRepository CRD</h2>
                 <pre><code class="language-yaml">apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: OCIRepository
-metadata:
-  name: app-manifests-oci
-  namespace: flux-system
+metadata: { name: app-manifests-oci, namespace: flux-system }
 spec:
   interval: 10m
   url: oci://ghcr.io/verisign/k8s-manifests
-  ref:
-    tag: latest
+  ref: { tag: latest }
   provider: generic
   verify:
     provider: cosign
-    secretRef:
-      name: cosign-public-key</code></pre>
+    secretRef: { name: cosign-public-key }</code></pre>
                 <div class="two-columns">
                     <div class="highlight-box">
-                        <strong>Use Cases:</strong> Push plain manifests or Kustomize overlays as OCI artifacts using <code>flux push artifact</code>
+                        <strong>Use Cases:</strong> Push manifests as OCI artifacts via <code>flux push artifact</code>
                     </div>
                     <div class="highlight-box success">
-                        <strong>Verification:</strong> Built-in Cosign and Notation support for supply chain security
+                        <strong>Verification:</strong> Built-in Cosign and Notation support
                     </div>
                 </div>
                 <aside class="notes">OCIRepository is distinct from the OCI type on HelmRepository. It fetches arbitrary OCI artifacts — not Helm charts specifically. This is useful when you want to publish Kustomize bases or plain YAML as versioned OCI artifacts. The verify field enables supply chain security by validating signatures before accepting artifacts.</aside>
@@ -268,9 +255,7 @@ spec:
                 <h2>&#129703; Bucket Source (S3/GCS)</h2>
                 <pre><code class="language-yaml">apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: Bucket
-metadata:
-  name: terraform-outputs
-  namespace: flux-system
+metadata: { name: terraform-outputs, namespace: flux-system }
 spec:
   interval: 15m
   provider: aws
@@ -284,9 +269,7 @@ spec:
                     <li class="fragment">Ideal for consuming Terraform outputs or generated configs</li>
                     <li class="fragment">Authenticates via IRSA (AWS) or Workload Identity (GCP)</li>
                 </ul>
-                <div class="highlight-box warning fragment">
-                    <strong>Note:</strong> Bucket sources are eventually consistent. Use Git for resources requiring strict ordering and audit trails.
-                </div>
+                <aside class="notes">Tip: Bucket sources are eventually consistent. Use Git for resources requiring strict ordering and audit trails.</aside>
                 <aside class="notes">Bucket sources bridge the gap between infrastructure provisioning and Kubernetes configuration. A common pattern is Terraform writing output manifests to S3, then Flux picking them up. This decouples the Terraform and Kubernetes deployment pipelines while maintaining automation. IRSA-based auth means no static credentials.</aside>
             </section>
 
@@ -302,16 +285,12 @@ spec:
                 <h2>&#128209; Kustomization CRD</h2>
                 <pre><code class="language-yaml">apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
-metadata:
-  name: app-stack
-  namespace: flux-system
+metadata: { name: app-stack, namespace: flux-system }
 spec:
   interval: 10m
   retryInterval: 2m
   timeout: 5m
-  sourceRef:
-    kind: GitRepository
-    name: app-manifests
+  sourceRef: { kind: GitRepository, name: app-manifests }
   path: ./clusters/production
   prune: true
   force: false
@@ -362,9 +341,7 @@ spec:
                 <h2>&#128279; Dependency Ordering</h2>
                 <pre><code class="language-yaml">apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
-metadata:
-  name: infrastructure
-  namespace: flux-system
+metadata: { name: infrastructure, namespace: flux-system }
 spec:
   sourceRef: { kind: GitRepository, name: app-manifests }
   path: ./infrastructure
@@ -372,17 +349,14 @@ spec:
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
-metadata:
-  name: applications
-  namespace: flux-system
+metadata: { name: applications, namespace: flux-system }
 spec:
-  dependsOn:
-    - name: infrastructure
+  dependsOn: [{ name: infrastructure }]
   sourceRef: { kind: GitRepository, name: app-manifests }
   path: ./applications
   prune: true</code></pre>
                 <div class="highlight-box fragment">
-                    <strong>Ordering chain:</strong> CRDs &rarr; Infrastructure (cert-manager, ingress) &rarr; Platform (monitoring, logging) &rarr; Applications
+                    <strong>Ordering chain:</strong> CRDs &rarr; Infrastructure &rarr; Platform &rarr; Applications
                 </div>
                 <aside class="notes">DependsOn creates an explicit ordering between Kustomizations. The dependent Kustomization will not reconcile until all its dependencies report a Ready status. This is essential for bootstrapping — you need CRDs installed before controllers, and controllers running before application resources that use those CRDs. A typical production setup has 3-4 layers in the dependency chain.</aside>
             </section>
@@ -399,25 +373,24 @@ spec:
                 <h2>&#128220; HelmRelease CRD</h2>
                 <pre><code class="language-yaml">apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
-metadata:
-  name: nginx-ingress
-  namespace: infrastructure
+metadata: { name: nginx-ingress, namespace: infrastructure }
 spec:
   interval: 15m
   chart:
     spec:
       chart: ingress-nginx
-      version: "4.x"     # Semver range
-      sourceRef: { kind: HelmRepository, name: ingress-nginx }
+      version: "4.x"  # Semver range
+      sourceRef:
+        kind: HelmRepository
+        name: ingress-nginx
   values:
     controller:
       replicaCount: 3
       service: { type: LoadBalancer }
-  upgrade:
-    remediation: { retries: 3 }
+  upgrade: { remediation: { retries: 3 } }
   rollback: { cleanupOnFail: true }</code></pre>
                 <ul>
-                    <li class="fragment"><strong>version</strong> &mdash; supports semver ranges for automatic minor/patch upgrades</li>
+                    <li class="fragment"><strong>version</strong> &mdash; semver ranges for auto minor/patch upgrades</li>
                     <li class="fragment"><strong>upgrade.remediation</strong> &mdash; auto-retry or rollback on failure</li>
                     <li class="fragment"><strong>rollback.cleanupOnFail</strong> &mdash; delete new resources on failed rollback</li>
                 </ul>
@@ -429,9 +402,7 @@ spec:
                 <h2>&#128273; Values from ConfigMaps &amp; Secrets</h2>
                 <pre><code class="language-yaml">apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
-metadata:
-  name: app-release
-  namespace: production
+metadata: { name: app-release, namespace: production }
 spec:
   chart:
     spec:
@@ -448,9 +419,7 @@ spec:
   values:
     replicaCount: 3
     image: { tag: v2.1.0 }</code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>Merge order:</strong> <code>valuesFrom</code> entries are merged first (in order), then inline <code>values</code> override. Use <code>targetPath</code> for surgical injection.
-                </div>
+                <aside class="notes">Tip: Merge order — valuesFrom entries are merged first (in order), then inline values override. Use targetPath for surgical injection.</aside>
                 <aside class="notes">ValuesFrom is the recommended way to handle sensitive Helm values. Instead of storing database passwords or API keys in Git, reference them from Secrets that are managed by an external secrets operator or sealed secrets. The targetPath field allows injecting a single secret value at a specific path in the values hierarchy without exposing the full values structure.</aside>
             </section>
 
@@ -516,7 +485,9 @@ spec:
 apiVersion: image.toolkit.fluxcd.io/v1beta2
 kind: ImageRepository
 metadata: { name: app-image }
-spec: { image: ghcr.io/verisign/my-app, interval: 5m }
+spec:
+  image: ghcr.io/verisign/my-app
+  interval: 5m
 ---
 # 2. Select latest matching tag
 apiVersion: image.toolkit.fluxcd.io/v1beta2
@@ -533,7 +504,9 @@ metadata: { name: app-update }
 spec:
   sourceRef: { kind: GitRepository, name: app-manifests }
   interval: 10m
-  update: { path: ./clusters/production, strategy: Setters }</code></pre>
+  update:
+    path: ./clusters/production
+    strategy: Setters</code></pre>
                 <aside class="notes">Image automation is a three-step pipeline. ImageRepository scans a container registry for tags. ImagePolicy selects the latest tag matching a semver range, alphabetical, or numerical filter. ImageUpdateAutomation writes the selected tag back to Git using setter markers in your YAML. This closes the CI/CD loop — when your CI builds a new image, Flux detects it and updates the deployment manifest automatically.</aside>
             </section>
 
@@ -545,36 +518,26 @@ spec:
                         <h4>Provider (outbound)</h4>
                         <pre><code class="language-yaml">apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
-metadata:
-  name: slack-alerts
-  namespace: flux-system
+metadata: { name: slack-alerts, namespace: flux-system }
 spec:
   type: slack
   channel: k8s-deployments
-  secretRef:
-    name: slack-webhook-url</code></pre>
+  secretRef: { name: slack-webhook-url }</code></pre>
                     </div>
                     <div>
                         <h4>Alert (filter &amp; route)</h4>
                         <pre><code class="language-yaml">apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Alert
-metadata:
-  name: critical-alerts
-  namespace: flux-system
+metadata: { name: critical-alerts, namespace: flux-system }
 spec:
-  providerRef:
-    name: slack-alerts
+  providerRef: { name: slack-alerts }
   eventSeverity: error
   eventSources:
-    - kind: Kustomization
-      name: "*"
-    - kind: HelmRelease
-      name: "*"</code></pre>
+    - { kind: Kustomization, name: "*" }
+    - { kind: HelmRelease, name: "*" }</code></pre>
                     </div>
                 </div>
-                <div class="highlight-box fragment">
-                    <strong>Supported providers:</strong> Slack, Microsoft Teams, PagerDuty, Opsgenie, Discord, GitHub, GitLab, Grafana, generic webhook
-                </div>
+                <aside class="notes">Tip: Supported providers include Slack, Microsoft Teams, PagerDuty, Opsgenie, Discord, GitHub, GitLab, Grafana, and generic webhook.</aside>
                 <aside class="notes">The notification controller has two sides: outbound alerts (Provider + Alert) and inbound webhooks (Receiver). Alerts filter Flux events by severity and source type, then route them to external systems. In production, you typically set up error-level alerts to PagerDuty and info-level alerts to Slack. The wildcard name pattern catches all resources of that kind.</aside>
             </section>
 
@@ -583,14 +546,10 @@ spec:
                 <h2>&#127970; Multi-Tenancy with Flux</h2>
                 <pre><code class="language-yaml">apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
-metadata:
-  name: team-alpha-apps
-  namespace: flux-system
+metadata: { name: team-alpha-apps, namespace: flux-system }
 spec:
   serviceAccountName: team-alpha-sa
-  sourceRef:
-    kind: GitRepository
-    name: team-alpha-repo
+  sourceRef: { kind: GitRepository, name: team-alpha-repo }
   path: ./deploy
   prune: true
   targetNamespace: team-alpha
@@ -605,7 +564,6 @@ spec:
                     <li class="fragment"><strong>serviceAccountName</strong> &mdash; impersonate a scoped SA for RBAC isolation</li>
                     <li class="fragment"><strong>targetNamespace</strong> &mdash; force all resources into a specific namespace</li>
                     <li class="fragment">Combine with <strong>NetworkPolicies</strong> and <strong>ResourceQuotas</strong> per tenant</li>
-                    <li class="fragment">Each team owns their own GitRepository and Kustomizations</li>
                 </ul>
                 <aside class="notes">Multi-tenancy in Flux is achieved by scoping each team's Kustomization to a specific service account with limited RBAC permissions. The targetNamespace override prevents teams from deploying into other namespaces. Combined with the cross-namespace reference restrictions in Flux, this provides strong isolation. The platform team manages the flux-system namespace, while each tenant gets their own namespace and Git repository.</aside>
             </section>
@@ -753,7 +711,32 @@ flux bootstrap git \
                 <aside class="notes">Bootstrap is a one-time operation that installs Flux controllers and commits their manifests to Git. This makes Flux self-managing — it reconciles its own installation from Git. The recommended repo structure separates cluster-specific configuration from shared components. Each cluster directory contains Kustomization resources that reference shared infrastructure and application directories. This pattern scales well to dozens of clusters.</aside>
             </section>
 
-            <!-- Slide 29: Lab Callout -->
+            <!-- Slide 29: Module Summary -->
+            <section>
+                <h2>&#128203; Module Summary</h2>
+                <ul>
+                    <li>Flux uses a toolkit of specialized controllers: source, kustomize, helm, notification, and image automation</li>
+                    <li>GitRepository and HelmRepository sources define where manifests and charts are fetched</li>
+                    <li>Kustomizations and HelmReleases declare what to deploy and how to reconcile</li>
+                    <li>Multi-tenancy is achieved through scoped ServiceAccounts and namespace isolation</li>
+                    <li>Suspend, resume, and drift correction are essential day-two operational patterns</li>
+                </ul>
+            </section>
+
+            <!-- Slide 30: Key Takeaways -->
+            <section>
+                <h2>&#127919; Key Takeaways</h2>
+                <div class="highlight-box success">
+                    <strong>Remember These Points</strong>
+                    <ol>
+                        <li>Bootstrap Flux once per cluster and let it manage its own installation from Git</li>
+                        <li>Use dependsOn to order reconciliation and health checks to gate promotions</li>
+                        <li>Monitor gotk_reconcile_condition metrics and alert on sustained non-Ready states</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- Slide 31: Lab Callout -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout" style="text-align: center;">
                 <h2>&#129489;&#8205;&#128187; Lab 14: Working with FluxCD</h2>
                 <h3>Estimated Time: ~60 minutes</h3>

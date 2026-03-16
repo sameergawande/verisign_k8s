@@ -372,15 +372,12 @@ kubectl create namespace deploy-strategies
 
 # Create a ConfigMap with v1 index page
 kubectl create configmap app-v1-page \
-  --from-literal=index.html='&lt;h1 style="color:blue"&gt;Application v1&lt;/h1&gt;&lt;p&gt;Version: 1.0.0&lt;/p&gt;' \
+  --from-literal=index.html='&lt;h1 \
+    style="color:blue"&gt;Application v1&lt;/h1&gt;&lt;p&gt;Version: 1.0.0&lt;/p&gt;' \
   -n deploy-strategies
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong>
-                    <code>namespace/deploy-strategies created</code><br>
-                    <code>configmap/app-v1-page created</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: namespace/deploy-strategies created configmap/app-v1-page created
+                    
                     The ConfigMap approach lets us change the application content without building custom images. Students can easily see which version is responding.
                 </aside>
             </section>
@@ -389,7 +386,6 @@ kubectl create configmap app-v1-page \
                 <h2>&#x1F680; Deploy v1 with Rolling Update Strategy</h2>
                 <p>Create the Deployment manifest and apply it:</p>
                 <pre><code class="yaml" data-trim>
-# Save as app-deploy-v1.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata: { name: webapp, namespace: deploy-strategies }
@@ -434,18 +430,9 @@ kubectl expose deployment webapp \
 kubectl get deployment webapp -n deploy-strategies
 kubectl get pods -n deploy-strategies -l app=webapp
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> 4 pods running with STATUS <code>Running</code> and READY <code>1/1</code>.
-                </div>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F50D; Verify v1 is serving:</strong>
-                    <pre style="margin:8px 0;"><code class="bash" data-trim>
-kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never \
-  -n deploy-strategies -- curl -s webapp-svc
-                    </code></pre>
-                    You should see <code>Application v1</code> in the response.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: 4 pods running with STATUS Running and READY 1/1.
+                    Verify v1 is serving: kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never \ -n deploy-strategies -- curl -s webapp-svc You should see Application v1 in the response.
+                    
                     Have students verify they see the v1 page content before proceeding. This confirms the end-to-end deployment is working correctly.
                 </aside>
             </section>
@@ -476,23 +463,21 @@ kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never \
                 <h2>&#x1F504; Update to v2</h2>
                 <p>Create a v2 ConfigMap and update the Deployment:</p>
                 <pre><code class="bash" data-trim>
-# Create v2 ConfigMap
 kubectl create configmap app-v2-page \
-  --from-literal=index.html='&lt;h1 style="color:green"&gt;Application v2&lt;/h1&gt;&lt;p&gt;Version: 2.0.0&lt;/p&gt;' \
+  --from-literal=index.html='&lt;h1 \
+    style="color:green"&gt;Application v2&lt;/h1&gt;&lt;p&gt;Version: 2.0.0&lt;/p&gt;' \
   -n deploy-strategies
 
-# Update the deployment image and volume reference
 kubectl set image deployment/webapp nginx=nginx:1.25 \
   -n deploy-strategies --record
 
-# Simultaneously patch the volume to use v2 ConfigMap
 kubectl patch deployment webapp -n deploy-strategies --type=json \
-  -p='[{"op":"replace","path":"/spec/template/spec/volumes/0/configMap/name","value":"app-v2-page"}]'
+  -p='[{"op":"replace",
+  "path":"/spec/template/spec/volumes/0/configMap/name",
+  "value":"app-v2-page"}]'
                 </code></pre>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Note:</strong> The <code>--record</code> flag is deprecated but still functional. It records the command in the rollout history for reference. In production, use annotations instead.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Note: The --record flag is deprecated but still functional. It records the command in the rollout history for reference. In production, use annotations instead.
+                    
                     Explain that updating either the image or the ConfigMap reference triggers a new rollout because both change the pod template spec. The patch command modifies the volume source.
                 </aside>
             </section>
@@ -532,12 +517,8 @@ kubectl rollout history deployment/webapp -n deploy-strategies
 # Describe the deployment to see events
 kubectl describe deployment webapp -n deploy-strategies | tail -20
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong>
-                    <code>deployment "webapp" successfully rolled out</code><br>
-                    The rollout history should show at least 2 revisions.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: deployment "webapp" successfully rolled out The rollout history should show at least 2 revisions.
+                    
                     The rollout status command is blocking and waits until the update finishes. The describe output shows ReplicaSet scaling events. Point out how old ReplicaSets are scaled down while new ones are scaled up.
                 </aside>
             </section>
@@ -556,10 +537,8 @@ kubectl run curl-test2 --image=curlimages/curl --rm -it --restart=Never \
 # Check the ReplicaSets
 kubectl get replicasets -n deploy-strategies -l app=webapp
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> You should see <code>Application v2</code> in the curl response. The old ReplicaSet should have 0 desired/current pods, while the new one has 4.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: You should see Application v2 in the curl response. The old ReplicaSet should have 0 desired/current pods, while the new one has 4.
+                    
                     Point out that Kubernetes keeps the old ReplicaSet around with 0 replicas. This is what enables rollback. The revisionHistoryLimit setting controls how many old ReplicaSets are retained.
                 </aside>
             </section>
@@ -603,9 +582,7 @@ kubectl run curl-test3 --image=curlimages/curl --rm -it --restart=Never \
 # Check rollout history (notice the revision numbers)
 kubectl rollout history deployment/webapp -n deploy-strategies
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The curl response should show <code>Application v1</code> again. The rollout history will show a new revision number for the rollback.
-                </div>
+                <aside class="notes">Expected Output: The curl response should show Application v1 again. The rollout history will show a new revision number for the rollback.</aside>
                 <div class="concept-box fragment">
                     <h4>&#x1F4A1; Rollback to a Specific Revision</h4>
                     <p>You can also target a specific revision: <code>kubectl rollout undo deployment/webapp --to-revision=1 -n deploy-strategies</code></p>
@@ -641,26 +618,23 @@ kubectl rollout history deployment/webapp -n deploy-strategies
                 <h2>&#x1F535; Deploy the Blue Version</h2>
                 <p>Create a blue deployment with its own version label:</p>
                 <pre><code class="yaml" data-trim>
-# Save as blue-deploy.yaml
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: webapp-blue
-  namespace: deploy-strategies
+metadata: { name: webapp-blue, namespace: deploy-strategies }
 spec:
   replicas: 3
   selector:
     matchLabels: { app: webapp-bg, version: blue }
   template:
-    metadata:
-      labels: { app: webapp-bg, version: blue }
+    metadata: { labels: { app: webapp-bg, version: blue } }
     spec:
       containers:
       - name: nginx
         image: nginx:1.24
         ports: [{containerPort: 80}]
         command: ["/bin/sh", "-c"]
-        args: ["echo '&lt;h1 style=\"color:blue\"&gt;BLUE&lt;/h1&gt;' > /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
+        args: ["echo '&lt;h1 style=\"color:blue\"&gt;BLUE&lt;/h1&gt;' \
+          > /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
                 </code></pre>
                 <aside class="notes">
                     Using inline commands to set the page content keeps the example self-contained. In production, you would use proper container images for each version.
@@ -671,26 +645,23 @@ spec:
                 <h2>&#x1F7E2; Deploy the Green Version</h2>
                 <p>Create a green deployment alongside blue:</p>
                 <pre><code class="yaml" data-trim>
-# Save as green-deploy.yaml
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: webapp-green
-  namespace: deploy-strategies
+metadata: { name: webapp-green, namespace: deploy-strategies }
 spec:
   replicas: 3
   selector:
     matchLabels: { app: webapp-bg, version: green }
   template:
-    metadata:
-      labels: { app: webapp-bg, version: green }
+    metadata: { labels: { app: webapp-bg, version: green } }
     spec:
       containers:
       - name: nginx
         image: nginx:1.25
         ports: [{containerPort: 80}]
         command: ["/bin/sh", "-c"]
-        args: ["echo '&lt;h1 style=\"color:green\"&gt;GREEN&lt;/h1&gt;' > /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
+        args: ["echo '&lt;h1 style=\"color:green\"&gt;GREEN&lt;/h1&gt;' \
+          > /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
                 </code></pre>
                 <aside class="notes">
                     Both deployments share the app label webapp-bg but differ on the version label. The service selector will switch between them.
@@ -709,7 +680,9 @@ kubectl apply -f green-deploy.yaml
 kubectl create service clusterip webapp-bg-svc \
   --tcp=80:80 -n deploy-strategies --dry-run=client -o yaml | \
   kubectl patch -f - --dry-run=client -o yaml \
-  --type=json -p='[{"op":"replace","path":"/spec/selector","value":{"app":"webapp-bg","version":"blue"}}]' | \
+  --type=json -p='[{"op":"replace",
+  "path":"/spec/selector",
+  "value":{"app":"webapp-bg","version":"blue"}}]' | \
   kubectl apply -f -
                 </code></pre>
                 <p class="fragment">Or use a simpler YAML approach:</p>
@@ -737,28 +710,20 @@ spec:
                 <h2>&#x1F500; Switch Traffic: Blue to Green</h2>
                 <p>Perform the blue-green switch by changing the service selector:</p>
                 <pre><code class="bash" data-trim>
-# Apply the service
 kubectl apply -f bg-service.yaml
 
-# Verify blue is serving
 kubectl run bg-test1 --image=curlimages/curl --rm -it --restart=Never \
   -n deploy-strategies -- curl -s webapp-bg-svc
 
-# Switch to green by patching the service selector
 kubectl patch service webapp-bg-svc -n deploy-strategies \
   -p '{"spec":{"selector":{"version":"green"}}}'
 
-# Verify green is now serving
 kubectl run bg-test2 --image=curlimages/curl --rm -it --restart=Never \
   -n deploy-strategies -- curl -s webapp-bg-svc
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> First curl shows <code>BLUE Version</code>, second curl shows <code>GREEN Version</code>. The switch is instantaneous.
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Production Note:</strong> Keep the blue deployment running until green is validated. If issues arise, switch back immediately by patching the selector to <code>version: blue</code>.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: First curl shows BLUE Version, second curl shows GREEN Version. The switch is instantaneous.
+                    Production Note: Keep the blue deployment running until green is validated. If issues arise, switch back immediately by patching the selector to version: blue .
+                    
                     Emphasize the instant cutover. Unlike rolling updates, blue-green switches 100% of traffic at once. The rollback is equally fast. The trade-off is that you need double the resources during deployment.
                 </aside>
             </section>
@@ -789,7 +754,6 @@ kubectl run bg-test2 --image=curlimages/curl --rm -it --restart=Never \
                 <h2>&#x1F426; Deploy Stable and Canary Versions</h2>
                 <p>Create the stable deployment with 4 replicas:</p>
                 <pre><code class="yaml" data-trim>
-# Save as canary-stable.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -808,7 +772,8 @@ spec:
         image: nginx:1.24
         ports: [{containerPort: 80}]
         command: ["/bin/sh", "-c"]
-        args: ["echo 'STABLE-v1' > /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
+        args: ["echo 'STABLE-v1' > \
+          /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
                 </code></pre>
                 <aside class="notes">
                     The stable deployment uses 4 replicas and the shared label app: webapp-canary. The track label differentiates stable from canary but is not used in the service selector.
@@ -819,7 +784,6 @@ spec:
                 <h2>&#x1F426; Deploy the Canary</h2>
                 <p>Create the canary deployment with 1 replica:</p>
                 <pre><code class="yaml" data-trim>
-# Save as canary-new.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -838,7 +802,8 @@ spec:
         image: nginx:1.25
         ports: [{containerPort: 80}]
         command: ["/bin/sh", "-c"]
-        args: ["echo 'CANARY-v2' > /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
+        args: ["echo 'CANARY-v2' > \
+          /usr/share/nginx/html/index.html; nginx -g 'daemon off;'"]
                 </code></pre>
                 <div class="concept-box fragment">
                     <h4>&#x1F4A1; Traffic Ratio</h4>
@@ -875,10 +840,8 @@ kubectl apply -f canary-service.yaml
 # Verify pods are running
 kubectl get pods -n deploy-strategies -l app=webapp-canary --show-labels
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> 5 pods total &mdash; 4 with <code>track=stable</code> and 1 with <code>track=canary</code>.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: 5 pods total -- 4 with track=stable and 1 with track=canary.
+                    
                     The key insight is that the service selector uses only the shared app label. Both deployments have their own track label for management, but the service does not filter on track.
                 </aside>
             </section>
@@ -909,7 +872,6 @@ kubectl get pods -n deploy-strategies -l app=webapp-canary --show-labels
                 <h2>&#x1F4CA; Test Traffic Distribution</h2>
                 <p>Run a loop to observe the traffic split between stable and canary:</p>
                 <pre><code class="bash" data-trim>
-# Run 20 requests and count responses
 kubectl run traffic-test --image=curlimages/curl --rm -it --restart=Never \
   -n deploy-strategies -- sh -c '
   STABLE=0; CANARY=0
@@ -924,13 +886,9 @@ kubectl run traffic-test --image=curlimages/curl --rm -it --restart=Never \
   echo "Stable: $STABLE / Canary: $CANARY out of 20 requests"
 '
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> Approximately <code>Stable: 16 / Canary: 4</code> (80/20 split). Results will vary due to round-robin distribution.
-                </div>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; Promoting the Canary:</strong> Once validated, promote by scaling stable to use the new image and scaling canary to 0, or scale canary up and stable down gradually.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: Approximately Stable: 16 / Canary: 4 (80/20 split). Results will vary due to round-robin distribution.
+                    Promoting the Canary: Once validated, promote by scaling stable to use the new image and scaling canary to 0, or scale canary up and stable down gradually.
+                    
                     The distribution is approximate because Kubernetes uses round-robin across endpoints. With iptables mode, the randomization is per-connection. Results will vary but should be roughly 80/20. For precise traffic splitting, a service mesh like Istio is needed.
                 </aside>
             </section>
@@ -964,20 +922,13 @@ kubectl run traffic-test --image=curlimages/curl --rm -it --restart=Never \
 # Save as pdb.yaml
 apiVersion: policy/v1
 kind: PodDisruptionBudget
-metadata:
-  name: webapp-pdb
-  namespace: deploy-strategies
+metadata: { name: webapp-pdb, namespace: deploy-strategies }
 spec:
   minAvailable: 2          # At least 2 pods must remain available
   selector:
-    matchLabels:
-      app: webapp
+    matchLabels: { app: webapp }
                 </code></pre>
                 <pre><code class="bash" data-trim>
-# First, re-deploy our original webapp (update back to v2 for this step)
-kubectl patch deployment webapp -n deploy-strategies \
-  -p '{"spec":{"template":{"spec":{"volumes":[{"name":"html","configMap":{"name":"app-v2-page"}}]}}}}'
-
 # Apply the PDB
 kubectl apply -f pdb.yaml
 
@@ -985,10 +936,8 @@ kubectl apply -f pdb.yaml
 kubectl get pdb -n deploy-strategies
 kubectl describe pdb webapp-pdb -n deploy-strategies
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> PDB shows <code>ALLOWED-DISRUPTIONS: 2</code> (4 replicas - 2 minAvailable = 2 allowed disruptions).
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: PDB shows ALLOWED-DISRUPTIONS: 2 (4 replicas - 2 minAvailable = 2 allowed disruptions).
+                    
                     Explain the difference between minAvailable and maxUnavailable in PDB specs. minAvailable is an absolute number or percentage, maxUnavailable is how many can be down at once. Both achieve similar results from different perspectives.
                 </aside>
             </section>
@@ -1002,14 +951,13 @@ kubectl get pods -n deploy-strategies -l app=webapp -o wide
 
 # Attempt to drain a node (use one that hosts webapp pods)
 # The PDB will prevent draining if it would violate minAvailable
-kubectl drain &lt;NODE_NAME&gt; --ignore-daemonsets --delete-emptydir-data --dry-run=client
+kubectl drain &lt;NODE_NAME&gt; --ignore-daemonsets \
+  --delete-emptydir-data --dry-run=client
 
 # Observe the PDB status during operations
 kubectl get pdb webapp-pdb -n deploy-strategies -w
                 </code></pre>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Important:</strong> Use <code>--dry-run=client</code> first to avoid actually evicting pods from the node. In a real scenario, the drain respects the PDB and will wait or fail if minimum availability cannot be maintained.
-                </div>
+                <aside class="notes">Important: Use --dry-run=client first to avoid actually evicting pods from the node. In a real scenario, the drain respects the PDB and will wait or fail if minimum availability cannot be maintained.</aside>
                 <div class="concept-box fragment">
                     <h4>&#x1F4A1; PDB Use Cases</h4>
                     <ul>
@@ -1060,11 +1008,8 @@ kubectl set image deployment/webapp nginx=nginx:nonexistent-tag \
 # Watch the rollout (it will eventually fail)
 kubectl rollout status deployment/webapp -n deploy-strategies --timeout=90s
                 </code></pre>
-                <div class="highlight-box danger fragment">
-                    <strong>&#x26A0; Expected Output:</strong> After 60 seconds, the rollout status will report:
-                    <code>error: deployment "webapp" exceeded its progress deadline</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: After 60 seconds, the rollout status will report: error: deployment "webapp" exceeded its progress deadline
+                    
                     The default progressDeadlineSeconds is 600 (10 minutes). We set it to 60 for faster demonstration. In production, choose a value that gives your containers enough time to start but detects genuine failures quickly.
                 </aside>
             </section>
@@ -1087,10 +1032,8 @@ kubectl rollout undo deployment/webapp -n deploy-strategies
 kubectl rollout status deployment/webapp -n deploy-strategies
 kubectl get pods -n deploy-strategies -l app=webapp
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Checkpoint:</strong> After the rollback, all 4 pods should be Running and Ready. The deployment condition should show <code>Available: True</code>.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Checkpoint: After the rollback, all 4 pods should be Running and Ready. The deployment condition should show Available: True.
+                    
                     Show students the Progressing condition type. When the deadline is exceeded, the condition reason changes to ProgressDeadlineExceeded. This can be used for alerting in monitoring systems.
                 </aside>
             </section>
@@ -1127,15 +1070,9 @@ kubectl delete namespace deploy-strategies
 # Verify cleanup
 kubectl get namespace deploy-strategies
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong>
-                    <code>namespace "deploy-strategies" deleted</code><br>
-                    <code>Error from server (NotFound): namespaces "deploy-strategies" not found</code>
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Note:</strong> If you drained a node earlier (without --dry-run), remember to uncordon it: <code>kubectl uncordon &lt;NODE_NAME&gt;</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: namespace "deploy-strategies" deleted Error from server (NotFound): namespaces "deploy-strategies" not found
+                    Note: If you drained a node earlier (without --dry-run), remember to uncordon it: kubectl uncordon NODE_NAME
+                    
                     Namespace deletion is the cleanest way to remove all lab resources. Remind students to uncordon any drained nodes. Verify the namespace is fully terminated before proceeding.
                 </aside>
             </section>

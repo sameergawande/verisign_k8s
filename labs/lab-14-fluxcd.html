@@ -369,10 +369,8 @@ $ kubectl get pods -n flux-system
 # List Flux CRDs installed in the cluster
 $ kubectl get crds | grep flux
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected:</strong> All four controllers should show <code>Ready</code> status. You should see CRDs including <code>gitrepositories</code>, <code>kustomizations</code>, <code>helmreleases</code>, <code>providers</code>, and <code>alerts</code>.</p>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected: All four controllers should show `Ready` status. You should see CRDs including `gitrepositories`, `kustomizations`, `helmreleases`, `providers`, and `alerts`.
+                    
                     Walk around and verify that every student sees all checks passing. If source-controller is not ready, check its logs with kubectl logs -n flux-system deploy/source-controller. Common issues at this point include: Flux not installed (run the bootstrap command), or the flux-system namespace not existing. The CRD list should show approximately 10-12 Flux CRDs depending on whether image automation controllers are installed.
                 </aside>
             </section>
@@ -405,10 +403,8 @@ $ flux get sources git -o wide
                 <div class="key-point">
                     <strong>Observe:</strong> Note the <code>REVISION</code> column showing the current Git commit SHA, the <code>READY</code> status, and the <code>AGE</code> showing when the source was last fetched. Check the <code>spec.interval</code> and <code>spec.ref</code> fields in the YAML output.
                 </div>
-                <div class="highlight-box" style="margin-top: 10px;">
-                    <p style="margin:0; font-size:0.85em;"><strong>Questions to answer:</strong> What branch is each source tracking? What is the reconciliation interval? When was the last successful fetch?</p>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Questions to answer: What branch is each source tracking? What is the reconciliation interval? When was the last successful fetch?
+                    
                     Have students examine the output carefully. The revision field shows the exact commit SHA that Flux has fetched. The interval shows how often Flux checks for new commits. Ask students to identify the relationship between the source interval and how quickly changes would be deployed. The wide output format shows additional columns including the URL and the last fetched time.
                 </aside>
             </section>
@@ -448,10 +444,8 @@ $ flux get sources git lab-sample-app --watch
 # Verify the artifact was fetched
 $ kubectl describe gitrepository lab-sample-app -n flux-system
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected:</strong> The source should transition to <code>READY: True</code> within a few seconds. The REVISION column should show the latest commit SHA from the main branch.</p>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected: The source should transition to `READY: True` within a few seconds. The REVISION column should show the latest commit SHA from the main branch.
+                    
                     This is a public repository, so no authentication is needed. The source should become Ready almost immediately. If it does not, check the events with flux events --for GitRepository/lab-sample-app. Common issues include DNS resolution failures or network policies blocking egress to GitHub. Once the source is Ready, it has fetched and stored the repository contents as a tarball artifact that other controllers can consume.
                 </aside>
             </section>
@@ -469,17 +463,12 @@ $ kubectl describe gitrepository lab-sample-app -n flux-system
                 <h2>&#128209; Step 4: Create a Flux Kustomization</h2>
                 <p>Create a Kustomization that references the GitRepository source:</p>
                 <pre><code class="language-yaml" data-trim>
-# Save as lab-kustomization.yaml
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
-metadata:
-  name: lab-sample-app
-  namespace: flux-system
+metadata: { name: lab-sample-app, namespace: flux-system }
 spec:
   interval: 5m
-  sourceRef:
-    kind: GitRepository
-    name: lab-sample-app
+  sourceRef: { kind: GitRepository, name: lab-sample-app }
   path: ./clusters/staging
   prune: true
   timeout: 2m
@@ -494,10 +483,8 @@ $ flux get kustomizations lab-sample-app --watch
 # See what resources Flux created
 $ flux events --for Kustomization/lab-sample-app
                 </code></pre>
-                <div class="key-point">
-                    <strong>Observe:</strong> Watch the Kustomization transition through <code>Progressing</code> to <code>Ready</code>. Flux is running <code>kustomize build</code> on the path and applying the resulting manifests to the cluster.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Tip: Watch the Kustomization transition through Progressing to Ready. Flux is running kustomize build on the path and applying the resulting manifests to the cluster.
+
                     The Kustomization points to the clusters/staging path within the sample repository. Flux will build the Kustomize overlay at that path and apply all resulting resources. Students should observe the resources appearing in the cluster. Have them run kubectl get all in the relevant namespaces to see what was created. The prune: true setting means that if we later delete this Kustomization, Flux will also delete all the resources it created.
                 </aside>
             </section>
@@ -543,6 +530,13 @@ $ flux get kustomizations lab-sample-app
                 </aside>
             </section>
 
+            <section>
+                <h2>&#9989; Step 5: Checkpoint</h2>
+                <div class="highlight-box success">
+                    <p style="margin:0;"><strong>Success:</strong> The Kustomization shows <code>Ready: True</code> and the REVISION column reflects the latest commit SHA. The <code>flux events</code> output confirms a successful reconciliation cycle.</p>
+                </div>
+            </section>
+
             <!-- Step 6: Test Drift Detection -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
                 <h2>Step 6</h2>
@@ -556,31 +550,30 @@ $ flux get kustomizations lab-sample-app
                 <h2>&#128269; Step 6: Test Drift Detection</h2>
                 <p>Introduce manual drift and watch Flux correct it:</p>
                 <pre><code class="language-bash" data-trim>
-# First, find a Flux-managed deployment
 $ kubectl get deployments -A -l kustomize.toolkit.fluxcd.io/name=lab-sample-app
 
-# Record the current replica count
 $ kubectl get deployment &lt;DEPLOYMENT_NAME&gt; -n &lt;NAMESPACE&gt; \
     -o jsonpath='{.spec.replicas}'
 
-# Manually change the replica count (this is drift!)
 $ kubectl scale deployment &lt;DEPLOYMENT_NAME&gt; -n &lt;NAMESPACE&gt; --replicas=10
 
-# Verify the manual change took effect
 $ kubectl get deployment &lt;DEPLOYMENT_NAME&gt; -n &lt;NAMESPACE&gt;
 
-# Now force a reconciliation
 $ flux reconcile kustomization lab-sample-app
 
-# Watch Flux correct the drift
 $ kubectl get deployment &lt;DEPLOYMENT_NAME&gt; -n &lt;NAMESPACE&gt; --watch
                 </code></pre>
-                <div class="highlight-box warning">
-                    <p style="margin:0;"><strong>Observe:</strong> The replica count reverts to the value defined in Git. This is Flux enforcing the desired state. In production, this would also happen automatically at the next reconciliation interval without any manual trigger.</p>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Observe: The replica count reverts to the value defined in Git. This is Flux enforcing the desired state. In production, this would also happen automatically at the next reconciliation interval without any manual trigger.
+                    
                     This exercise is the moment where GitOps clicks for most students. They manually scale to 10 replicas, see it take effect, then watch Flux revert it back. Emphasize that in production, they would not need to run the reconcile command; it would happen automatically at the next interval. Ask students: what would happen if you needed to truly change the replica count? The answer is to update the manifest in Git, commit, and push. Flux will pick up the change on the next reconciliation.
                 </aside>
+            </section>
+
+            <section>
+                <h2>&#9989; Step 6: Checkpoint</h2>
+                <div class="highlight-box success">
+                    <p style="margin:0;"><strong>Success:</strong> After manually scaling to 10 replicas and triggering reconciliation, Flux reverted the replica count to the Git-defined value. This confirms drift detection and correction are working.</p>
+                </div>
             </section>
 
             <!-- Step 7: Create a HelmRelease -->
@@ -613,10 +606,8 @@ $ kubectl apply -f helm-source.yaml
 # Verify it becomes Ready
 $ flux get sources helm bitnami
                 </code></pre>
-                <div class="highlight-box">
-                    <p style="margin:0;"><strong>Note:</strong> The HelmRepository interval is set to 30 minutes because chart indexes change less frequently than Git repositories. Flux caches the chart index and only re-fetches at this interval.</p>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Note: The HelmRepository interval is set to 30 minutes because chart indexes change less frequently than Git repositories. Flux caches the chart index and only re-fetches at this interval.
+                    
                     The HelmRepository source is similar to running helm repo add. It tells Flux where to find Helm charts. The interval for Helm repos can be longer since chart indexes are updated less frequently. Once this source is Ready, we can reference it from a HelmRelease.
                 </aside>
             </section>
@@ -625,7 +616,6 @@ $ flux get sources helm bitnami
                 <h2>&#9936;&#65039; Step 7: Create a HelmRelease (Part 2 &mdash; Release)</h2>
                 <p>Now create a HelmRelease to deploy nginx using the Bitnami chart:</p>
                 <pre><code class="language-yaml" data-trim>
-# Save as helm-release.yaml
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -641,7 +631,6 @@ spec:
   values:
     replicaCount: 2
     service: { type: ClusterIP }
-    # ... resource requests/limits
   install:
     remediation: { retries: 3 }
   upgrade:
@@ -655,19 +644,14 @@ spec:
             <section>
                 <h2>&#9936;&#65039; Step 7: Create a HelmRelease (Part 3 &mdash; Verify)</h2>
                 <pre><code class="language-bash" data-trim>
-# Apply the HelmRelease
 $ kubectl apply -f helm-release.yaml
 
-# Watch the release install
 $ flux get helmreleases lab-nginx --watch
 
-# Verify with helm CLI (Flux-managed releases are visible)
 $ helm list -n default
 
-# Check the deployed resources
 $ kubectl get all -n default -l app.kubernetes.io/instance=lab-nginx
 
-# View the release details
 $ flux get helmreleases lab-nginx -o wide
                 </code></pre>
                 <div class="key-point">
@@ -676,6 +660,13 @@ $ flux get helmreleases lab-nginx -o wide
                 <aside class="notes">
                     Point out that Flux-managed Helm releases appear in helm list just like manually installed releases. The difference is that Flux owns the lifecycle. If a student runs helm upgrade manually, Flux will detect the drift and revert to the declared state on the next reconciliation. The -o wide flag shows additional details including the chart version and the last applied values hash.
                 </aside>
+            </section>
+
+            <section>
+                <h2>&#9989; Step 7: Checkpoint</h2>
+                <div class="highlight-box success">
+                    <p style="margin:0;"><strong>Success:</strong> The HelmRelease <code>lab-nginx</code> shows <code>Ready: True</code> and appears in <code>helm list</code>. The nginx pods are running in the default namespace with the configured replica count.</p>
+                </div>
             </section>
 
             <!-- Step 8: Dependency Chains -->
@@ -691,7 +682,6 @@ $ flux get helmreleases lab-nginx -o wide
                 <h2>&#128279; Step 8: Build a Dependency Chain</h2>
                 <p>Create two Kustomizations where B depends on A:</p>
                 <pre><code class="language-yaml" data-trim>
-# Save as dependency-chain.yaml
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -722,26 +712,18 @@ spec:
             <section>
                 <h2>&#128279; Step 8: Verify Dependency Ordering</h2>
                 <pre><code class="language-bash" data-trim>
-# Apply the dependency chain
 $ kubectl apply -f dependency-chain.yaml
 
-# Watch both Kustomizations
 $ flux get kustomizations --watch
 
-# Expected output progression:
-# lab-infra-base    ... Progressing  ...
 # lab-infra-configs ... waiting for dependency 'lab-infra-base' ...
 # lab-infra-base    ... True   Applied revision: main@sha1:...
-# lab-infra-configs ... Progressing  ...
 # lab-infra-configs ... True   Applied revision: main@sha1:...
 
-# Verify the ordering
 $ flux events --for Kustomization/lab-infra-configs
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Expected:</strong> The <code>lab-infra-configs</code> Kustomization shows "waiting for dependency" until <code>lab-infra-base</code> becomes Ready. Once the base is healthy, the dependent Kustomization begins its reconciliation.</p>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected: The `lab-infra-configs` Kustomization shows "waiting for dependency" until `lab-infra-base` becomes Ready. Once the base is healthy, the dependent Kustomization begins its reconciliation.
+                    
                     The key observation is the timing. Have students note the timestamps in the events. The configs Kustomization should have a later start time than the base. If the base fails, the configs Kustomization will remain in a waiting state indefinitely until the base recovers. This is exactly how the Verisign platform dependency tree works at a larger scale.
                 </aside>
             </section>
@@ -758,25 +740,19 @@ $ flux events --for Kustomization/lab-infra-configs
             <section>
                 <h2>&#9208;&#65039; Step 9: Suspend and Resume Reconciliation</h2>
                 <pre><code class="language-bash" data-trim>
-# Suspend the Kustomization
 $ flux suspend kustomization lab-sample-app
 
-# Verify it is suspended (SUSPENDED column shows "True")
 $ flux get kustomizations lab-sample-app
 
 # Make a manual change (will NOT be reverted while suspended)
 $ kubectl scale deployment &lt;DEPLOYMENT_NAME&gt; -n &lt;NAMESPACE&gt; --replicas=5
 $ kubectl get deployment &lt;DEPLOYMENT_NAME&gt; -n &lt;NAMESPACE&gt;
 
-# Resume reconciliation and watch Flux correct drift
 $ flux resume kustomization lab-sample-app
 $ kubectl get deployment &lt;DEPLOYMENT_NAME&gt; -n &lt;NAMESPACE&gt; --watch
-# Replicas will revert to the Git-defined value
                 </code></pre>
-                <div class="highlight-box warning">
-                    <p style="margin:0;"><strong>Important:</strong> Suspending a Kustomization also blocks all dependents. If you suspend a core component, everything that depends on it will not reconcile until you resume.</p>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Important: Suspending a Kustomization also blocks all dependents. If you suspend a core component, everything that depends on it will not reconcile until you resume.
+                    
                     This exercise clearly demonstrates the difference between suspended and active reconciliation. While suspended, manual changes persist because Flux is not checking. The moment you resume, Flux detects the drift and corrects it. This is useful during incident response when you need to make a temporary manual fix and do not want Flux reverting it while you work on a proper Git commit. Always remember to resume after maintenance is complete.
                 </aside>
             </section>
@@ -816,10 +792,8 @@ $ kubectl apply -f broken-kustomization.yaml
 $ flux get kustomizations lab-broken
 # READY should be "False" with an error message
                 </code></pre>
-                <div class="highlight-box danger">
-                    <p style="margin:0;"><strong>Expected:</strong> The Kustomization will fail with a message like "kustomization path not found" because the specified directory does not exist in the source repository.</p>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected: The Kustomization will fail with a message like "kustomization path not found" because the specified directory does not exist in the source repository.
+                    
                     This simulates a common real-world error: pointing a Kustomization at the wrong path. Students will now practice the troubleshooting workflow to diagnose and fix the issue. The error message from Flux is usually clear and actionable, but knowing where to look is the important skill.
                 </aside>
             </section>
@@ -828,20 +802,12 @@ $ flux get kustomizations lab-broken
                 <h2>&#128295; Step 10: Troubleshooting (Part 2 &mdash; Diagnose and Fix)</h2>
                 <p>Use the troubleshooting workflow to diagnose and resolve the issue:</p>
                 <pre><code class="language-bash" data-trim>
-# Step 1: Check the status
 $ flux get kustomizations lab-broken
-# NAME        READY  MESSAGE
-# lab-broken  False  kustomization path not found: ...
 
-# Step 2: Get detailed events
 $ flux events --for Kustomization/lab-broken
 
-# Step 3: Check controller logs
 $ flux logs --kind=Kustomization --name=lab-broken --level=error
 
-# Step 4: Fix the path in the YAML
-# Edit broken-kustomization.yaml and change path to:
-#   path: ./clusters/staging
                 </code></pre>
                 <pre><code class="language-bash" data-trim>
 # Step 5: Re-apply the fixed Kustomization
@@ -852,12 +818,17 @@ $ flux reconcile kustomization lab-broken
 $ flux get kustomizations lab-broken
 # READY should now be "True"
                 </code></pre>
-                <div class="highlight-box success">
-                    <p style="margin:0;"><strong>Success:</strong> After fixing the path and reconciling, the Kustomization should transition to Ready. This workflow &mdash; check status, read events, read logs, fix, reconcile &mdash; applies to all Flux troubleshooting.</p>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Success: After fixing the path and reconciling, the Kustomization should transition to Ready. This workflow &mdash; check status, read events, read logs, fix, reconcile &mdash; applies to all Flux troubleshooting.
+                    
                     Walk students through each step of the diagnostic workflow. Emphasize that this is the same process for any Flux issue: status, events, logs, fix, reconcile. The error message in the status field usually tells you exactly what is wrong. Events provide a timeline. Logs provide the most detail. Once the fix is applied, force reconciliation to verify immediately rather than waiting for the interval.
                 </aside>
+            </section>
+
+            <section>
+                <h2>&#9989; Step 10: Checkpoint</h2>
+                <div class="highlight-box success">
+                    <p style="margin:0;"><strong>Success:</strong> After fixing the path and reconciling, the <code>lab-broken</code> Kustomization transitioned to <code>Ready: True</code>. You have practiced the full troubleshooting workflow: check status, read events, read logs, fix, and reconcile.</p>
+                </div>
             </section>
 
             <!-- Step 11: Clean Up -->
@@ -879,22 +850,17 @@ $ kubectl delete kustomization lab-broken -n flux-system
 $ kubectl delete kustomization lab-infra-base -n flux-system
 $ kubectl delete kustomization lab-infra-configs -n flux-system
 
-# Delete HelmRelease (will uninstall the Helm release)
 $ kubectl delete helmrelease lab-nginx -n default
 
-# Delete sources
 $ kubectl delete gitrepository lab-sample-app -n flux-system
 $ kubectl delete helmrepository bitnami -n flux-system
 
-# Verify cleanup
 $ flux get all
 $ kubectl get all -n default -l app.kubernetes.io/instance=lab-nginx
                 </code></pre>
-                <div class="highlight-box">
-                    <p style="margin:0;"><strong>Note:</strong> Because <code>prune: true</code> was set, deleting the Kustomization also deletes the resources it managed. The HelmRelease deletion triggers a <code>helm uninstall</code> automatically.</p>
-                </div>
-                <aside class="notes">
-                    The order of deletion matters somewhat. Delete Kustomizations before their sources so that Flux can properly clean up managed resources. If you delete the source first, Flux cannot fetch the manifest list needed to prune resources. The HelmRelease deletion triggers a proper Helm uninstall, which runs any uninstall hooks defined in the chart. Verify that all lab resources are gone before marking the lab as complete.
+                <aside class="notes">Success: Once flux get all shows no lab resources and kubectl get all -n default confirms the nginx pods are gone, the cleanup is complete.
+                    
+                    Because prune: true was set, deleting the Kustomization also deletes the resources it managed. The HelmRelease deletion triggers a helm uninstall automatically. The order of deletion matters: delete Kustomizations before their sources so that Flux can properly clean up managed resources.
                 </aside>
             </section>
 
@@ -991,6 +957,9 @@ $ kubectl get all -n default -l app.kubernetes.io/instance=lab-nginx
                 <h1>Lab 14 Complete!</h1>
                 <h2>Working with FluxCD</h2>
                 <h3>You have successfully explored FluxCD sources, Kustomizations, HelmReleases, dependency chains, drift detection, and troubleshooting.</h3>
+                <div class="highlight-box success" style="margin-top: 15px;">
+                    <p style="margin:0;"><strong>All steps completed.</strong> You have hands-on experience with the full Flux GitOps lifecycle: sources, reconciliation, drift correction, Helm integration, dependency ordering, and troubleshooting.</p>
+                </div>
                 <div class="module-progress">
                     <div class="step completed"></div>
                     <div class="step completed"></div>

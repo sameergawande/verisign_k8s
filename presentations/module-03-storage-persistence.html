@@ -149,28 +149,22 @@
                     <div class="card">
                         <h4>Databases</h4>
                         <ul>
-                            <li>PostgreSQL</li>
-                            <li>MySQL</li>
-                            <li>MongoDB</li>
+                            <li>PostgreSQL, MySQL, MongoDB</li>
                             <li>Redis (AOF mode)</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Message Queues</h4>
                         <ul>
-                            <li>Kafka</li>
-                            <li>RabbitMQ</li>
+                            <li>Kafka, RabbitMQ</li>
                             <li>NATS JetStream</li>
-                            <li>Apache Pulsar</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>File Storage</h4>
                         <ul>
-                            <li>User uploads</li>
-                            <li>ML model artifacts</li>
-                            <li>Shared config files</li>
-                            <li>Build caches</li>
+                            <li>User uploads, ML artifacts</li>
+                            <li>Shared config and build caches</li>
                         </ul>
                     </div>
                 </div>
@@ -237,10 +231,7 @@
                         </tr>
                     </tbody>
                 </table>
-                <div class="highlight-box warning fragment fade-up">
-                    <strong>Production note:</strong> <code>hostPath</code> is a security risk and ties pods to specific nodes. Use it only for system-level DaemonSets, never for application workloads.
-                </div>
-                <aside class="notes">emptyDir is the simplest volume type — it's a directory on the node that gets created when the pod is scheduled and deleted when the pod is removed. It's useful for sidecar patterns where containers need to share files. configMap and secret volumes are how we inject configuration. PVC is the focus of this module — it's the path to real persistence.</aside>
+                <aside class="notes">Tip: hostPath is a security risk and ties pods to specific nodes — use it only for system-level DaemonSets, never for application workloads. emptyDir is the simplest volume type. configMap and secret volumes inject configuration. PVC is the path to real persistence.</aside>
             </section>
 
             <!-- Slide 8: emptyDir and hostPath Examples -->
@@ -256,22 +247,15 @@ spec:
   - name: app
     image: myapp:v1
     volumeMounts:
-    - name: shared-logs
-      mountPath: /var/log/app
+    - { name: shared-logs, mountPath: /var/log/app }
   - name: log-shipper
     image: fluentbit:latest
     volumeMounts:
-    - name: shared-logs
-      mountPath: /var/log/app
-      readOnly: true
+    - { name: shared-logs, mountPath: /var/log/app, readOnly: true }
   volumes:
   - name: shared-logs
-    emptyDir:
-      sizeLimit: 500Mi</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>Pattern:</strong> The app writes logs to <code>/var/log/app</code> and the sidecar reads and ships them. Both containers share the same <code>emptyDir</code> volume.
-                </div>
-                <aside class="notes">This sidecar pattern is extremely common. The emptyDir volume acts as a communication channel between the main application container and the log shipping sidecar. The sizeLimit prevents a runaway log from consuming the entire node's disk. emptyDir lives on the node's filesystem or optionally in memory using emptyDir.medium: Memory.</aside>
+    emptyDir: { sizeLimit: 500Mi }</code></pre>
+                <aside class="notes">Tip: The app writes logs to /var/log/app and the sidecar reads and ships them. Both containers share the same emptyDir volume. This sidecar pattern is extremely common. The sizeLimit prevents a runaway log from consuming the entire node's disk. emptyDir lives on the node's filesystem or optionally in memory using emptyDir.medium: Memory.</aside>
             </section>
 
             <!-- Slide 9: PersistentVolume Deep Dive -->
@@ -282,11 +266,9 @@ kind: PersistentVolume
 metadata:
   name: pv-ebs-01
 spec:
-  capacity:
-    storage: 50Gi
+  capacity: { storage: 50Gi }
   volumeMode: Filesystem
-  accessModes:
-    - ReadWriteOnce
+  accessModes: ["ReadWriteOnce"]
   persistentVolumeReclaimPolicy: Retain
   storageClassName: gp3
   csi:
@@ -387,13 +369,7 @@ kubectl describe pvc postgres-data | grep -A2 Events</code></pre>
                         </tr>
                     </tbody>
                 </table>
-                <div class="highlight-box warning fragment fade-up">
-                    <strong>EBS limitation:</strong> AWS EBS volumes are <code>ReadWriteOnce</code> only — they attach to a single EC2 instance. If you need shared storage across pods on multiple nodes, use EFS (NFS-based).
-                </div>
-                <div class="highlight-box fragment fade-up">
-                    <strong>Note:</strong> <code>ReadWriteOncePod</code> (RWOP) is a newer mode that restricts access to a single pod, even on the same node. Useful for sensitive data workloads.
-                </div>
-                <aside class="notes">Access modes are about node-level access, not pod-level — a subtle but important distinction. RWO means the volume can be mounted on one node, but multiple pods on that same node can mount it. RWOP, introduced in Kubernetes 1.27 as stable, tightens this to a single pod. For EKS, EBS is RWO and EFS supports RWX.</aside>
+                <aside class="notes">Tip: EBS volumes are ReadWriteOnce only — use EFS for shared storage across nodes. ReadWriteOncePod (RWOP) restricts access to a single pod, useful for sensitive data. Access modes are about node-level access, not pod-level. For EKS, EBS is RWO and EFS supports RWX.</aside>
             </section>
 
             <!-- Slide 13: Reclaim Policies -->
@@ -403,8 +379,7 @@ kubectl describe pvc postgres-data | grep -A2 Events</code></pre>
                     <div class="card">
                         <h4>Retain</h4>
                         <ul>
-                            <li>PV preserved after PVC deletion</li>
-                            <li>Data stays intact</li>
+                            <li>PV and data preserved after PVC deletion</li>
                             <li>Manual cleanup required</li>
                             <li><strong>Best for production databases</strong></li>
                         </ul>
@@ -412,8 +387,7 @@ kubectl describe pvc postgres-data | grep -A2 Events</code></pre>
                     <div class="card">
                         <h4>Delete</h4>
                         <ul>
-                            <li>PV and underlying storage deleted</li>
-                            <li>Data permanently removed</li>
+                            <li>PV and storage permanently removed</li>
                             <li>Default for dynamic provisioning</li>
                             <li><strong>Suitable for ephemeral workloads</strong></li>
                         </ul>
@@ -421,17 +395,12 @@ kubectl describe pvc postgres-data | grep -A2 Events</code></pre>
                     <div class="card">
                         <h4>Recycle (Deprecated)</h4>
                         <ul>
-                            <li>Runs <code>rm -rf</code> on volume</li>
-                            <li>Makes PV available again</li>
-                            <li>Deprecated in favor of dynamic provisioning</li>
-                            <li><strong>Do not use</strong></li>
+                            <li>Deprecated; do not use</li>
+                            <li>Use dynamic provisioning instead</li>
                         </ul>
                     </div>
                 </div>
-                <div class="highlight-box danger fragment fade-up">
-                    <strong>Critical:</strong> The default reclaim policy for dynamically provisioned PVs is <code>Delete</code>. For any stateful workload, override this to <code>Retain</code> to prevent accidental data loss.
-                </div>
-                <aside class="notes">This is one of the most important operational decisions for stateful workloads. If someone accidentally deletes a PVC with a Delete reclaim policy, the underlying EBS volume is destroyed and the data is gone. Always set Retain for databases and important stateful workloads. You can change an existing PV's reclaim policy with kubectl patch.</aside>
+                <aside class="notes">Tip: The default reclaim policy for dynamically provisioned PVs is Delete. For any stateful workload, override to Retain to prevent accidental data loss. You can change an existing PV's reclaim policy with kubectl patch.</aside>
             </section>
 
             <!-- Slide 14: Section Divider — StorageClasses -->
@@ -473,10 +442,8 @@ volumeBindingMode: WaitForFirstConsumer</code></pre>
                 <div class="two-columns">
                     <div class="card">
                         <h4>gp3 — General Purpose</h4>
-                        <pre><code class="language-yaml">apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: gp3
+                        <pre><code class="language-yaml">kind: StorageClass
+metadata: { name: gp3 }
 provisioner: ebs.csi.aws.com
 parameters:
   type: gp3
@@ -485,17 +452,14 @@ reclaimPolicy: Retain
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true</code></pre>
                         <ul>
-                            <li>3,000 baseline IOPS</li>
-                            <li>125 MB/s throughput</li>
-                            <li>Most workloads</li>
+                            <li>3,000 IOPS, 125 MB/s baseline</li>
+                            <li>Best for most workloads</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>io2 — High Performance</h4>
-                        <pre><code class="language-yaml">apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: io2-high-perf
+                        <pre><code class="language-yaml">kind: StorageClass
+metadata: { name: io2-high-perf }
 provisioner: ebs.csi.aws.com
 parameters:
   type: io2
@@ -504,9 +468,8 @@ parameters:
 reclaimPolicy: Retain
 volumeBindingMode: WaitForFirstConsumer</code></pre>
                         <ul>
-                            <li>Up to 64,000 IOPS</li>
-                            <li>99.999% durability</li>
-                            <li>Latency-sensitive DBs</li>
+                            <li>Up to 64,000 IOPS, 99.999% durability</li>
+                            <li>Latency-sensitive databases</li>
                         </ul>
                     </div>
                 </div>
@@ -620,10 +583,8 @@ kubectl describe pvc my-claim  # Check events for provisioning status</code></pr
                     <div class="card">
                         <h4>Deployment</h4>
                         <ul>
-                            <li>Pods are interchangeable</li>
-                            <li>Random pod names (app-7b8f9c-x2k4)</li>
-                            <li>Shared PVC (if any)</li>
-                            <li>Parallel scaling</li>
+                            <li>Pods are interchangeable with random names</li>
+                            <li>Shared PVC (if any), parallel scaling</li>
                             <li>No startup/shutdown ordering</li>
                             <li><strong>Use for:</strong> stateless APIs, web servers, workers</li>
                         </ul>
@@ -631,11 +592,9 @@ kubectl describe pvc my-claim  # Check events for provisioning status</code></pr
                     <div class="card">
                         <h4>StatefulSet</h4>
                         <ul>
-                            <li>Pods have stable identities</li>
-                            <li>Predictable names (db-0, db-1, db-2)</li>
-                            <li>Per-replica PVC via templates</li>
-                            <li>Ordered scaling (0, 1, 2...)</li>
-                            <li>Ordered startup and shutdown</li>
+                            <li>Stable identities with predictable names (db-0, db-1)</li>
+                            <li>Per-replica PVC via volumeClaimTemplates</li>
+                            <li>Ordered scaling, startup, and shutdown</li>
                             <li><strong>Use for:</strong> databases, Kafka, ZooKeeper</li>
                         </ul>
                     </div>
@@ -651,16 +610,13 @@ kubectl describe pvc my-claim  # Check events for provisioning status</code></pr
                 <h2>&#128736;&#65039; StatefulSet YAML Anatomy</h2>
                 <pre><code class="language-yaml">apiVersion: apps/v1
 kind: StatefulSet
-metadata:
-  name: postgres
+metadata: { name: postgres }
 spec:
-  serviceName: postgres-headless  # Required: headless Service name
+  serviceName: postgres-headless    # Required: headless Service
   replicas: 3
-  selector:
-    matchLabels: { app: postgres }
+  selector: { matchLabels: { app: postgres } }
   template:
-    metadata:
-      labels: { app: postgres }
+    metadata: { labels: { app: postgres } }
     spec:
       containers:
       - name: postgres
@@ -668,13 +624,12 @@ spec:
         ports: [{ containerPort: 5432 }]
         volumeMounts:
         - { name: data, mountPath: /var/lib/postgresql/data }
-  volumeClaimTemplates:           # Per-replica PVCs
+  volumeClaimTemplates:             # Per-replica PVCs
   - metadata: { name: data }
     spec:
       accessModes: ["ReadWriteOnce"]
       storageClassName: gp3
-      resources:
-        requests: { storage: 50Gi }</code></pre>
+      resources: { requests: { storage: 50Gi } }</code></pre>
                 <aside class="notes">Two things distinguish a StatefulSet spec from a Deployment: the serviceName field and the volumeClaimTemplates section. The serviceName must reference a headless Service that provides DNS entries for each pod. The volumeClaimTemplates create a unique PVC for each replica, named data-postgres-0, data-postgres-1, and data-postgres-2.</aside>
             </section>
 
@@ -720,10 +675,7 @@ kubectl get pvc
 # data-postgres-0   Bound    pvc-aaa    50Gi       gp3
 # data-postgres-1   Bound    pvc-bbb    50Gi       gp3
 # data-postgres-2   Bound    pvc-ccc    50Gi       gp3</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>Persistence guarantee:</strong> When <code>postgres-1</code> is rescheduled, it reattaches to <code>data-postgres-1</code> — the same volume with the same data. Identity and storage stay bound together.
-                </div>
-                <aside class="notes">This is the core value of StatefulSets for data workloads. The PVCs created by volumeClaimTemplates are NOT deleted when the StatefulSet is scaled down or when individual pods restart. They persist until manually deleted. This means you can scale a StatefulSet to zero and scale back up, and each replica reconnects to its original data.</aside>
+                <aside class="notes">Tip: When postgres-1 is rescheduled, it reattaches to data-postgres-1 — the same volume with the same data. Identity and storage stay bound together. PVCs from volumeClaimTemplates persist until manually deleted, even when scaling down.</aside>
             </section>
 
             <!-- Slide 25: Ordered Deployment and Scaling -->
@@ -817,19 +769,14 @@ spec:
         image: postgres:16
         env:
         - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef: { name: pg-secret, key: password }
+          valueFrom: { secretKeyRef: { name: pg-secret, key: password } }
         - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
         ports: [{ containerPort: 5432 }]
         volumeMounts: [{ name: data, mountPath: /var/lib/postgresql/data }]
         resources:
-          requests:
-            cpu: "500m"
-            memory: "1Gi"
-          limits:
-            cpu: "2"
-            memory: "4Gi"
-  # ... volumeClaimTemplates: gp3, 100Gi ReadWriteOnce per replica</code></pre>
+          requests: { cpu: "500m", memory: "1Gi" }
+          limits: { cpu: "2", memory: "4Gi" }
+  # ... volumeClaimTemplates: gp3, 100Gi RWO per replica</code></pre>
                 <aside class="notes">This is a production-grade PostgreSQL StatefulSet. Key details: PGDATA is set to a subdirectory of the mount point because PostgreSQL requires the data directory to be empty on init. Resources are set with both requests and limits. In a real production setup, you'd use an operator like CloudNativePG or Zalando's postgres-operator to handle replication, failover, and backups.</aside>
             </section>
 
@@ -844,28 +791,22 @@ spec:
                     <div class="card">
                         <h4>CloudNativePG</h4>
                         <ul>
-                            <li>PostgreSQL-specific</li>
-                            <li>Automated failover</li>
-                            <li>Continuous backup to S3</li>
-                            <li>Point-in-time recovery</li>
+                            <li>PostgreSQL-specific with automated failover</li>
+                            <li>Continuous backup to S3 and PITR</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Percona Operators</h4>
                         <ul>
-                            <li>MySQL, MongoDB, PG</li>
-                            <li>Multi-cluster replication</li>
-                            <li>Automated backups</li>
-                            <li>Version upgrades</li>
+                            <li>MySQL, MongoDB, PG support</li>
+                            <li>Multi-cluster replication and backups</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Strimzi</h4>
                         <ul>
-                            <li>Apache Kafka</li>
-                            <li>Topic management</li>
-                            <li>TLS automation</li>
-                            <li>Rack-aware replication</li>
+                            <li>Apache Kafka with topic management</li>
+                            <li>TLS automation, rack-aware replication</li>
                         </ul>
                     </div>
                 </div>
@@ -886,13 +827,7 @@ kubectl patch pvc data-postgres-0 -p \
 # Monitor the resize operation
 kubectl get pvc data-postgres-0 -w
 kubectl describe pvc data-postgres-0 | grep Conditions</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>EBS volumes support online expansion:</strong> No pod restart required. The filesystem is resized while the volume is mounted. Expansion happens in two phases — the EBS volume resizes first, then the filesystem grows to fill it.
-                </div>
-                <div class="highlight-box danger fragment fade-up">
-                    <strong>Volumes can only grow, never shrink.</strong> Plan your initial size carefully, but know you can always expand later.
-                </div>
-                <aside class="notes">Volume expansion is a common day-2 operation. A database that was provisioned with 50Gi will eventually need more space. With allowVolumeExpansion: true on the StorageClass and the EBS CSI driver, this is seamless. The resize happens in two stages: the cloud provider resizes the block device, then the kubelet resizes the filesystem. Both happen online with EBS.</aside>
+                <aside class="notes">Tip: EBS volumes support online expansion — no pod restart required. Volumes can only grow, never shrink, so plan initial size carefully. The resize happens in two stages: the cloud provider resizes the block device, then the kubelet resizes the filesystem.</aside>
             </section>
 
             <!-- Slide 31: Volume Snapshots — Creating -->

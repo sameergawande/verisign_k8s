@@ -152,18 +152,16 @@
                 <h2>&#128221; Rolling Update Configuration</h2>
                 <pre><code class="language-yaml">apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: api-server
-  namespace: production
+metadata: { name: api-server, namespace: production }
 spec:
   replicas: 4
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1          # At most 5 pods during update
-      maxUnavailable: 0    # Zero downtime — always 4 ready
+      maxUnavailable: 0    # Zero downtime
   revisionHistoryLimit: 10
-  minReadySeconds: 10      # Wait 10s before marking Ready
+  minReadySeconds: 10      # Wait 10s before Ready
   template:
     metadata:
       labels: { app: api-server, version: v2.1.0 }
@@ -324,14 +322,10 @@ kubectl patch svc api-server \
                 <h2>&#128256; Blue-Green with Ingress / Gateway API</h2>
                 <pre><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata:
-  name: api-route
-  namespace: production
+metadata: { name: api-route, namespace: production }
 spec:
-  parentRefs:
-    - name: production-gateway
-  hostnames:
-    - "api.verisign.com"
+  parentRefs: [{ name: production-gateway }]
+  hostnames: ["api.verisign.com"]
   rules:
     - backendRefs:
         # Blue-green: 100% to one backend
@@ -342,7 +336,7 @@ spec:
           port: 80
           weight: 0       # Flip to 100 for cutover</code></pre>
                 <div class="highlight-box fragment fade-up">
-                    <strong>Gateway API advantage:</strong> Weight-based routing enables gradual cutover (e.g., 90/10 &rarr; 50/50 &rarr; 0/100) rather than an all-or-nothing switch. This blurs the line between blue-green and canary.
+                    <strong>Gateway API advantage:</strong> Weight-based routing enables gradual cutover (90/10 &rarr; 50/50 &rarr; 0/100) rather than all-or-nothing. Blurs the line between blue-green and canary.
                 </div>
                 <aside class="notes">The Gateway API provides a more sophisticated blue-green implementation. Instead of binary switching via Service selectors, you control traffic weights. This lets you do a gradual cutover — send 10% to green, verify metrics, then increase to 100%. The Gateway API is the future of Kubernetes ingress routing and supports this natively. On EKS, the AWS Gateway API Controller works with ALB to provide this functionality.</aside>
             </section>
@@ -537,24 +531,17 @@ metadata:
 # Gateway API equivalent
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata:
-  name: api-ab-route
+metadata: { name: api-ab-route }
 spec:
   rules:
     - matches:
         - headers:
-            - name: X-Test-Group
-              value: experiment-b
+            - { name: X-Test-Group, value: experiment-b }
       backendRefs:
-        - name: api-experiment-b
-          port: 80
+        - { name: api-experiment-b, port: 80 }
     - backendRefs:
-        - name: api-control
-          port: 80</code></pre>
-                <div class="highlight-box fragment fade-up">
-                    <strong>Use case:</strong> Route internal testers, beta users, or specific geographic regions to the experimental version using custom headers set by a load balancer or API gateway upstream.
-                </div>
-                <aside class="notes">A/B testing differs from canary in intent. Canary validates operational health — error rates and latency. A/B testing validates business outcomes — conversion rates and user engagement. Header-based routing lets you deterministically route specific users to a specific version, which is essential for statistically valid experiments. The upstream application or CDN sets the header based on user segmentation.</aside>
+        - { name: api-control, port: 80 }</code></pre>
+                <aside class="notes">Tip: Route testers or beta users to the experimental version using custom headers set by a load balancer upstream. A/B testing differs from canary in intent. Canary validates operational health — error rates and latency. A/B testing validates business outcomes — conversion rates and user engagement. Header-based routing lets you deterministically route specific users to a specific version, which is essential for statistically valid experiments. The upstream application or CDN sets the header based on user segmentation.</aside>
             </section>
 
             <!-- Slide 19: Shadow / Dark Launches -->
@@ -796,7 +783,19 @@ curl -sf https://api.verisign.com/healthz || \
                 <aside class="notes">This comparison helps you choose the right strategy for each service. Not every service needs canary or blue-green. Low-risk internal services are fine with rolling updates. Customer-facing APIs with strict SLAs benefit from blue-green or canary. Reserve shadow launches for major refactoring or migration projects where you need to validate with real traffic before any user exposure.</aside>
             </section>
 
-            <!-- Slide 27: Key Takeaways -->
+            <!-- Slide 27: Module Summary -->
+            <section>
+                <h2>&#128203; Module Summary</h2>
+                <ul>
+                    <li>Rolling updates provide zero-downtime deployments with tunable maxSurge and maxUnavailable</li>
+                    <li>Blue-green deployments enable instant rollback by switching Service selectors</li>
+                    <li>Canary deployments reduce blast radius with gradual traffic shifting and metric validation</li>
+                    <li>Pod Disruption Budgets protect availability during voluntary disruptions</li>
+                    <li>progressDeadlineSeconds detects stuck rollouts and enables automated recovery</li>
+                </ul>
+            </section>
+
+            <!-- Slide 28: Key Takeaways -->
             <section>
                 <h2>&#127919; Key Takeaways</h2>
                 <div class="key-point fragment fade-up">

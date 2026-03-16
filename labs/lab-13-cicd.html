@@ -368,7 +368,6 @@
                 <h2>&#x1F4C4; Sample GitHub Actions Workflow</h2>
                 <p>Examine a typical CI/CD pipeline for Kubernetes:</p>
                 <pre><code class="yaml" data-trim>
-# .github/workflows/deploy.yaml
 name: Build and Deploy
 on: { push: { branches: [main] } }
 env:
@@ -455,7 +454,6 @@ jobs:
                 <h2>&#x1F6E0; Create a Sample Application</h2>
                 <p>Set up a simple application to build and deploy:</p>
                 <pre><code class="bash" data-trim>
-# Create working directory, init git, create app
 mkdir -p ~/cicd-lab && cd ~/cicd-lab && git init
 
 cat &lt;&lt;'EOF' &gt; index.html
@@ -483,31 +481,22 @@ git add . && git commit -m "Initial application"
                 <h2>&#x1F6E0; Build and Tag with Git SHA</h2>
                 <p>Build the image and tag it with the current git commit SHA:</p>
                 <pre><code class="bash" data-trim>
-# Get the short git SHA
 GIT_SHA=$(git rev-parse --short HEAD)
 echo "Building with SHA: $GIT_SHA"
 
-# Replace the build placeholder
 sed -i.bak "s/__BUILD_SHA__/$GIT_SHA/g" index.html
 sed -i.bak "s/__DEPLOY_TIME__/$(date -u +%Y-%m-%dT%H:%M:%SZ)/g" index.html
 
-# Build the Docker image with the git SHA tag
 docker build -t my-app:$GIT_SHA .
 docker build -t my-app:latest .
 
-# Verify the images
 docker images my-app
 
-# Restore the template file
 mv index.html.bak index.html
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> Two tagged images: <code>my-app:&lt;sha&gt;</code> and <code>my-app:latest</code>. The SHA tag provides immutable, traceable references.
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Best Practice:</strong> Never rely solely on <code>:latest</code> for production deployments. Always use a specific, immutable tag like the git SHA.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: Two tagged images: my-app:<sha> and my-app:latest. The SHA tag provides immutable, traceable references.
+                    Best Practice: Never rely solely on :latest for production deployments. Always use a specific, immutable tag like the git SHA.
+                    
                     Explain why git SHA tagging is critical. It creates a direct link between the running container and the exact source code. The latest tag is mutable and can lead to inconsistent deployments.
                 </aside>
             </section>
@@ -539,33 +528,25 @@ mv index.html.bak index.html
                 <h2>&#x1F4E4; Authenticate and Push to ECR</h2>
                 <p>Login to ECR and push the built image:</p>
                 <pre><code class="bash" data-trim>
-# Set your ECR registry URL
-export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query \
+  Account --output text)
 export ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com"
 export ECR_REPO="cicd-lab-app"
 
-# Create the ECR repository (if it doesn't exist)
 aws ecr create-repository --repository-name $ECR_REPO \
   --region us-east-1 || echo "Repository already exists"
 
-# Authenticate Docker to ECR
 aws ecr get-login-password --region us-east-1 | \
   docker login --username AWS --password-stdin $ECR_REGISTRY
 
-# Tag and push the image
 docker tag my-app:$GIT_SHA $ECR_REGISTRY/$ECR_REPO:$GIT_SHA
 docker push $ECR_REGISTRY/$ECR_REPO:$GIT_SHA
 
-# Verify the push
 aws ecr describe-images --repository-name $ECR_REPO --region us-east-1
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The image should appear in the ECR repository with the git SHA as the image tag. The <code>describe-images</code> output shows the image digest and tags.
-                </div>
-                <div class="highlight-box danger fragment">
-                    <strong>&#x26A0; Troubleshooting:</strong> If authentication fails, verify your AWS credentials: <code>aws sts get-caller-identity</code>. Ensure your IAM role has <code>ecr:GetAuthorizationToken</code> and <code>ecr:BatchCheckLayerAvailability</code> permissions.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: The image should appear in the ECR repository with the git SHA as the image tag. The describe-images output shows the image digest and tags.
+                    Troubleshooting: If authentication fails, verify your AWS credentials: aws sts get-caller-identity . Ensure your IAM role has ecr:GetAuthorizationToken and ecr:BatchCheckLayerAvailability permissions.
+                    
                     ECR login tokens expire after 12 hours. In CI/CD pipelines, the login step runs every time. For local development, you may need to re-authenticate periodically.
                 </aside>
             </section>
@@ -597,7 +578,6 @@ aws ecr describe-images --repository-name $ECR_REPO --region us-east-1
                 <h2>&#x1F4DD; Create the Deployment Manifest</h2>
                 <p>Write a Kubernetes Deployment manifest referencing the ECR image:</p>
                 <pre><code class="yaml" data-trim>
-# Save as k8s/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -616,9 +596,7 @@ spec:
       - name: app
         image: ${ECR_REGISTRY}/${ECR_REPO}:${GIT_SHA}
         ports: [{containerPort: 80}]
-        # ... resource requests/limits omitted for brevity
 ---
-# ... Service: cicd-demo-svc (port 80 -> 80)
                 </code></pre>
                 <aside class="notes">
                     Note the git-commit annotation. This embeds the source commit reference directly in the Kubernetes resource, making it easy to trace back from a running deployment to the exact code version.
@@ -652,33 +630,23 @@ spec:
                 <h2>&#x1F680; Deploy with kubectl</h2>
                 <p>Substitute variables and apply the manifest:</p>
                 <pre><code class="bash" data-trim>
-# Create the namespace
 kubectl create namespace cicd-lab
 
-# Create the manifests directory
 mkdir -p ~/cicd-lab/k8s
 
-# Substitute environment variables and apply
 envsubst &lt; k8s/deployment.yaml | kubectl apply -f -
 
-# Watch the rollout
 kubectl rollout status deployment/cicd-demo -n cicd-lab
 
-# Verify the deployment
 kubectl get pods -n cicd-lab -l app=cicd-demo
 kubectl get svc -n cicd-lab
 
-# Test the application
 kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never \
   -n cicd-lab -- curl -s cicd-demo-svc
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> 3 pods running with the ECR image. The curl test should return the HTML page showing the build SHA.
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Why Not kubectl in Production?</strong> Imperative deployments lack auditability, drift detection, and automated reconciliation. GitOps tools address all of these concerns.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: 3 pods running with the ECR image. The curl test should return the HTML page showing the build SHA.
+                    Why Not kubectl in Production? Imperative deployments lack auditability, drift detection, and automated reconciliation. GitOps tools address all of these concerns.
+                    
                     If envsubst is not available, students can manually replace the variables in the YAML. This step demonstrates the simplest deployment method before introducing GitOps patterns.
                 </aside>
             </section>
@@ -719,13 +687,9 @@ kubectl get pods -n argocd
 # Check the ArgoCD CLI
 argocd version
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; If ArgoCD is available:</strong> You should see pods for argocd-server, argocd-repo-server, argocd-application-controller, and argocd-dex-server all in Running state.
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; If ArgoCD is not installed:</strong> Review the Application CRD definition below to understand the pattern. You can install ArgoCD with: <code>kubectl create namespace argocd && kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">If ArgoCD is available: You should see pods for argocd-server, argocd-repo-server, argocd-application-controller, and argocd-dex-server all in Running state.
+                    If ArgoCD is not installed: Review the Application CRD definition below to understand the pattern. You can install ArgoCD with: kubectl create namespace argocd && kubectl apply -n argocd -f \ https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+                    
                     If ArgoCD is not installed, walk through the concepts using the CRD definition as a reference. The important thing is understanding the pattern, not necessarily having a running ArgoCD instance.
                 </aside>
             </section>
@@ -734,7 +698,6 @@ argocd version
                 <h2>&#x1F4E6; Create an ArgoCD Application</h2>
                 <p>Define an ArgoCD Application CRD:</p>
                 <pre><code class="yaml" data-trim>
-# Save as argocd-app.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -796,29 +759,20 @@ spec:
                 <h2>&#x1F50D; Monitor ArgoCD Sync Status</h2>
                 <p>Use the ArgoCD CLI and UI to observe the sync:</p>
                 <pre><code class="bash" data-trim>
-# Apply the ArgoCD Application (if ArgoCD is available)
 kubectl apply -f argocd-app.yaml
 
-# Check application status via CLI
 argocd app get cicd-demo
 
-# Manually trigger a sync
 argocd app sync cicd-demo
 
-# Watch the sync progress
 argocd app wait cicd-demo --health
 
-# View the application in the web UI
-# Get the ArgoCD server URL
 kubectl get svc argocd-server -n argocd
-# Get the initial admin password
 kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath="{.data.password}" | base64 -d && echo
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The application status should show <code>Health: Healthy</code> and <code>Sync: Synced</code>. All resources should show a green checkmark in the UI.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: The application status should show Health: Healthy and Sync: Synced. All resources should show a green checkmark in the UI.
+                    
                     If using the web UI, port-forward the ArgoCD server: kubectl port-forward svc/argocd-server -n argocd 8080:443. The UI provides a visual dependency graph of all resources in the application.
                 </aside>
             </section>
@@ -850,21 +804,19 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
                 <h2>&#x1F504; Simulate a Pipeline Trigger</h2>
                 <p>Make a code change, rebuild, and update the manifest:</p>
                 <pre><code class="bash" data-trim>
-# Make a code change and commit
 cd ~/cicd-lab
 sed -i 's/CI\/CD Demo Application/CI\/CD Demo v2/' index.html
 git add . && git commit -m "Update application to v2"
 
-# Get the new SHA and build
 NEW_SHA=$(git rev-parse --short HEAD)
 echo "New SHA: $NEW_SHA"
 docker build -t my-app:$NEW_SHA .
 
-# Update the deployment manifest with new image tag
-sed -i "s|image: .*|image: ${ECR_REGISTRY}/${ECR_REPO}:${NEW_SHA}|" k8s/deployment.yaml
+sed -i "s|image: .*|image: \
+${ECR_REGISTRY}/${ECR_REPO}:${NEW_SHA}|" \
+  k8s/deployment.yaml
 sed -i "s|git-commit: .*|git-commit: \"${NEW_SHA}\"|" k8s/deployment.yaml
 
-# In a GitOps workflow, this commit triggers ArgoCD sync
 git add k8s/deployment.yaml
 git commit -m "Deploy image $NEW_SHA"
                 </code></pre>
@@ -877,27 +829,19 @@ git commit -m "Deploy image $NEW_SHA"
                 <h2>&#x1F504; Apply and Verify the Update</h2>
                 <p>Apply the updated manifest and observe the rollout:</p>
                 <pre><code class="bash" data-trim>
-# Push the new image to ECR (if ECR is configured)
 docker tag my-app:$NEW_SHA $ECR_REGISTRY/$ECR_REPO:$NEW_SHA
 docker push $ECR_REGISTRY/$ECR_REPO:$NEW_SHA
 
-# Apply the updated manifest (or let ArgoCD auto-sync)
 envsubst &lt; k8s/deployment.yaml | kubectl apply -f -
 
-# Watch the rollout
 kubectl rollout status deployment/cicd-demo -n cicd-lab
 
-# If using ArgoCD, observe the sync
-# argocd app get cicd-demo
 
-# Verify the new version is running
 kubectl run curl-test2 --image=curlimages/curl --rm -it --restart=Never \
   -n cicd-lab -- curl -s cicd-demo-svc
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The curl response should show <code>CI/CD Demo v2</code> with the new build SHA. The deployment annotation should show the new git commit.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: The curl response should show CI/CD Demo v2 with the new build SHA. The deployment annotation should show the new git commit.
+                    
                     With ArgoCD automated sync, pushing the manifest change to git would trigger the deployment automatically. Without ArgoCD, we use kubectl apply manually. The key point is that the manifest in git is the source of truth.
                 </aside>
             </section>
@@ -951,10 +895,8 @@ argocd app rollback cicd-demo 1
                         <p class="small-text">Faster but creates drift between git and cluster. ArgoCD will eventually re-sync from git.</p>
                     </div>
                 </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Important:</strong> ArgoCD rollback creates temporary drift between the cluster and git. If automated sync is enabled, ArgoCD will re-sync from git within the poll interval (default 3 minutes). Use git revert for a permanent rollback.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Important: ArgoCD rollback creates temporary drift between the cluster and git. If automated sync is enabled, ArgoCD will re-sync from git within the poll interval (default 3 minutes). Use git revert for a permanent rollback.
+                    
                     Emphasize that the git revert approach is the true GitOps way. It maintains the audit trail and ensures git remains the source of truth. ArgoCD rollback is useful for emergency situations where speed is critical.
                 </aside>
             </section>
@@ -1050,34 +992,22 @@ flux reconcile kustomization flux-system --with-source
                 <h2>&#x1F9F9; Clean Up Resources</h2>
                 <p>Remove all resources created during this lab:</p>
                 <pre><code class="bash" data-trim>
-# If ArgoCD Application was created, delete it first
 kubectl delete application cicd-demo -n argocd --ignore-not-found
 
-# Delete the namespace
 kubectl delete namespace cicd-lab
 
-# Delete the ECR repository (optional)
 aws ecr delete-repository --repository-name cicd-lab-app \
   --region us-east-1 --force || echo "Skipping ECR cleanup"
 
-# Clean up local files
 rm -rf ~/cicd-lab
 
-# Remove local Docker images
 docker rmi $(docker images my-app -q) 2>/dev/null || true
 
-# Verify cleanup
 kubectl get namespace cicd-lab
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong>
-                    <code>namespace "cicd-lab" deleted</code><br>
-                    <code>Error from server (NotFound): namespaces "cicd-lab" not found</code>
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Note:</strong> If you installed ArgoCD specifically for this lab and no longer need it: <code>kubectl delete namespace argocd</code>. Be careful not to remove a shared ArgoCD installation.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: namespace "cicd-lab" deleted Error from server (NotFound): namespaces "cicd-lab" not found
+                    Note: If you installed ArgoCD specifically for this lab and no longer need it: kubectl delete namespace argocd . Be careful not to remove a shared ArgoCD installation.
+                    
                     When ArgoCD manages resources, deleting the Application CRD triggers ArgoCD to prune the managed resources. Always delete ArgoCD Applications before deleting the namespace to ensure clean teardown.
                 </aside>
             </section>

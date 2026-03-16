@@ -378,16 +378,9 @@ helm repo list
 # Check for any existing releases
 helm list --all-namespaces
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong>
-                    <code>version.BuildInfo{Version:"v3.x.x", ...}</code><br>
-                    The repo list may show <code>Error: no repositories to show</code> if no repos have been added yet.
-                </div>
-                <div class="highlight-box danger fragment">
-                    <strong>&#x26A0; Troubleshooting:</strong> If <code>helm</code> is not found, install it:
-                    <code>curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: version.BuildInfo{Version:"v3.x.x", ...} The repo list may show Error: no repositories to show if no repos have been added yet.
+                    Troubleshooting: If helm is not found, install it: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+                    
                     Helm v3 does not require Tiller. It communicates directly with the Kubernetes API using the kubeconfig. Verify that the version starts with v3.
                 </aside>
             </section>
@@ -420,24 +413,17 @@ helm list --all-namespaces
                 <h2>&#x1F4E6; Add and Search Repositories</h2>
                 <p>Add the Bitnami chart repository and explore available charts:</p>
                 <pre><code class="bash" data-trim>
-# Add the Bitnami repository
 helm repo add bitnami https://charts.bitnami.com/bitnami
 
-# Update the repository cache
 helm repo update
 
-# Search for nginx charts
 helm search repo nginx
 
-# Search for charts with detailed output
 helm search repo bitnami/nginx --versions | head -10
 
-# View chart information
 helm show chart bitnami/nginx
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The repo add should confirm <code>"bitnami" has been added to your repositories</code>. The search should show multiple nginx-related charts with versions and descriptions.
-                </div>
+                <aside class="notes">Expected Output: The repo add should confirm "bitnami" has been added to your repositories. The search should show multiple nginx-related charts with versions and descriptions.</aside>
                 <div class="concept-box fragment">
                     <h4>&#x1F4A1; Helm Repository Commands</h4>
                     <ul>
@@ -480,29 +466,19 @@ helm show chart bitnami/nginx
                 <h2>&#x1F680; Install nginx via Helm</h2>
                 <p>Install the Bitnami nginx chart with custom values:</p>
                 <pre><code class="bash" data-trim>
-# Create a namespace for Helm exercises
 kubectl create namespace helm-lab
 
-# View the default values before installing
 helm show values bitnami/nginx | head -50
 
-# Install with custom values
 helm install my-nginx bitnami/nginx \
   --namespace helm-lab \
   --set replicaCount=2 \
   --set service.type=ClusterIP
 
-# Watch the deployment come up
 kubectl get pods -n helm-lab -w
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong>
-                    <code>NAME: my-nginx</code><br>
-                    <code>STATUS: deployed</code><br>
-                    <code>REVISION: 1</code><br>
-                    Two nginx pods should reach Running state.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: NAME: my-nginx STATUS: deployed REVISION: 1 Two nginx pods should reach Running state.
+                    
                     Explain the anatomy of the install command: release name (my-nginx), chart reference (bitnami/nginx), namespace, and value overrides. The --set flag overrides individual values from the chart's values.yaml.
                 </aside>
             </section>
@@ -535,28 +511,19 @@ kubectl get pods -n helm-lab -w
                 <h2>&#x1F50D; Inspect the Release</h2>
                 <p>Use Helm commands to examine the installed release:</p>
                 <pre><code class="bash" data-trim>
-# List all releases in the namespace
 helm list -n helm-lab
 
-# View the values that were applied to this release
 helm get values my-nginx -n helm-lab
 
-# View ALL values (including defaults)
 helm get values my-nginx -n helm-lab --all
 
-# View the rendered Kubernetes manifests
 helm get manifest my-nginx -n helm-lab
 
-# View release notes
 helm get notes my-nginx -n helm-lab
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> <code>helm get values</code> should show the overrides you specified (replicaCount: 2, service.type: ClusterIP). The manifest shows the actual YAML applied to the cluster.
-                </div>
-                <div class="highlight-box fragment">
-                    <strong>&#x1F4A1; Tip:</strong> Use <code>helm get manifest</code> to see exactly what Kubernetes resources were created. This is invaluable for debugging chart behavior.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: helm get values should show the overrides you specified (replicaCount: 2, service.type: ClusterIP). The manifest shows the actual YAML applied to the cluster.
+                    Tip: Use helm get manifest to see exactly what Kubernetes resources were created. This is invaluable for debugging chart behavior.
+                    
                     Walk through the output of each command. The get values command with --all shows every value including defaults. The manifest output shows the fully rendered templates that were applied to the cluster.
                 </aside>
             </section>
@@ -602,13 +569,9 @@ kubectl get pods -n helm-lab
 # Check the revision number has incremented
 helm status my-nginx -n helm-lab
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The release should now be at <code>REVISION: 2</code> with 3 nginx pods running.
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Important:</strong> When using <code>--set</code> during upgrade, previous <code>--set</code> values are not preserved unless you include them again or use <code>--reuse-values</code>.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: The release should now be at REVISION: 2 with 3 nginx pods running.
+                    Important: When using --set during upgrade, previous --set values are not preserved unless you include them again or use --reuse-values .
+                    
                     Emphasize the --reuse-values flag. Without it, an upgrade only applies the explicitly provided values plus chart defaults. Previously set values are lost unless re-specified. For production, use values files instead of --set.
                 </aside>
             </section>
@@ -654,9 +617,7 @@ kubectl get pods -n helm-lab
 # Check history again (rollback creates a new revision)
 helm history my-nginx -n helm-lab
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> After rollback, the release is at <code>REVISION: 3</code> with 2 replicas (matching revision 1 values). The history shows all three revisions.
-                </div>
+                <aside class="notes">Expected Output: After rollback, the release is at REVISION: 3 with 2 replicas (matching revision 1 values). The history shows all three revisions.</aside>
                 <div class="concept-box fragment">
                     <h4>&#x1F4A1; Release Storage</h4>
                     <p>Helm stores release information as Kubernetes Secrets in the release namespace. Run <code>kubectl get secrets -n helm-lab -l owner=helm</code> to see them.</p>
@@ -702,26 +663,8 @@ tree mychart/
 # If tree is not installed:
 find mychart/ -type f | sort
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong>
-                    <pre style="margin:8px 0; font-size:0.85em;"><code data-trim>
-mychart/
-├── Chart.yaml          # Chart metadata
-├── charts/             # Dependencies
-├── templates/          # Template files
-│   ├── NOTES.txt       # Post-install notes
-│   ├── _helpers.tpl    # Template helpers
-│   ├── deployment.yaml
-│   ├── hpa.yaml
-│   ├── ingress.yaml
-│   ├── service.yaml
-│   ├── serviceaccount.yaml
-│   └── tests/
-│       └── test-connection.yaml
-└── values.yaml         # Default configuration
-                    </code></pre>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: mychart/ ├── Chart.yaml # Chart metadata ├── charts/ # Dependencies ├── templates/ # Template files │ ├── NOTES.txt # Post-install notes │ ├── _helpers.tpl # Template helpers │ ├── deployment.yaml │ ├── hpa.yaml │ ├── ingress.yaml │ ├── service.yaml │ ├── serviceaccount.yaml │ └── tests/ │ └── test-connection.yaml └── values.yaml # Default configuration
+                    
                     Walk through each file and its purpose. Chart.yaml defines the chart metadata. values.yaml provides defaults. The templates directory contains Go templates that render into Kubernetes manifests.
                 </aside>
             </section>
@@ -875,10 +818,8 @@ appConfig:
           - configMapRef:
               name: {{ include "mychart.fullname" . }}-config
                 </code></pre>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Indentation Matters:</strong> YAML indentation in Helm templates must be precise. Use <code>nindent</code> to control indentation levels in template output.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Indentation Matters: YAML indentation in Helm templates must be precise. Use nindent to control indentation levels in template output.
+                    
                     Students should edit the values.yaml and deployment.yaml files carefully. Remind them that Go template whitespace control with dashes ({{- and -}}) is important for clean YAML output.
                 </aside>
             </section>
@@ -925,9 +866,7 @@ helm install my-release mychart/ \
   --namespace helm-lab \
   --dry-run --debug
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> <code>helm lint</code> should show <code>==> Linting mychart/</code> followed by <code>1 chart(s) linted, 0 chart(s) failed</code>. Template output shows rendered YAML.
-                </div>
+                <aside class="notes">Expected Output: helm lint should show ==> Linting mychart/ followed by 1 chart(s) linted, 0 chart(s) failed. Template output shows rendered YAML.</aside>
                 <div class="concept-box fragment">
                     <h4>&#x1F4A1; Validation Workflow</h4>
                     <ul>
@@ -969,26 +908,20 @@ helm install my-release mychart/ \
                 <h2>&#x1F4E6; Package and Install</h2>
                 <p>Package the chart and install it from the archive:</p>
                 <pre><code class="bash" data-trim>
-# Package the chart into a .tgz archive
 helm package mychart/
 
-# List the packaged chart
 ls mychart-*.tgz
 
-# Install from the local package
 helm install my-custom-app mychart-0.1.0.tgz \
   --namespace helm-lab \
   --set appConfig.environment=development \
   --set appConfig.logLevel=debug
 
-# Verify the installation
 helm list -n helm-lab
 kubectl get all -n helm-lab -l app.kubernetes.io/instance=my-custom-app
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The package command creates <code>mychart-0.1.0.tgz</code>. The install creates a new release <code>my-custom-app</code> with the custom values.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: The package command creates mychart-0.1.0.tgz. The install creates a new release my-custom-app with the custom values.
+                    
                     In production, packaged charts are typically pushed to a chart repository (ChartMuseum, Harbor, or an OCI registry) for team-wide access. Helm 3 supports OCI registries natively.
                 </aside>
             </section>
@@ -1003,16 +936,13 @@ kubectl describe configmap my-custom-app-mychart-config -n helm-lab
 
 # Verify environment variables in the pod
 kubectl exec -n helm-lab \
-  $(kubectl get pod -n helm-lab -l app.kubernetes.io/instance=my-custom-app -o jsonpath='{.items[0].metadata.name}') \
+  $(kubectl get pod -n helm-lab -l \
+    app.kubernetes.io/instance=my-custom-app \
+    -o jsonpath='{.items[0].metadata.name}') \
   -- env | grep -E "APP_|CUSTOM"
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong>
-                    <code>APP_ENV=development</code><br>
-                    <code>APP_LOG_LEVEL=debug</code><br>
-                    <code>CUSTOM_MESSAGE=Hello from Helm!</code>
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: APP_ENV=development APP_LOG_LEVEL=debug CUSTOM_MESSAGE=Hello from Helm!
+                    
                     This confirms the full pipeline: values override defaults, templates render with those values, and the resulting Kubernetes resources contain the expected configuration.
                 </aside>
             </section>
@@ -1058,16 +988,9 @@ kubectl delete namespace helm-lab
 # Clean up local files
 rm -rf mychart/ mychart-*.tgz
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong>
-                    <code>release "my-nginx" uninstalled</code><br>
-                    <code>release "my-custom-app" uninstalled</code><br>
-                    <code>namespace "helm-lab" deleted</code>
-                </div>
-                <div class="highlight-box warning fragment">
-                    <strong>&#x26A0; Note:</strong> <code>helm uninstall</code> removes all Kubernetes resources created by the release. Use <code>--keep-history</code> if you want to preserve release history for auditing.
-                </div>
-                <aside class="notes">
+                <aside class="notes">Expected Output: release "my-nginx" uninstalled release "my-custom-app" uninstalled namespace "helm-lab" deleted
+                    Note: helm uninstall removes all Kubernetes resources created by the release. Use --keep-history if you want to preserve release history for auditing.
+                    
                     Helm uninstall by default purges the release history. The --keep-history flag preserves it, allowing future rollbacks or auditing. In production, consider keeping history for compliance.
                 </aside>
             </section>

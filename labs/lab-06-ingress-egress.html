@@ -342,7 +342,8 @@
 $ kubectl get pods -n ingress-nginx
 
 # Or check for AWS Load Balancer Controller
-$ kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
+$ kubectl get pods -n kube-system \
+  -l app.kubernetes.io/name=aws-load-balancer-controller
 
 # Check IngressClasses available
 $ kubectl get ingressclass
@@ -408,21 +409,7 @@ spec:
   template:
     metadata: { labels: { app: web, version: v1 } }
     spec:
-      containers:
-        - name: app
-          image: hashicorp/http-echo:0.2.3
-          args: ["-text=Hello from App V1", "-listen=:8080"]
-          ports: [{ containerPort: 8080 }]
-          readinessProbe: { httpGet: { path: /, port: 8080 }, initialDelaySeconds: 3 }
----
-apiVersion: v1
-kind: Service
-metadata: { name: app-v1-svc, namespace: lab-ingress }
-spec:
-  type: ClusterIP
-  selector: { app: web, version: v1 }
-  ports: [{ port: 80, targetPort: 8080 }]
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <aside class="notes">
                     app-v1 uses hashicorp/http-echo which returns a static text response. The ClusterIP service is intentional: the Ingress controller handles external access. Each app has a readiness probe to ensure traffic is only sent to healthy pods. The service maps port 80 to the container port 8080.
                 </aside>
@@ -441,21 +428,7 @@ spec:
   template:
     metadata: { labels: { app: web, version: v2 } }
     spec:
-      containers:
-        - name: app
-          image: hashicorp/http-echo:0.2.3
-          args: ["-text=Hello from App V2", "-listen=:8080"]
-          ports: [{ containerPort: 8080 }]
-          readinessProbe: { httpGet: { path: /, port: 8080 }, initialDelaySeconds: 3 }
----
-apiVersion: v1
-kind: Service
-metadata: { name: app-v2-svc, namespace: lab-ingress }
-spec:
-  type: ClusterIP
-  selector: { app: web, version: v2 }
-  ports: [{ port: 80, targetPort: 8080 }]
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <pre><code class="language-bash" data-trim>
 $ kubectl apply -f app-v1.yaml
 $ kubectl apply -f app-v2.yaml
@@ -464,12 +437,10 @@ $ kubectl apply -f app-v2.yaml
 $ kubectl get pods -n lab-ingress -l app=web
 $ kubectl get svc -n lab-ingress
                 </code></pre>
-                <div class="highlight-box success fragment">
-                    <strong>&#9989; Checkpoint:</strong> You should see 4 pods (2 for v1, 2 for v2) in Running/Ready state and 2 ClusterIP services.
-                </div>
+
                 <aside class="notes">
                     Both deployments have 2 replicas each. The only differences are the version label and the response text. Wait for all 4 pods to be Ready before proceeding to create Ingress resources. The ClusterIP services are only reachable within the cluster until we create an Ingress.
-                </aside>
+                 | &#9989; Checkpoint: You should see 4 pods (2 for v1, 2 for v2) in Running/Ready state and 2 ClusterIP services.</aside>
             </section>
 
             <!-- Step 3: Host-Based Routing -->
@@ -687,18 +658,7 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
-  tls:
-    - hosts: [secure.lab.local]
-      secretName: lab-tls-secret
-  rules:
-    - host: secure.lab.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service: { name: app-v1-svc, port: { number: 80 } }
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <aside class="notes">
                     The wildcard certificate covers all subdomains of lab.local. The TLS block references the Secret by name and associates it with specific hosts. The ssl-redirect annotation forces HTTP to HTTPS redirection. In production on the Verisign platform, certificates should be managed by cert-manager with Let's Encrypt or an internal CA, or use AWS ACM certificates with the ALB Controller.
                 </aside>
@@ -758,19 +718,7 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/limit-rps: "10"
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.verisign.com"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      add_header X-Served-By "verisign-eks" always;
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: api.lab.local
-      http:
-        paths:
-          - { path: "/api(/|$)(.*)", pathType: ImplementationSpecific,
-              backend: { service: { name: app-v1-svc, port: { number: 80 } } } }
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <aside class="notes">
                     Walk through each annotation group. The rewrite-target with regex captures enables stripping path prefixes. Rate limiting protects backends from traffic spikes. CORS headers are essential for browser-based API access. Proxy timeouts prevent hung connections. The configuration-snippet allows injecting raw NGINX directives. Emphasize that annotations are controller-specific and not portable between NGINX and ALB controllers.
                 </aside>

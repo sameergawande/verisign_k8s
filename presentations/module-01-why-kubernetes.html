@@ -244,20 +244,17 @@
                     <div class="card">
                         <h4>Application Artifacts</h4>
                         <ul>
-                            <li>Application source code</li>
+                            <li>Application source code and tests</li>
                             <li>Dockerfile / container definition</li>
-                            <li>Unit and integration tests</li>
                             <li>Application configuration</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Kubernetes Manifests</h4>
                         <ul>
-                            <li>Deployment specifications</li>
-                            <li>Service definitions</li>
+                            <li>Deployment and Service definitions</li>
                             <li>ConfigMaps and Secrets</li>
-                            <li>Resource requests and limits</li>
-                            <li>Health check probes</li>
+                            <li>Resource requests, limits, and health probes</li>
                         </ul>
                     </div>
                 </div>
@@ -349,8 +346,7 @@ kubectl port-forward svc/myapp 8080 # Upgrade to SPDY/WebSocket</code></pre>
                             <li>A load balancer</li>
                             <li>Persistent storage</li>
                             <li>A cron job</li>
-                            <li>A DNS entry</li>
-                            <li>TLS termination</li>
+                            <li>DNS entry and TLS termination</li>
                             <li>Horizontal scaling</li>
                         </ul>
                     </div>
@@ -360,8 +356,7 @@ kubectl port-forward svc/myapp 8080 # Upgrade to SPDY/WebSocket</code></pre>
                             <li><code>Service type: LoadBalancer</code></li>
                             <li><code>PersistentVolumeClaim</code></li>
                             <li><code>CronJob</code></li>
-                            <li><code>Service</code> (CoreDNS auto-registers)</li>
-                            <li><code>Ingress</code> with TLS config</li>
+                            <li><code>Service</code> + <code>Ingress</code> with TLS</li>
                             <li><code>HorizontalPodAutoscaler</code></li>
                         </ul>
                     </div>
@@ -440,9 +435,6 @@ kubectl port-forward svc/myapp 8080 # Upgrade to SPDY/WebSocket</code></pre>
                             <li class="fragment fade-up">Pods are <strong>ephemeral</strong> — they can be killed and rescheduled</li>
                             <li class="fragment fade-up">You rarely create pods directly — use Deployments</li>
                         </ul>
-                        <div class="highlight-box warning fragment fade-up">
-                            <strong>Developer Rule:</strong> Never depend on a specific pod existing. Design for ephemerality.
-                        </div>
                     </div>
                     <div>
                         <pre><code class="language-yaml">apiVersion: v1
@@ -460,13 +452,11 @@ spec:
       limits:   { cpu: "500m", memory: "512Mi" }
     livenessProbe:
       httpGet: { path: /healthz, port: 8080 }
-      initialDelaySeconds: 10
     readinessProbe:
-      httpGet: { path: /ready, port: 8080 }
-      initialDelaySeconds: 5</code></pre>
+      httpGet: { path: /ready, port: 8080 }</code></pre>
                     </div>
                 </div>
-                <aside class="notes">The pod spec is the most important manifest a developer writes. Notice the key elements: container image with a specific tag (never use :latest in production), resource requests and limits, and health probes. Every one of these is a developer responsibility.</aside>
+                <aside class="notes">Tip: Never depend on a specific pod existing. Design for ephemerality. The pod spec is the most important manifest a developer writes. Notice the key elements: container image with a specific tag (never use :latest in production), resource requests and limits, and health probes. Every one of these is a developer responsibility.</aside>
             </section>
 
             <!-- Deployments -->
@@ -474,27 +464,21 @@ spec:
                 <h2>&#9881;&#65039; Deployments — Desired State Management</h2>
                 <pre><code class="language-yaml">apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: myapp
-  labels: { app: myapp }
+metadata: { name: myapp, labels: { app: myapp } }
 spec:
   replicas: 3
-  selector:
-    matchLabels: { app: myapp }
+  selector: { matchLabels: { app: myapp } }
   strategy:
     type: RollingUpdate
     rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
   template:
-    metadata:
-      labels: { app: myapp, version: v1.2.3 }
+    metadata: { labels: { app: myapp, version: v1.2.3 } }
     spec:
       containers:
       - name: myapp
-        image: 123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:v1.2.3
+        image: ecr-repo/myapp:v1.2.3
         ports: [{ containerPort: 8080 }]
-        resources:
-          requests: { cpu: "250m", memory: "256Mi" }
-          limits:   { cpu: "500m", memory: "512Mi" }</code></pre>
+        # ... resources, probes (same as Pod)</code></pre>
                 <aside class="notes">Developer value: You declare "I want 3 healthy copies of my app running at all times" and Kubernetes makes it happen — and keeps it that way. The Deployment is the workhorse resource for developers. Key things to note: replicas controls availability, the strategy section controls how updates happen (maxUnavailable: 0 means zero-downtime deploys), and the selector must match the pod template labels. The Deployment controller continuously reconciles actual state to desired state.</aside>
             </section>
 
@@ -515,10 +499,6 @@ spec:
     targetPort: 8080
     protocol: TCP
   type: ClusterIP</code></pre>
-                        <div class="highlight-box fragment fade-up">
-                            <strong>DNS auto-registered:</strong><br>
-                            <code>myapp.default.svc.cluster.local</code>
-                        </div>
                     </div>
                     <div>
                         <h4>Why Services exist:</h4>
@@ -555,8 +535,6 @@ kubectl create deployment myapp \
   --image=myapp:v1
 kubectl scale deployment myapp \
   --replicas=3
-kubectl expose deployment myapp \
-  --port=80 --target-port=8080
 kubectl set image deployment/myapp \
   myapp=myapp:v2</code></pre>
                         <p style="font-size: 0.85em;">Tells Kubernetes <em>what to do</em> step by step.</p>
@@ -565,7 +543,6 @@ kubectl set image deployment/myapp \
                         <h4>&#9989; Declarative (Best Practice)</h4>
                         <pre><code class="language-bash"># Declare desired state
 kubectl apply -f deployment.yaml
-kubectl apply -f service.yaml
 
 # Update? Change the YAML, re-apply
 kubectl apply -f deployment.yaml
@@ -585,16 +562,14 @@ git diff deployment.yaml</code></pre>
                     <div class="card">
                         <h4>&#128270; Auditability</h4>
                         <ul>
-                            <li>Git history shows every change</li>
-                            <li>PR reviews for infra changes</li>
+                            <li>Git history and PR reviews for every change</li>
                             <li>Blame shows who changed what</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>&#128260; Reproducibility</h4>
                         <ul>
-                            <li>Same YAML = same result</li>
-                            <li>Recreate environments from Git</li>
+                            <li>Same YAML = same result everywhere</li>
                             <li>Disaster recovery is a <code>kubectl apply</code></li>
                         </ul>
                     </div>
@@ -602,15 +577,11 @@ git diff deployment.yaml</code></pre>
                         <h4>&#129302; Automation</h4>
                         <ul>
                             <li>GitOps workflows (ArgoCD, Flux)</li>
-                            <li>CI/CD pipelines apply manifests</li>
-                            <li>Drift detection built-in</li>
+                            <li>CI/CD pipelines with drift detection</li>
                         </ul>
                     </div>
                 </div>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>The reconciliation loop:</strong> Kubernetes continuously compares desired state (your YAML) to actual state (what's running) and takes action to converge. This is the superpower.
-                </div>
-                <aside class="notes">The reconciliation loop is the heart of Kubernetes. It's not a one-time "run this command" — it's a continuous process. If a pod crashes, the controller sees the discrepancy and creates a new one. This is self-healing infrastructure, driven by your declarative manifests.</aside>
+                <aside class="notes">Tip: The reconciliation loop is the superpower — Kubernetes continuously compares desired state (your YAML) to actual state (what's running) and takes action to converge. If a pod crashes, the controller sees the discrepancy and creates a new one. This is self-healing infrastructure, driven by your declarative manifests.</aside>
             </section>
 
             <!-- Section Divider: Environment Parity -->
@@ -632,18 +603,15 @@ git diff deployment.yaml</code></pre>
                         <h4>What stays the same</h4>
                         <ul>
                             <li>Container image (immutable artifact)</li>
-                            <li>Application code and dependencies</li>
-                            <li>Runtime (JVM, Node, Python version)</li>
+                            <li>Application code, dependencies, and runtime</li>
                             <li>OS-level packages</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>What changes per environment</h4>
                         <ul>
-                            <li>ConfigMaps (feature flags, URLs)</li>
-                            <li>Secrets (credentials, API keys)</li>
-                            <li>Resource requests/limits</li>
-                            <li>Replica counts</li>
+                            <li>ConfigMaps and Secrets</li>
+                            <li>Resource requests/limits and replica counts</li>
                             <li>Ingress rules / hostnames</li>
                         </ul>
                     </div>
@@ -663,16 +631,11 @@ k8s/
 ├── overlays/
 │   ├── dev/
 │   │   ├── kustomization.yaml # Dev-specific patches
-│   │   ├── replicas-patch.yaml
 │   │   └── configmap.yaml
 │   ├── staging/
-│   │   ├── kustomization.yaml
-│   │   ├── replicas-patch.yaml
-│   │   └── configmap.yaml
+│   │   └── ...                # Same structure as dev
 │   └── prod/
-│       ├── kustomization.yaml
-│       ├── replicas-patch.yaml
-│       └── configmap.yaml</code></pre>
+│       └── ...                # Same structure as dev</code></pre>
                 <pre class="fragment fade-up"><code class="language-bash"># Deploy to each environment
 kubectl apply -k k8s/overlays/dev/
 kubectl apply -k k8s/overlays/staging/
@@ -795,18 +758,13 @@ kubectl apply -k k8s/overlays/prod/</code></pre>
     lifecycle:
       preStop:
         exec:
-          command: ["/bin/sh", "-c", "sleep 5"]  # Allow in-flight requests to drain
-    # When Kubernetes stops a pod:
-    # 1. Pod marked as Terminating
-    # 2. Removed from Service endpoints
-    # 3. preStop hook runs
-    # 4. SIGTERM sent to PID 1
-    # 5. Wait terminationGracePeriodSeconds
-    # 6. SIGKILL if still running</code></pre>
-                <div class="highlight-box warning fragment fade-up">
-                    <strong>Common mistake:</strong> Not handling SIGTERM in your application. If your process doesn't gracefully shut down on SIGTERM, in-flight requests will be dropped.
-                </div>
-                <aside class="notes">The pod termination lifecycle is critical for zero-downtime deployments. The preStop sleep of 5 seconds gives kube-proxy and ingress controllers time to update their routing tables before the pod stops accepting traffic. This prevents dropped connections during rolling updates.</aside>
+          command: ["/bin/sh", "-c", "sleep 5"]
+    # Pod termination sequence:
+    # 1. Marked Terminating → removed from endpoints
+    # 2. preStop hook runs → SIGTERM sent
+    # 3. Wait terminationGracePeriodSeconds
+    # 4. SIGKILL if still running</code></pre>
+                <aside class="notes">Tip: Not handling SIGTERM is a common mistake — in-flight requests will be dropped if your process doesn't gracefully shut down. The pod termination lifecycle is critical for zero-downtime deployments. The preStop sleep of 5 seconds gives kube-proxy and ingress controllers time to update their routing tables before the pod stops accepting traffic.</aside>
             </section>
 
             <!-- Section Divider: EKS Context -->
@@ -823,20 +781,17 @@ kubectl apply -k k8s/overlays/prod/</code></pre>
                     <div class="card">
                         <h4>AWS Manages</h4>
                         <ul>
-                            <li>Kubernetes control plane (API server, etcd, scheduler, controller-manager)</li>
-                            <li>Control plane high availability (multi-AZ)</li>
-                            <li>Kubernetes version upgrades</li>
-                            <li>API server certificates &amp; authentication</li>
+                            <li>Control plane (API server, etcd, scheduler, controllers)</li>
+                            <li>HA and multi-AZ availability</li>
+                            <li>Version upgrades and certificates</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Your Team Manages</h4>
                         <ul>
                             <li>Worker node groups (EC2 or Fargate)</li>
-                            <li>Application deployments</li>
-                            <li>Namespaces, RBAC policies</li>
-                            <li>Add-ons (ingress, monitoring, etc.)</li>
-                            <li>Application-level configuration</li>
+                            <li>Application deployments and configuration</li>
+                            <li>Namespaces, RBAC, and add-ons</li>
                         </ul>
                     </div>
                 </div>
@@ -852,26 +807,20 @@ kubectl apply -k k8s/overlays/prod/</code></pre>
                 <pre><code class="language-bash"># 1. Authenticate to the cluster
 aws eks update-kubeconfig --name verisign-cluster --region us-east-1
 
-# 2. Verify connectivity
+# 2. Verify connectivity and set namespace
 kubectl cluster-info
-kubectl get nodes
-
-# 3. Set your namespace context
 kubectl config set-context --current --namespace=my-team
 
-# 4. Deploy your application
+# 3. Deploy your application
 kubectl apply -f k8s/
 
-# 5. Monitor your deployment
+# 4. Monitor your deployment
 kubectl rollout status deployment/myapp
 kubectl get pods -w
 
-# 6. Check logs
+# 5. Check logs and debug
 kubectl logs -l app=myapp --tail=100 -f
-
-# 7. Debug if needed
-kubectl describe pod myapp-abc123
-kubectl exec -it myapp-abc123 -- /bin/sh</code></pre>
+kubectl describe pod myapp-abc123</code></pre>
                 <aside class="notes">This is the daily workflow for developers on EKS. The aws eks update-kubeconfig command configures your local kubectl to authenticate with the EKS cluster using IAM. From there, it's standard Kubernetes commands. Namespaces are typically used to isolate team workloads.</aside>
             </section>
 

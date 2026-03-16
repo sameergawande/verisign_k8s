@@ -134,16 +134,14 @@
                         <ul>
                             <li>Compromised frontend reaches database directly</li>
                             <li>Dev namespace can access production</li>
-                            <li>Any pod can exfiltrate data externally</li>
-                            <li>Lateral movement is trivial</li>
+                            <li>Lateral movement and data exfiltration are trivial</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>&#128994; With Network Policies</h4>
                         <ul>
                             <li>Frontend only reaches its API server</li>
-                            <li>Namespaces are isolated boundaries</li>
-                            <li>Egress restricted to known endpoints</li>
+                            <li>Namespaces isolated; egress restricted</li>
                             <li>Blast radius is contained</li>
                         </ul>
                     </div>
@@ -163,22 +161,18 @@
                 <h2>&#128220; NetworkPolicy Anatomy</h2>
                 <pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata:
-  name: api-server-policy
-  namespace: production
+metadata: { name: api-server-policy, namespace: production }
 spec:
-  podSelector:                # Which pods this policy applies to
+  podSelector:                  # Which pods this policy applies to
     matchLabels: { app: api-server }
   policyTypes: [Ingress, Egress]
-  ingress:                    # Allowed inbound traffic
+  ingress:                      # Allowed inbound traffic
     - from:
-        - podSelector:
-            matchLabels: { app: frontend }
+        - podSelector: { matchLabels: { app: frontend } }
       ports: [{ protocol: TCP, port: 8080 }]
-  egress:                     # Allowed outbound traffic
+  egress:                       # Allowed outbound traffic
     - to:
-        - podSelector:
-            matchLabels: { app: database }
+        - podSelector: { matchLabels: { app: database } }
       ports: [{ protocol: TCP, port: 5432 }]</code></pre>
                 <aside class="notes">This is the complete structure. The podSelector targets which pods are governed. policyTypes declares whether ingress, egress, or both are controlled. Once a policy selects a pod, all traffic not explicitly allowed by a rule is denied — this is the key to understand. Policies are additive, meaning multiple policies combine their allow rules.</aside>
             </section>
@@ -219,20 +213,15 @@ spec:
                 <pre><code class="language-yaml">ingress:
   # Rule 1: Allow from pods with label app=frontend
   - from:
-      - podSelector:
-          matchLabels:
-            app: frontend
+      - podSelector: { matchLabels: { app: frontend } }
   # Rule 2: Allow from monitoring namespace
   - from:
-      - namespaceSelector:
-          matchLabels:
-            purpose: monitoring
+      - namespaceSelector: { matchLabels: { purpose: monitoring } }
   # Rule 3: Allow from corporate VPN CIDR
   - from:
       - ipBlock:
           cidr: 10.0.0.0/8
-          except:
-            - 10.0.5.0/24</code></pre>
+          except: [10.0.5.0/24]</code></pre>
                 <div class="highlight-box warning fragment fade-up">
                     <strong>OR vs AND:</strong> Separate list items under <code>from:</code> are OR&rsquo;d. Multiple selectors <em>within</em> a single list item are AND&rsquo;d.
                 </div>
@@ -244,22 +233,16 @@ spec:
                 <h2>&#128228; Egress Rules: Controlling Outbound Traffic</h2>
                 <pre><code class="language-yaml">egress:
   # Allow DNS resolution (critical!)
-  - to:
-      - namespaceSelector: {}
-    ports:
-      - { protocol: UDP, port: 53 }
-      - { protocol: TCP, port: 53 }
+  - to: [{ namespaceSelector: {} }]
+    ports: [{ protocol: UDP, port: 53 }, { protocol: TCP, port: 53 }]
   # Allow traffic to database pods
   - to:
-      - podSelector:
-          matchLabels: { app: postgres }
-    ports:
-      - { protocol: TCP, port: 5432 }
+      - podSelector: { matchLabels: { app: postgres } }
+    ports: [{ protocol: TCP, port: 5432 }]
   # Allow external API calls
   - to:
       - ipBlock: { cidr: 203.0.113.0/24 }
-    ports:
-      - { protocol: TCP, port: 443 }</code></pre>
+    ports: [{ protocol: TCP, port: 443 }]</code></pre>
                 <div class="highlight-box danger fragment fade-up">
                     <strong>Never forget DNS!</strong> If you restrict egress, you must explicitly allow UDP/TCP port 53 or your pods cannot resolve service names.
                 </div>
@@ -350,16 +333,12 @@ spec:
                 <pre><code class="language-yaml"># Always deploy alongside default-deny-egress
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata:
-  name: allow-dns
-  namespace: production
+metadata: { name: allow-dns, namespace: production }
 spec:
   podSelector: {}
-  policyTypes:
-    - Egress
+  policyTypes: [Egress]
   egress:
-    - to:
-        - namespaceSelector: {}
+    - to: [{ namespaceSelector: {} }]
       ports:
         - { protocol: UDP, port: 53 }
         - { protocol: TCP, port: 53 }</code></pre>
@@ -374,27 +353,19 @@ spec:
                 <h2>&#128193; Allow Specific Namespace Communication</h2>
                 <pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata:
-  name: allow-from-monitoring
-  namespace: production
+metadata: { name: allow-from-monitoring, namespace: production }
 spec:
   podSelector: {}
-  policyTypes:
-    - Ingress
+  policyTypes: [Ingress]
   ingress:
     - from:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: monitoring
       ports:
-        - protocol: TCP
-          port: 9090   # Prometheus metrics
-        - protocol: TCP
-          port: 8080   # Health checks</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>Tip:</strong> Use the built-in label <code>kubernetes.io/metadata.name</code> (added automatically since K8s 1.21) to select namespaces by name without custom labels.
-                </div>
-                <aside class="notes">This pattern allows monitoring tools like Prometheus to scrape metrics from production pods. The namespace selector targets the monitoring namespace specifically. Note the use of the automatic namespace label — this removes the need to manually label namespaces for policy targeting.</aside>
+        - { protocol: TCP, port: 9090 }   # Prometheus metrics
+        - { protocol: TCP, port: 8080 }   # Health checks</code></pre>
+                <aside class="notes">Tip: Use the built-in label kubernetes.io/metadata.name (added automatically since K8s 1.21) to select namespaces by name without custom labels. This pattern allows monitoring tools like Prometheus to scrape metrics from production pods. The namespace selector targets the monitoring namespace specifically.</aside>
             </section>
 
             <!-- Slide 16: Allow Specific Pod-to-Pod -->
@@ -407,23 +378,14 @@ spec:
                 <pre><code class="language-yaml"># Allow API server to receive from frontend only
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata:
-  name: api-allow-frontend
-  namespace: production
+metadata: { name: api-allow-frontend, namespace: production }
 spec:
-  podSelector:
-    matchLabels:
-      tier: api
-  policyTypes:
-    - Ingress
+  podSelector: { matchLabels: { tier: api } }
+  policyTypes: [Ingress]
   ingress:
     - from:
-        - podSelector:
-            matchLabels:
-              tier: frontend
-      ports:
-        - protocol: TCP
-          port: 8080</code></pre>
+        - podSelector: { matchLabels: { tier: frontend } }
+      ports: [{ protocol: TCP, port: 8080 }]</code></pre>
                 <aside class="notes">This is the classic three-tier pattern. The frontend can reach the API server on port 8080. The API server can reach the database on port 5432. The frontend cannot reach the database directly. This limits lateral movement — if the frontend is compromised, the attacker cannot jump straight to the database.</aside>
             </section>
 
@@ -432,29 +394,19 @@ spec:
                 <h2>&#128451;&#65039; Database Isolation Pattern</h2>
                 <pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata:
-  name: database-isolation
-  namespace: production
+metadata: { name: database-isolation, namespace: production }
 spec:
-  podSelector:
-    matchLabels: { app: postgres, tier: database }
+  podSelector: { matchLabels: { app: postgres, tier: database } }
   policyTypes: [Ingress, Egress]
   ingress:
     - from:
-        - podSelector:
-            matchLabels: { tier: api }
+        - podSelector: { matchLabels: { tier: api } }
       ports: [{ protocol: TCP, port: 5432 }]
   egress:
     # DNS only — database should not initiate connections
-    - to:
-        - namespaceSelector: {}
-      ports:
-      - { protocol: UDP, port: 53 }
-      - { protocol: TCP, port: 53 }</code></pre>
-                <div class="highlight-box danger fragment fade-up">
-                    <strong>Critical:</strong> Databases should have both ingress AND egress restrictions. A compromised database that can make outbound connections enables data exfiltration.
-                </div>
-                <aside class="notes">Database isolation is one of the most important patterns. The database only accepts connections from the API tier on the PostgreSQL port. Egress is locked down to DNS only — the database has no reason to initiate outbound connections. This prevents data exfiltration even if the database pod is compromised.</aside>
+    - to: [{ namespaceSelector: {} }]
+      ports: [{ protocol: UDP, port: 53 }, { protocol: TCP, port: 53 }]</code></pre>
+                <aside class="notes">Tip: Databases should have both ingress AND egress restrictions. A compromised database that can make outbound connections enables data exfiltration. Database isolation is one of the most important patterns. The database only accepts connections from the API tier on the PostgreSQL port. Egress is locked down to DNS only — the database has no reason to initiate outbound connections.</aside>
             </section>
 
             <!-- Slide 18: Section — CNI and Network Policy Providers -->
@@ -489,34 +441,18 @@ spec:
                 <h2>&#128005; Calico Network Policies</h2>
                 <pre><code class="language-yaml">apiVersion: projectcalico.org/v3
 kind: GlobalNetworkPolicy
-metadata:
-  name: deny-external-egress
+metadata: { name: deny-external-egress }
 spec:
   selector: env == 'production'
-  types:
-    - Egress
+  types: [Egress]
   egress:
-    # Allow cluster-internal traffic
-    - action: Allow
-      destination:
-        nets:
-          - 10.0.0.0/8
-    # Allow DNS
-    - action: Allow
+    - action: Allow          # Cluster-internal traffic
+      destination: { nets: [10.0.0.0/8] }
+    - action: Allow          # DNS
       protocol: UDP
-      destination:
-        ports: [53]
-    # Deny everything else
-    - action: Deny</code></pre>
-                <div class="two-columns fragment fade-up">
-                    <div class="highlight-box success">
-                        <strong>GlobalNetworkPolicy</strong> &mdash; Applies across all namespaces without per-namespace duplication.
-                    </div>
-                    <div class="highlight-box">
-                        <strong>Action field</strong> &mdash; Calico adds explicit Allow/Deny/Log actions with ordered rule evaluation.
-                    </div>
-                </div>
-                <aside class="notes">Calico extends the standard API with GlobalNetworkPolicy, which applies cluster-wide. It also adds explicit deny actions and ordered rule evaluation, making complex policies more readable. The selector syntax uses Calico's own expression language rather than standard label selectors.</aside>
+      destination: { ports: [53] }
+    - action: Deny           # Everything else</code></pre>
+                <aside class="notes">Tip: GlobalNetworkPolicy applies across all namespaces without per-namespace duplication. Calico adds explicit Allow/Deny/Log actions with ordered rule evaluation. Calico extends the standard API with GlobalNetworkPolicy, which applies cluster-wide. It also adds explicit deny actions and ordered rule evaluation, making complex policies more readable. The selector syntax uses Calico's own expression language rather than standard label selectors.</aside>
             </section>
 
             <!-- Slide 21: AWS VPC CNI Network Policy Support -->
@@ -544,27 +480,18 @@ spec:
                 <h2>&#128029; Cilium: L7-Aware Network Policies</h2>
                 <pre><code class="language-yaml">apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
-metadata:
-  name: api-l7-policy
-  namespace: production
+metadata: { name: api-l7-policy, namespace: production }
 spec:
-  endpointSelector:
-    matchLabels:
-      app: api-server
+  endpointSelector: { matchLabels: { app: api-server } }
   ingress:
     - fromEndpoints:
-        - matchLabels:
-            app: frontend
+        - matchLabels: { app: frontend }
       toPorts:
-        - ports:
-            - port: "8080"
-              protocol: TCP
+        - ports: [{ port: "8080", protocol: TCP }]
           rules:
             http:
-              - method: GET
-                path: "/api/v1/.*"
-              - method: POST
-                path: "/api/v1/orders"</code></pre>
+              - { method: GET, path: "/api/v1/.*" }
+              - { method: POST, path: "/api/v1/orders" }</code></pre>
                 <div class="key-point fragment fade-up">
                     <strong>L7 Filtering:</strong> Cilium can restrict traffic by HTTP method, path, headers, and even gRPC method &mdash; far beyond what standard NetworkPolicy offers.
                 </div>
@@ -651,20 +578,13 @@ ingress:
             <!-- Slide 26: Debugging Network Policies -->
             <section>
                 <h2>&#128269; Debugging Network Policies</h2>
-                <h4>Common Pitfalls</h4>
-                <div class="highlight-box danger fragment fade-up">
-                    <strong>Pitfall 1: Forgotten DNS.</strong> Egress policies that don't allow port 53 break all name resolution silently.
-                </div>
-                <div class="highlight-box warning fragment fade-up">
-                    <strong>Pitfall 2: OR vs AND confusion.</strong> Two selectors in one <code>from:</code> item are AND&rsquo;d. Separate <code>from:</code> items are OR&rsquo;d. Mixing them up creates overly permissive or overly restrictive rules.
-                </div>
-                <div class="highlight-box warning fragment fade-up">
-                    <strong>Pitfall 3: CNI doesn't enforce.</strong> Some CNI plugins (e.g., Flannel) ignore NetworkPolicy entirely. Verify your CNI supports enforcement.
-                </div>
-                <div class="highlight-box fragment fade-up">
-                    <strong>Pitfall 4: Policies are namespace-scoped.</strong> A policy in namespace A cannot affect pods in namespace B. Use per-namespace policies or Calico GlobalNetworkPolicy.
-                </div>
-                <aside class="notes">These are the four most common issues teams hit when implementing network policies. DNS breakage is by far the number one problem. The OR/AND confusion causes subtle security gaps. And many teams deploy policies without realizing their CNI doesn't enforce them — always verify enforcement with a connectivity test.</aside>
+                <ul>
+                    <li class="fragment fade-up"><strong>Forgotten DNS:</strong> Egress policies that don't allow port 53 break all name resolution silently</li>
+                    <li class="fragment fade-up"><strong>OR vs AND confusion:</strong> Two selectors in one <code>from:</code> item are AND'd; separate <code>from:</code> items are OR'd</li>
+                    <li class="fragment fade-up"><strong>CNI doesn't enforce:</strong> Some CNI plugins (e.g., Flannel) ignore NetworkPolicy entirely</li>
+                    <li class="fragment fade-up"><strong>Namespace-scoped:</strong> A policy in namespace A cannot affect pods in namespace B</li>
+                </ul>
+                <aside class="notes">Tip: DNS breakage is the number one problem. Always allow port 53 in egress policies. The OR/AND confusion causes subtle security gaps. Verify your CNI supports enforcement with a connectivity test.</aside>
             </section>
 
             <!-- Slide 27: Debugging Tools -->

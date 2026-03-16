@@ -89,14 +89,12 @@
                 <h2>&#128203; Module Agenda</h2>
                 <ul>
                     <li class="fragment fade-up">Why External Access Matters</li>
-                    <li class="fragment fade-up">NGINX Ingress Controller Architecture</li>
+                    <li class="fragment fade-up">NGINX Ingress Controller &amp; IngressClass</li>
                     <li class="fragment fade-up">Ingress Resources: Path-Based &amp; Host-Based Routing</li>
-                    <li class="fragment fade-up">Ingress Annotations Deep Dive</li>
-                    <li class="fragment fade-up">TLS Termination &amp; cert-manager</li>
-                    <li class="fragment fade-up">Gateway API: The Evolution of Ingress</li>
-                    <li class="fragment fade-up">Traffic Splitting with HTTPRoute</li>
-                    <li class="fragment fade-up">Verisign Integration: Envoy Gateway + External DNS</li>
-                    <li class="fragment fade-up">Egress Controls</li>
+                    <li class="fragment fade-up">Annotations, TLS Termination &amp; cert-manager</li>
+                    <li class="fragment fade-up">Gateway API: GatewayClass, Gateway, HTTPRoute</li>
+                    <li class="fragment fade-up">Traffic Splitting and Canary Deployments</li>
+                    <li class="fragment fade-up">Verisign Integration &amp; Egress Controls</li>
                 </ul>
                 <aside class="notes">We have a packed module covering both Ingress and the newer Gateway API. We'll start with the established NGINX Ingress pattern, then show how Gateway API improves upon it, and finish with egress controls for outbound traffic management.</aside>
             </section>
@@ -121,10 +119,7 @@
                         <tr class="fragment fade-up"><td><strong>Gateway API</strong></td><td>L4-L7</td><td>Advanced routing</td><td>Newer, still maturing ecosystem</td></tr>
                     </tbody>
                 </table>
-                <div class="highlight-box fragment fade-up">
-                    <strong>Cost Impact:</strong> On AWS EKS, each LoadBalancer Service provisions a dedicated NLB/ALB (~$16/month + data). Ingress consolidates many services behind one load balancer.
-                </div>
-                <aside class="notes">This table shows the evolution of external access in Kubernetes. NodePort is simple but impractical for production. LoadBalancer works but is expensive at scale — imagine 50 services each with their own NLB. Ingress consolidates everything behind a single load balancer with L7 routing. Gateway API is the next generation.</aside>
+                <aside class="notes">Tip: On AWS EKS, each LoadBalancer Service provisions a dedicated NLB/ALB (~$16/month + data). Ingress consolidates many services behind one load balancer. Gateway API is the next generation.</aside>
             </section>
 
             <!-- NGINX Ingress Controller -->
@@ -146,10 +141,7 @@
                         <li class="fragment fade-up">Reloads NGINX when Ingress resources change</li>
                     </ol>
                 </div>
-                <div class="highlight-box fragment fade-up">
-                    <strong>IngressClass:</strong> Specifies which controller handles an Ingress resource. Multiple controllers can coexist (e.g., internal vs external).
-                </div>
-                <aside class="notes">The NGINX Ingress Controller runs as a Deployment in your cluster, typically in an ingress-nginx namespace. It watches the Kubernetes API for Ingress resources, translates them into NGINX config, and reloads. The IngressClass mechanism allows multiple ingress controllers to coexist — critical for Verisign where you might have separate internal and external ingress controllers.</aside>
+                <aside class="notes">Tip: IngressClass specifies which controller handles an Ingress. Multiple controllers can coexist (e.g., internal vs external). Critical for Verisign where you might have separate internal and external ingress controllers.</aside>
             </section>
 
             <section>
@@ -192,9 +184,7 @@ spec:
 kind: Ingress
 metadata:
   name: app-ingress
-  namespace: verisign-apps
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  annotations: { nginx.ingress.kubernetes.io/rewrite-target: /$2 }
 spec:
   ingressClassName: nginx-external
   rules:
@@ -203,25 +193,10 @@ spec:
       paths:
       - path: /api(/|$)(.*)
         pathType: ImplementationSpecific
-        backend:
-          service:
-            name: api-service
-            port:
-              number: 8080
-      - path: /admin(/|$)(.*)
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: admin-service
-            port:
-              number: 8080
+        backend: { service: { name: api-service, port: { number: 8080 } } }
       - path: /
         pathType: Prefix
-        backend:
-          service:
-            name: frontend-service
-            port:
-              number: 80</code></pre>
+        backend: { service: { name: frontend-service, port: { number: 80 } } }</code></pre>
                 <aside class="notes">Path-based routing directs traffic to different services based on the URL path. The rewrite-target annotation strips the path prefix before forwarding to the backend. pathType can be Exact, Prefix, or ImplementationSpecific. Rules are evaluated in order of specificity — more specific paths match first.</aside>
             </section>
 
@@ -229,9 +204,7 @@ spec:
                 <h2>&#127760; Host-Based Routing</h2>
                 <pre class="fragment fade-up"><code class="language-yaml">apiVersion: networking.k8s.io/v1
 kind: Ingress
-metadata:
-  name: multi-host-ingress
-  namespace: verisign-apps
+metadata: { name: multi-host-ingress, namespace: verisign-apps }
 spec:
   ingressClassName: nginx-external
   rules:
@@ -240,27 +213,15 @@ spec:
       paths:
       - path: /
         pathType: Prefix
-        backend:
-          service:
-            name: api-service
-            port:
-              number: 8080
+        backend: { service: { name: api-service, port: { number: 8080 } } }
   - host: dashboard.verisign.internal
     http:
       paths:
       - path: /
         pathType: Prefix
-        backend:
-          service:
-            name: dashboard-service
-            port:
-              number: 3000
-  # Default backend for unmatched hosts
+        backend: { service: { name: dashboard-service, port: { number: 3000 } } }
   defaultBackend:
-    service:
-      name: default-404-service
-      port:
-        number: 80</code></pre>
+    service: { name: default-404-service, port: { number: 80 } }</code></pre>
                 <aside class="notes">Host-based routing uses the Host header to direct traffic. Each hostname maps to a different backend service. The defaultBackend handles requests that don't match any host rule — useful for returning a custom 404 page. In production, combine this with External DNS to automatically create DNS records.</aside>
             </section>
 
@@ -288,10 +249,7 @@ spec:
                         </tr>
                     </tbody>
                 </table>
-                <div class="highlight-box warning fragment fade-up">
-                    <strong>Gotcha:</strong> <code>Prefix</code> matching splits on <code>/</code> boundaries. Path <code>/api</code> does NOT match <code>/apiversion</code> — it only matches paths that have <code>/api</code> as a complete segment prefix.
-                </div>
-                <aside class="notes">Understanding pathType is critical for correct routing. Prefix matching works on slash-separated segments, not arbitrary string prefixes. This prevents accidental matching of /apiversion when you only meant /api. ImplementationSpecific lets you use NGINX-specific features like regex paths.</aside>
+                <aside class="notes">Tip: Prefix matching splits on / boundaries. Path /api does NOT match /apiversion — only paths with /api as a complete segment prefix. ImplementationSpecific lets you use NGINX-specific features like regex paths.</aside>
             </section>
 
             <!-- Annotations -->
@@ -357,10 +315,7 @@ metadata:
          max-age=31536000";</code></pre>
                     </div>
                 </div>
-                <div class="highlight-box danger fragment fade-up">
-                    <strong>&#9888;&#65039; Security Warning:</strong> <code>configuration-snippet</code> and <code>server-snippet</code> annotations can inject arbitrary NGINX config. In multi-tenant clusters, disable them via controller flags to prevent abuse.
-                </div>
-                <aside class="notes">Session affinity via cookies is useful for stateful applications. Custom snippets allow injecting raw NGINX configuration — powerful but dangerous in multi-tenant environments. An attacker could inject malicious NGINX config to steal traffic. Always consider disabling snippet annotations in shared clusters.</aside>
+                <aside class="notes">Tip: configuration-snippet and server-snippet annotations can inject arbitrary NGINX config. In multi-tenant clusters, disable them via controller flags to prevent abuse. An attacker could inject malicious config to steal traffic.</aside>
             </section>
 
             <!-- TLS Termination -->
@@ -437,9 +392,8 @@ metadata:
 spec:
   ingressClassName: nginx-external
   tls:
-  - hosts:
-    - api.verisign.internal
-    secretName: api-tls-auto   # cert-manager creates this
+  - hosts: [api.verisign.internal]
+    secretName: api-tls-auto       # cert-manager creates this
   rules:
   - host: api.verisign.internal
     http:
@@ -447,10 +401,7 @@ spec:
       - path: /
         pathType: Prefix
         backend:
-          service:
-            name: api-service
-            port:
-              number: 8080</code></pre>
+          service: { name: api-service, port: { number: 8080 } }</code></pre>
                 <aside class="notes">The cert-manager annotation on the Ingress triggers automatic certificate provisioning. cert-manager creates and manages the Secret referenced in secretName. Certificates are renewed automatically before expiry.</aside>
             </section>
 
@@ -487,27 +438,21 @@ spec:
                         <h4>&#128736;&#65039; GatewayClass</h4>
                         <p style="font-size: 0.85em;"><strong>Role:</strong> Infrastructure Provider</p>
                         <ul>
-                            <li>Defines the controller implementation</li>
-                            <li>Similar to IngressClass</li>
-                            <li>Cluster-scoped resource</li>
+                            <li>Defines controller implementation (cluster-scoped)</li>
                         </ul>
                     </div>
                     <div class="card fragment fade-up">
                         <h4>&#128310; Gateway</h4>
                         <p style="font-size: 0.85em;"><strong>Role:</strong> Cluster Operator</p>
                         <ul>
-                            <li>Configures listeners (ports, protocols, TLS)</li>
-                            <li>Provisions infrastructure (LB)</li>
-                            <li>Namespace-scoped</li>
+                            <li>Configures listeners, TLS, and provisions LB</li>
                         </ul>
                     </div>
                     <div class="card fragment fade-up">
                         <h4>&#128208; HTTPRoute</h4>
                         <p style="font-size: 0.85em;"><strong>Role:</strong> Application Developer</p>
                         <ul>
-                            <li>Defines routing rules</li>
-                            <li>Attaches to Gateway</li>
-                            <li>Owned by app teams</li>
+                            <li>Defines routing rules; attaches to Gateway</li>
                         </ul>
                     </div>
                 </div>
@@ -521,40 +466,23 @@ spec:
                 <h2>&#128310; GatewayClass and Gateway</h2>
                 <pre class="fragment fade-up"><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
-metadata:
-  name: envoy-gateway
+metadata: { name: envoy-gateway }
 spec:
   controllerName: gateway.envoyproxy.io/gatewayclass-controller
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
-metadata:
-  name: verisign-gateway
-  namespace: gateway-system
+metadata: { name: verisign-gateway, namespace: gateway-system }
 spec:
   gatewayClassName: envoy-gateway
   listeners:
-  - name: http
-    protocol: HTTP
-    port: 80
-    allowedRoutes:
-      namespaces:
-        from: All
+  - { name: http, protocol: HTTP, port: 80, allowedRoutes: { namespaces: { from: All } } }
   - name: https
     protocol: HTTPS
     port: 443
-    tls:
-      mode: Terminate
-      certificateRefs:
-      - kind: Secret
-        name: wildcard-tls
-        namespace: gateway-system
+    tls: { mode: Terminate, certificateRefs: [{ kind: Secret, name: wildcard-tls }] }
     allowedRoutes:
-      namespaces:
-        from: Selector
-        selector:
-          matchLabels:
-            gateway-access: "true"</code></pre>
+      namespaces: { from: Selector, selector: { matchLabels: { gateway-access: "true" } } }</code></pre>
                 <aside class="notes">The Gateway resource defines listeners with protocols, ports, and TLS configuration. The allowedRoutes field controls which namespaces can attach routes — this is the RBAC model. Using a namespace selector with labels gives platform teams fine-grained control over which application namespaces can use the gateway.</aside>
             </section>
 
@@ -562,41 +490,19 @@ spec:
                 <h2>&#128208; HTTPRoute Resource</h2>
                 <pre class="fragment fade-up"><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata:
-  name: api-routes
-  namespace: verisign-apps
+metadata: { name: api-routes, namespace: verisign-apps }
 spec:
   parentRefs:
-  - name: verisign-gateway
-    namespace: gateway-system
-    sectionName: https
-  hostnames:
-  - "api.verisign.internal"
+  - { name: verisign-gateway, namespace: gateway-system, sectionName: https }
+  hostnames: ["api.verisign.internal"]
   rules:
   - matches:
-    - path:
-        type: PathPrefix
-        value: /v1/dns
-      headers:
-      - name: X-API-Version
-        value: "v1"
-    backendRefs:
-    - name: dns-service-v1
-      port: 8080
+    - path: { type: PathPrefix, value: /v1/dns }
+      headers: [{ name: X-API-Version, value: "v1" }]
+    backendRefs: [{ name: dns-service-v1, port: 8080 }]
   - matches:
-    - path:
-        type: PathPrefix
-        value: /v2/dns
-    backendRefs:
-    - name: dns-service-v2
-      port: 8080
-  - matches:
-    - path:
-        type: PathPrefix
-        value: /health
-    backendRefs:
-    - name: health-service
-      port: 8080</code></pre>
+    - path: { type: PathPrefix, value: /v2/dns }
+    backendRefs: [{ name: dns-service-v2, port: 8080 }]</code></pre>
                 <aside class="notes">HTTPRoute is where application developers define their routing rules. Notice how matches can include both path and header conditions natively — no annotations needed. The parentRefs field attaches this route to a specific Gateway listener. Each rule can have multiple matches and multiple backends.</aside>
             </section>
 
@@ -671,10 +577,7 @@ spec:
     backendRefs:
     - name: dns-service-stable
       port: 8080</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>Verisign Use Case:</strong> QA team sets <code>X-Canary: true</code> header to test new versions in production before enabling weight-based rollout for all traffic.
-                </div>
-                <aside class="notes">This pattern routes specific users to the canary using headers. Header-based routing is another powerful pattern. Internal teams can test the canary version by adding a specific header, while all other traffic goes to stable. This lets you verify the canary in the real production environment before exposing it to a percentage of all users.</aside>
+                <aside class="notes">Tip: QA team sets X-Canary: true header to test new versions in production before enabling weight-based rollout. This lets you verify the canary in the real production environment before exposing it to all users.</aside>
             </section>
 
             <!-- Verisign Integration -->
@@ -693,28 +596,22 @@ spec:
                     <div class="card">
                         <h4>&#128310; Envoy Gateway</h4>
                         <ul>
-                            <li>Gateway API implementation</li>
-                            <li>Envoy proxy data plane</li>
-                            <li>Advanced L7 features</li>
-                            <li>gRPC + HTTP routing</li>
+                            <li>Gateway API with Envoy data plane</li>
+                            <li>Advanced L7: gRPC + HTTP routing</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>&#127760; External DNS</h4>
                         <ul>
-                            <li>Watches Gateway/Ingress</li>
-                            <li>Creates Route53 records</li>
-                            <li>Automatic DNS management</li>
-                            <li>TTL and ownership tracking</li>
+                            <li>Watches Gateway/Ingress resources</li>
+                            <li>Auto-creates Route53 records</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>&#128274; cert-manager</h4>
                         <ul>
-                            <li>Automated certificate lifecycle</li>
-                            <li>Internal CA or ACME</li>
-                            <li>Auto-renewal before expiry</li>
-                            <li>Gateway API integration</li>
+                            <li>Automated certificate lifecycle with auto-renewal</li>
+                            <li>Internal CA, ACME, or Gateway API integration</li>
                         </ul>
                     </div>
                 </div>
@@ -737,8 +634,7 @@ spec:
                     <div class="card fragment fade-up">
                         <h4>&#128737;&#65039; Security Concerns</h4>
                         <ul>
-                            <li>Compromised pods phoning home to C2 servers</li>
-                            <li>Data exfiltration to unauthorized endpoints</li>
+                            <li>Compromised pods phoning home or exfiltrating data</li>
                             <li>Supply chain attacks reaching external registries</li>
                             <li>Compliance requirements (PCI-DSS, SOC2)</li>
                         </ul>
@@ -747,8 +643,7 @@ spec:
                         <h4>&#128295; Control Mechanisms</h4>
                         <ul>
                             <li><strong>NetworkPolicy egress rules</strong> (Module 7)</li>
-                            <li><strong>Egress gateways</strong> (service mesh)</li>
-                            <li><strong>NAT gateways</strong> with fixed IPs</li>
+                            <li><strong>Egress gateways</strong> (service mesh) or <strong>NAT gateways</strong></li>
                             <li><strong>Proxy servers</strong> for HTTP traffic</li>
                         </ul>
                     </div>
@@ -778,17 +673,13 @@ spec:
                         <pre><code class="language-yaml"># Mount CA bundle for external APIs
 volumes:
 - name: ca-certs
-  secret:
-    secretName: external-ca-bundle
+  secret: { secretName: external-ca-bundle }
 containers:
 - name: app
   volumeMounts:
-  - name: ca-certs
-    mountPath: /etc/ssl/custom
-    readOnly: true
+  - { name: ca-certs, mountPath: /etc/ssl/custom, readOnly: true }
   env:
-  - name: SSL_CERT_DIR
-    value: /etc/ssl/custom</code></pre>
+  - { name: SSL_CERT_DIR, value: /etc/ssl/custom }</code></pre>
                     </div>
                 </div>
                 <aside class="notes">On EKS, pods egress through the VPC's NAT gateway by default, providing a fixed IP for external services that require IP allowlisting. For mTLS with external endpoints, mount custom CA certificates into your pods. The certificate management patterns we covered in the TLS section apply to egress connections as well.</aside>
@@ -821,19 +712,15 @@ containers:
                         <h4>&#128208; Ingress</h4>
                         <ul>
                             <li>NGINX Ingress Controller for L7 routing</li>
-                            <li>Path-based and host-based routing</li>
-                            <li>Annotations for SSL, rate limits, CORS</li>
-                            <li>TLS termination with cert-manager</li>
+                            <li>Path/host-based routing with TLS via cert-manager</li>
                             <li>Feature-frozen — use for existing setups</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>&#128310; Gateway API</h4>
                         <ul>
-                            <li>Role-oriented resource model</li>
-                            <li>Typed, portable configuration</li>
-                            <li>Native traffic splitting and header matching</li>
-                            <li>Multi-protocol support (HTTP, gRPC, TCP)</li>
+                            <li>Role-oriented, typed, portable resource model</li>
+                            <li>Native traffic splitting, header matching, multi-protocol</li>
                             <li>Recommended path forward</li>
                         </ul>
                     </div>

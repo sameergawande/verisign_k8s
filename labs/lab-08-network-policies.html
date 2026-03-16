@@ -385,16 +385,7 @@ spec:
   - name: db
     image: nginx:1.25
     ports: [{ containerPort: 80 }]
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: database
-  namespace: lab08
-spec:
-  selector: { tier: database }
-  ports: [{ port: 3306, targetPort: 80 }]
-                    </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 </div>
                 <aside class="notes">
                     We use nginx as a stand-in for actual services. The labels (tier: database, tier: backend, tier: frontend) are critical — NetworkPolicies use these selectors to target pods.
@@ -413,20 +404,7 @@ metadata:
   namespace: lab08
   labels: { app: bookstore, tier: backend }
 spec:
-  containers:
-  - name: api
-    image: nginx:1.25
-    ports: [{ containerPort: 80 }]
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: backend
-  namespace: lab08
-spec:
-  selector: { tier: backend }
-  ports: [{ port: 8080, targetPort: 80 }]
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <div class="fragment">
                     <p>Deploy the <strong>frontend</strong> tier:</p>
                     <pre><code class="yaml" data-trim>
@@ -438,20 +416,7 @@ metadata:
   namespace: lab08
   labels: { app: bookstore, tier: frontend }
 spec:
-  containers:
-  - name: web
-    image: nginx:1.25
-    ports: [{ containerPort: 80 }]
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend
-  namespace: lab08
-spec:
-  selector: { tier: frontend }
-  ports: [{ port: 80, targetPort: 80 }]
-                    </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 </div>
                 <aside class="notes">
                     Each tier has a pod and a service. The services provide stable DNS names (frontend.lab08.svc.cluster.local, etc.) that we will use to test connectivity.
@@ -682,19 +647,7 @@ metadata:
   namespace: lab08
 spec:
   podSelector:
-    matchLabels:
-      tier: backend
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          tier: frontend
-    ports:
-    - protocol: TCP
-      port: 80
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Apply the policy
@@ -705,9 +658,7 @@ kubectl exec frontend -n lab08 -- \
   curl -s --max-time 3 http://backend.lab08.svc.cluster.local:8080
 
 # Test: Database → Backend (should still FAIL)
-kubectl exec database -n lab08 -- \
-  curl -s --max-time 3 http://backend.lab08.svc.cluster.local:8080
-                    </code></pre>
+# ... (more output)</code></pre>
                 </div>
                 <div class="highlight-box success fragment">
                     <strong>&#x2705; Expected Output:</strong> Frontend to backend returns the nginx page. Database to backend still times out. Only the explicitly allowed path works.
@@ -755,19 +706,7 @@ metadata:
   namespace: lab08
 spec:
   podSelector:
-    matchLabels:
-      tier: database
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          tier: backend
-    ports:
-    - protocol: TCP
-      port: 80
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Apply the policy
@@ -778,9 +717,7 @@ kubectl exec backend -n lab08 -- \
   curl -s --max-time 3 http://database.lab08.svc.cluster.local:3306
 
 # Test: Frontend → Database (should still FAIL)
-kubectl exec frontend -n lab08 -- \
-  curl -s --max-time 3 http://database.lab08.svc.cluster.local:3306
-                    </code></pre>
+# ... (more output)</code></pre>
                 </div>
                 <div class="highlight-box success fragment">
                     <strong>&#x2705; Expected Output:</strong> Backend to database returns the nginx page. Frontend to database still times out. The database is only accessible from the backend tier.
@@ -820,26 +757,18 @@ kubectl exec frontend -n lab08 -- \
 echo "=== ALLOWED PATHS ==="
 echo -n "Frontend -> Backend: "
 kubectl exec frontend -n lab08 -- curl -s -o /dev/null \
-  -w "%{http_code}" --max-time 3 http://backend:8080 2>/dev/null || echo "BLOCKED"
+  -w "%{http_code}" --max-time 3 \
+  http://backend:8080 2>/dev/null || echo "BLOCKED"
 
 echo -n "Backend -> Database: "
 kubectl exec backend -n lab08 -- curl -s -o /dev/null \
-  -w "%{http_code}" --max-time 3 http://database:3306 2>/dev/null || echo "BLOCKED"
+  -w "%{http_code}" --max-time 3 \
+  http://database:3306 2>/dev/null || echo "BLOCKED"
 
 echo ""
 echo "=== BLOCKED PATHS ==="
 echo -n "Frontend -> Database: "
-kubectl exec frontend -n lab08 -- curl -s -o /dev/null \
-  -w "%{http_code}" --max-time 3 http://database:3306 2>/dev/null || echo "BLOCKED"
-
-echo -n "Database -> Frontend: "
-kubectl exec database -n lab08 -- curl -s -o /dev/null \
-  -w "%{http_code}" --max-time 3 http://frontend:80 2>/dev/null || echo "BLOCKED"
-
-echo -n "Database -> Backend: "
-kubectl exec database -n lab08 -- curl -s -o /dev/null \
-  -w "%{http_code}" --max-time 3 http://backend:8080 2>/dev/null || echo "BLOCKED"
-                </code></pre>
+# ... (more output)</code></pre>
                 <aside class="notes">
                     Expected Output: Frontend to Backend: 200, Backend to Database: 200, Frontend to Database: BLOCKED, Database to Frontend: BLOCKED, Database to Backend: BLOCKED. Key Point: The policies enforce a strict traffic flow: Frontend to Backend to Database. No reverse paths, no direct frontend-to-database access, and no lateral movement from the database tier. This is the principle of least privilege applied to networking. This is the key checkpoint of the lab. The traffic matrix should show exactly two allowed paths and all others blocked. Use this to discuss micro-segmentation and defense in depth at the network layer.
                 </aside>
@@ -915,15 +844,7 @@ spec:
   podSelector: {}
   policyTypes:
   - Egress
-  egress:
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: UDP
-      port: 53
-    - protocol: TCP
-      port: 53
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Apply DNS egress policy
@@ -970,23 +891,16 @@ kubectl exec frontend -n lab08 -- \
                 <h2>&#x1F30D; Namespace-Based Policies</h2>
                 <p>Allow a monitoring namespace to access pods in the application namespace:</p>
                 <pre><code class="bash" data-trim>
-# Create a monitoring namespace
+# Create and label a monitoring namespace
 kubectl create namespace monitoring
-
-# Label the monitoring namespace
 kubectl label namespace monitoring purpose=monitoring
-
-# Deploy a monitoring pod
 kubectl run monitor --image=nginx:1.25 -n monitoring
-kubectl wait --for=condition=Ready pod/monitor -n monitoring --timeout=60s
-                </code></pre>
-                <div class="fragment">
-                    <pre><code class="bash" data-trim>
-# Test: Monitor cannot reach backend (should FAIL due to deny-all)
+
+# Test: Monitor cannot reach backend (FAIL due to deny-all)
 kubectl exec monitor -n monitoring -- \
-  curl -s --max-time 3 http://backend.lab08.svc.cluster.local:8080
-                    </code></pre>
-                </div>
+  curl -s --max-time 3 \
+  http://backend.lab08.svc.cluster.local:8080
+                </code></pre>
                 <div class="fragment">
                     <p>Create a policy allowing ingress from the monitoring namespace:</p>
                     <pre><code class="yaml" data-trim>
@@ -998,17 +912,7 @@ metadata:
   namespace: lab08
 spec:
   podSelector: {}
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          purpose: monitoring
-    ports:
-    - protocol: TCP
-      port: 80
-                    </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 </div>
                 <aside class="notes">
                     The namespaceSelector targets the namespace label, not a pod label. This is critical — make sure students understand the difference between podSelector and namespaceSelector.
@@ -1081,51 +985,29 @@ spec:
   podSelector:
     matchLabels:
       tier: frontend
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          tier: frontend
-    ports:
-    - protocol: TCP
-      port: 8080
-                </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
 # Apply the broken policy
 kubectl apply -f broken-policy.yaml
 
-# This should allow external traffic to frontend, but it does not work correctly
-# Try accessing the frontend from outside the tier labels
-kubectl run test-client --image=nginx:1.25 -n lab08 --rm -it \
-  --restart=Never -- curl -s --max-time 3 http://frontend.lab08.svc.cluster.local:80
+# Test - this should work but does not
+kubectl run test-client --image=nginx:1.25 \
+  -n lab08 --rm -it --restart=Never -- \
+  curl -s --max-time 3 \
+  http://frontend.lab08.svc.cluster.local:80
                     </code></pre>
                 </div>
-                <div class="highlight-box danger fragment">
-                    <strong>&#x274C; The policy is broken!</strong> Can you identify the two bugs?
-                </div>
                 <aside class="notes">
-                    Give students 2-3 minutes to analyze the policy. The two bugs are: (1) the podSelector in the ingress.from matches tier=frontend, meaning the frontend can only receive traffic from itself — it should use a different label or be empty for external access, and (2) the port is 8080 but the frontend listens on port 80.
+                    The policy is broken! Can you identify the two bugs? Give students 2-3 minutes to analyze the policy. The two bugs are: (1) the podSelector in the ingress.from matches tier=frontend, meaning the frontend can only receive traffic from itself — it should use a different label or be empty for external access, and (2) the port is 8080 but the frontend listens on port 80.
                 </aside>
             </section>
 
             <section>
                 <h2>&#x1F41B; Fix the Broken Policy</h2>
-                <p>The two bugs in the policy:</p>
-                <div class="two-columns">
-                    <div class="card fragment">
-                        <h4>Bug 1: Wrong Source Selector</h4>
-                        <p>The <code>from.podSelector</code> matches <code>tier: frontend</code> &mdash; the frontend can only receive traffic from <strong>itself</strong>. For external access, the from rule should be empty or use a broader selector.</p>
-                    </div>
-                    <div class="card fragment">
-                        <h4>Bug 2: Wrong Port</h4>
-                        <p>The policy allows port <code>8080</code>, but the frontend container listens on port <code>80</code>. The port in the policy must match the container port.</p>
-                    </div>
-                </div>
+                <p><strong>Bug 1:</strong> <code>from.podSelector</code> matches <code>tier: frontend</code> &mdash; frontend only receives traffic from itself. Fix: use <code>from: []</code>.</p>
+                <p><strong>Bug 2:</strong> Port is <code>8080</code> but frontend listens on <code>80</code>. Fix: change to port <code>80</code>.</p>
                 <div class="fragment">
-                    <p>The corrected policy:</p>
                     <pre><code class="yaml" data-trim>
 # Save as fixed-policy.yaml
 apiVersion: networking.k8s.io/v1
@@ -1137,30 +1019,20 @@ spec:
   podSelector:
     matchLabels:
       tier: frontend
-  policyTypes:
-  - Ingress
-  ingress:
-  - from: []       # Allow from all sources
-    ports:
-    - protocol: TCP
-      port: 80     # Correct port
-                    </code></pre>
+# ... (remaining lines omitted for brevity)</code></pre>
                 </div>
                 <div class="fragment">
                     <pre><code class="bash" data-trim>
-# Apply the fixed policy
 kubectl apply -f fixed-policy.yaml
-
 # Test again - should now work
-kubectl run test-client --image=nginx:1.25 -n lab08 --rm -it \
-  --restart=Never -- curl -s --max-time 3 http://frontend.lab08.svc.cluster.local:80
+kubectl run test-client --image=nginx:1.25 \
+  -n lab08 --rm -it --restart=Never -- \
+  curl -s --max-time 3 \
+  http://frontend.lab08.svc.cluster.local:80
                     </code></pre>
                 </div>
-                <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> The test client can now reach the frontend and receives the nginx welcome page. The fixed policy uses <code>from: []</code> (allow all sources) and the correct port <code>80</code>.
-                </div>
                 <aside class="notes">
-                    The from: [] syntax means allow from any source. This is different from omitting the from field entirely. Walk through common debugging techniques: check labels match, verify ports, use kubectl describe to inspect the policy, and always test with curl.
+                    Expected Output: The test client can now reach the frontend and receives the nginx welcome page. The fixed policy uses from: [] (allow all sources) and the correct port 80. The from: [] syntax means allow from any source. This is different from omitting the from field entirely. Walk through common debugging techniques: check labels match, verify ports, use kubectl describe to inspect the policy, and always test with curl.
                 </aside>
             </section>
 
@@ -1196,8 +1068,10 @@ kubectl delete namespace lab08
 kubectl delete namespace monitoring
 
 # Verify cleanup
-kubectl get namespace lab08 2>/dev/null || echo "Namespace lab08 deleted"
-kubectl get namespace monitoring 2>/dev/null || echo "Namespace monitoring deleted"
+kubectl get namespace lab08 2>/dev/null \
+  || echo "Namespace lab08 deleted"
+kubectl get namespace monitoring 2>/dev/null \
+  || echo "Namespace monitoring deleted"
                 </code></pre>
                 <div class="highlight-box success fragment">
                     <strong>&#x2705; Checkpoint:</strong> Both namespaces and all their resources (pods, services, NetworkPolicies) are deleted. NetworkPolicies are namespace-scoped, so they are automatically removed when the namespace is deleted.

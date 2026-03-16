@@ -122,8 +122,7 @@
                     <div class="card">
                         <h4>1. Authentication</h4>
                         <ul>
-                            <li>Who are you?</li>
-                            <li>Validates identity</li>
+                            <li>Who are you? Validates identity</li>
                             <li>Returns user/group info</li>
                         </ul>
                     </div>
@@ -131,16 +130,14 @@
                         <h4>2. Authorization</h4>
                         <ul>
                             <li>What can you do?</li>
-                            <li>RBAC evaluates policies</li>
-                            <li>Allow or deny</li>
+                            <li>RBAC evaluates; allow or deny</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>3. Admission</h4>
                         <ul>
                             <li>Should this be allowed?</li>
-                            <li>Mutating webhooks</li>
-                            <li>Validating webhooks</li>
+                            <li>Mutating + validating webhooks</li>
                         </ul>
                     </div>
                 </div>
@@ -155,17 +152,13 @@
                         <div class="card">
                             <h4>X.509 Client Certificates</h4>
                             <ul>
-                                <li>Built into kubeconfig</li>
-                                <li>CN = username, O = group</li>
-                                <li>Used by cluster components</li>
+                                <li>CN = username, O = group; used by cluster components</li>
                             </ul>
                         </div>
                         <div class="card" style="margin-top: 15px;">
                             <h4>Bearer Tokens</h4>
                             <ul>
-                                <li>ServiceAccount tokens (JWT)</li>
-                                <li>Static token files (deprecated)</li>
-                                <li>Bootstrap tokens</li>
+                                <li>ServiceAccount tokens (JWT) and bootstrap tokens</li>
                             </ul>
                         </div>
                     </div>
@@ -173,17 +166,13 @@
                         <div class="card">
                             <h4>OpenID Connect (OIDC)</h4>
                             <ul>
-                                <li>Integrates with identity providers</li>
-                                <li>Azure AD, Okta, Dex</li>
-                                <li>Enterprise SSO integration</li>
+                                <li>Enterprise SSO via Azure AD, Okta, Dex</li>
                             </ul>
                         </div>
                         <div class="card" style="margin-top: 15px;">
-                            <h4>AWS IAM Authenticator</h4>
+                            <h4>AWS IAM Authenticator (EKS)</h4>
                             <ul>
-                                <li>EKS default method</li>
-                                <li>Maps IAM roles to K8s users</li>
-                                <li>aws-auth ConfigMap</li>
+                                <li>Maps IAM roles to K8s users via aws-auth ConfigMap</li>
                             </ul>
                         </div>
                     </div>
@@ -242,10 +231,7 @@ rules:
 - apiGroups: [""]
   resources: ["pods/log"]
   verbs: ["get"]</code></pre>
-                <div class="highlight-box">
-                    <strong>Scope:</strong> This Role only grants permissions within the <code>development</code> namespace. It cannot affect resources in other namespaces.
-                </div>
-                <aside class="notes">Notice the apiGroups field — the empty string represents the core API group. The resources field supports sub-resources like pods/log. Roles are always namespace-scoped, making them ideal for team-level access control.</aside>
+                <aside class="notes">Tip: This Role only grants permissions within the development namespace — it cannot affect other namespaces. The empty string apiGroup represents the core API group. The resources field supports sub-resources like pods/log.</aside>
             </section>
 
             <!-- Slide 9: ClusterRole YAML Example -->
@@ -264,10 +250,7 @@ rules:
   verbs: ["get", "list"]
 - nonResourceURLs: ["/healthz", "/readyz"]
   verbs: ["get"]</code></pre>
-                <div class="highlight-box warning" style="background: #fffaf0; border-left: 4px solid var(--warning-color); padding: 20px 25px; border-radius: 0 8px 8px 0; margin: 15px 0;">
-                    <strong>Note:</strong> ClusterRoles can also reference <code>nonResourceURLs</code> like <code>/healthz</code> — something Roles cannot do.
-                </div>
-                <aside class="notes">ClusterRoles have three uses: granting access to cluster-scoped resources like nodes, granting access to non-resource URLs, and serving as reusable templates that can be bound per-namespace via RoleBindings. The third pattern is very common in multi-tenant setups.</aside>
+                <aside class="notes">Tip: ClusterRoles can reference nonResourceURLs like /healthz — something Roles cannot do. ClusterRoles also serve as reusable templates that can be bound per-namespace via RoleBindings, a common pattern in multi-tenant setups.</aside>
             </section>
 
             <!-- Slide 10: RoleBinding YAML Example -->
@@ -279,12 +262,8 @@ metadata:
   name: read-pods-dev
   namespace: development
 subjects:
-- kind: User
-  name: jane
-  apiGroup: rbac.authorization.k8s.io
-- kind: Group
-  name: dev-team
-  apiGroup: rbac.authorization.k8s.io
+- { kind: User, name: jane, apiGroup: rbac.authorization.k8s.io }
+- { kind: Group, name: dev-team, apiGroup: rbac.authorization.k8s.io }
 roleRef:
   kind: Role
   name: pod-reader
@@ -313,10 +292,7 @@ roleRef:
   kind: ClusterRole
   name: node-viewer
   apiGroup: rbac.authorization.k8s.io</code></pre>
-                <div class="highlight-box danger">
-                    <strong>Caution:</strong> ClusterRoleBindings grant permissions across <em>all</em> namespaces. Use them sparingly and only for genuinely cluster-wide needs.
-                </div>
-                <aside class="notes">ClusterRoleBindings are powerful and potentially dangerous. A ClusterRoleBinding to the cluster-admin ClusterRole gives full access to the entire cluster. In production, restrict who can create ClusterRoleBindings — this is often enforced via admission control or OPA/Gatekeeper policies.</aside>
+                <aside class="notes">Tip: ClusterRoleBindings grant permissions across ALL namespaces — use sparingly. A ClusterRoleBinding to cluster-admin gives full cluster access. Restrict who can create ClusterRoleBindings via admission control or OPA/Gatekeeper policies.</aside>
             </section>
 
             <!-- Slide 12: Verbs and Resources Matrix -->
@@ -379,8 +355,7 @@ roleRef:
                 <h2>&#128736;&#65039; Aggregated ClusterRoles</h2>
                 <div class="two-columns">
                     <div>
-                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+                        <pre><code class="language-yaml">kind: ClusterRole
 metadata:
   name: monitoring-endpoints
   labels:
@@ -391,10 +366,8 @@ rules:
   verbs: ["get", "list", "watch"]</code></pre>
                     </div>
                     <div>
-                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: monitoring
+                        <pre><code class="language-yaml">kind: ClusterRole
+metadata: { name: monitoring }
 aggregationRule:
   clusterRoleSelectors:
   - matchLabels:
@@ -452,16 +425,14 @@ automountServiceAccountToken: false</code></pre>
                 <h2>&#128178; ServiceAccount Token Projection</h2>
                 <pre><code class="language-yaml">apiVersion: v1
 kind: Pod
-metadata:
-  name: my-app
+metadata: { name: my-app }
 spec:
   serviceAccountName: app-sa
   containers:
   - name: app
     image: my-app:1.0
     volumeMounts:
-    - name: sa-token
-      mountPath: /var/run/secrets/tokens
+    - { name: sa-token, mountPath: /var/run/secrets/tokens }
   volumes:
   - name: sa-token
     projected:
@@ -470,10 +441,7 @@ spec:
           path: app-token
           expirationSeconds: 3600
           audience: api</code></pre>
-                <div class="highlight-box success">
-                    <strong>Improvement:</strong> Projected tokens are time-bound and audience-scoped — a major security improvement over legacy static tokens.
-                </div>
-                <aside class="notes">Kubernetes 1.20+ uses bound service account tokens by default. These tokens are time-limited, audience-bound, and object-bound. They expire and get automatically rotated. The projected volume approach shown here gives you explicit control over expiration and audience. Always prefer projected tokens over legacy long-lived tokens.</aside>
+                <aside class="notes">Tip: Projected tokens are time-bound and audience-scoped — a major security improvement over legacy static tokens. Kubernetes 1.20+ uses bound service account tokens by default. These tokens are time-limited, audience-bound, and object-bound. They expire and get automatically rotated. Always prefer projected tokens over legacy long-lived tokens.</aside>
             </section>
 
             <!-- Slide 17: Binding Roles to ServiceAccounts -->
@@ -605,28 +573,22 @@ spec:
                     <div class="card">
                         <h4 style="color: var(--danger-color);">Privileged</h4>
                         <ul>
-                            <li>Unrestricted policy</li>
-                            <li>Allows all capabilities</li>
-                            <li>For system-level workloads</li>
-                            <li>CNI plugins, storage drivers</li>
+                            <li>Unrestricted; all capabilities allowed</li>
+                            <li>For CNI plugins, storage drivers only</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4 style="color: var(--warning-color);">Baseline</h4>
                         <ul>
-                            <li>Minimally restrictive</li>
                             <li>Prevents known escalations</li>
-                            <li>No privileged containers</li>
-                            <li>Good starting point</li>
+                            <li>Good starting point for migration</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4 style="color: var(--success-color);">Restricted</h4>
                         <ul>
-                            <li>Heavily constrained</li>
-                            <li>Must run as non-root</li>
-                            <li>Drop all capabilities</li>
-                            <li>Production hardened</li>
+                            <li>Non-root, drop all capabilities</li>
+                            <li>Production hardened target</li>
                         </ul>
                     </div>
                 </div>
@@ -648,18 +610,7 @@ metadata:
     pod-security.kubernetes.io/enforce-version: latest
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted</code></pre>
-                <div class="two-columns">
-                    <div class="highlight-box">
-                        <strong>enforce:</strong> Rejects pods that violate the policy
-                    </div>
-                    <div class="highlight-box warning">
-                        <strong>audit/warn:</strong> Logs violations without rejecting — useful for migration
-                    </div>
-                </div>
-                <div class="highlight-box success">
-                    <strong>Migration strategy:</strong> Start with <code>warn</code> to discover violations, then move to <code>audit</code>, and finally <code>enforce</code>.
-                </div>
-                <aside class="notes">Pod Security Admission is built into Kubernetes since 1.25. You configure it via namespace labels — no additional installation needed. The three modes (enforce, audit, warn) let you roll out policies gradually. Use warn mode first to discover which workloads violate the policy before turning on enforcement.</aside>
+                <aside class="notes">Tip: enforce rejects pods that violate the policy. audit/warn logs violations without rejecting. Migration strategy: start with warn, then audit, then enforce. Pod Security Admission is built into Kubernetes since 1.25 — configured via namespace labels, no installation needed.</aside>
             </section>
 
             <!-- Slide 24: Section Divider — Security Best Practices -->
@@ -687,20 +638,15 @@ metadata:
                     </div>
                     <div>
                         <pre><code class="language-yaml"># Fine-grained: specific resource names
-apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
-metadata:
-  namespace: production
-  name: configmap-updater
+metadata: { namespace: production, name: configmap-updater }
 rules:
 - apiGroups: [""]
   resources: ["configmaps"]
   resourceNames: ["app-config"]
   verbs: ["get", "update"]</code></pre>
                         <pre><code class="language-bash"># Verify permissions
-kubectl auth can-i get pods \
-  --as=jane --namespace=dev
-
+kubectl auth can-i get pods --as=jane -n dev
 kubectl auth can-i --list \
   --as=system:serviceaccount:prod:app-sa</code></pre>
                     </div>
@@ -718,31 +664,24 @@ kind: Policy
 rules:
 - level: Metadata
   resources:
-  - group: ""
-    resources: ["secrets"]
+  - { group: "", resources: ["secrets"] }
 - level: RequestResponse
   resources:
-  - group: "rbac.authorization.k8s.io"
-    resources: ["clusterroles",
-                "clusterrolebindings"]
+  - { group: "rbac.authorization.k8s.io",
+      resources: ["clusterroles", "clusterrolebindings"] }
 - level: None
   resources:
-  - group: ""
-    resources: ["endpoints",
-                "services/status"]</code></pre>
+  - { group: "", resources: ["endpoints", "services/status"] }</code></pre>
                     </div>
                     <div>
                         <div class="card">
                             <h4>Audit Levels</h4>
                             <ul>
                                 <li><strong>None:</strong> Skip logging</li>
-                                <li><strong>Metadata:</strong> Log request metadata only</li>
-                                <li><strong>Request:</strong> Log metadata + request body</li>
+                                <li><strong>Metadata:</strong> Request metadata only</li>
+                                <li><strong>Request:</strong> Metadata + request body</li>
                                 <li><strong>RequestResponse:</strong> Log everything</li>
                             </ul>
-                        </div>
-                        <div class="highlight-box warning" style="margin-top: 15px;">
-                            <strong>EKS:</strong> Enable audit logging in the EKS control plane logging settings — logs go to CloudWatch.
                         </div>
                     </div>
                 </div>
@@ -847,19 +786,17 @@ containers:
                     <div class="card">
                         <h4>RBAC Essentials</h4>
                         <ul>
-                            <li>Roles and ClusterRoles define permissions on resources</li>
-                            <li>RoleBindings and ClusterRoleBindings grant those permissions to subjects</li>
+                            <li>Roles/ClusterRoles define permissions; Bindings grant them to subjects</li>
                             <li>ServiceAccounts provide identity for pods</li>
-                            <li>Verbs (get, list, create, delete) control the allowed actions</li>
+                            <li>Verbs (get, list, create, delete) control allowed actions</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Security Hardening</h4>
                         <ul>
-                            <li>securityContext enforces non-root, read-only root FS, and dropped capabilities</li>
-                            <li>Pod Security Standards (baseline, restricted) replace deprecated PSPs</li>
-                            <li>Audit logging tracks who did what and when</li>
-                            <li>Image security ensures only trusted, scanned images are deployed</li>
+                            <li>securityContext: non-root, read-only FS, drop capabilities</li>
+                            <li>Pod Security Standards (baseline, restricted) replace PSPs</li>
+                            <li>Audit logging and image security for defense in depth</li>
                         </ul>
                     </div>
                 </div>

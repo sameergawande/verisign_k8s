@@ -100,8 +100,7 @@
                     <li class="fragment fade-up">Configure Horizontal Pod Autoscaler (HPA) with the <code>autoscaling/v2</code> API</li>
                     <li class="fragment fade-up">Calculate expected scaling using the HPA algorithm</li>
                     <li class="fragment fade-up">Tune scaling behavior with stabilization windows and policies</li>
-                    <li class="fragment fade-up">Understand VPA concepts and operating modes</li>
-                    <li class="fragment fade-up">Recognize when KEDA is appropriate for event-driven scaling</li>
+                    <li class="fragment fade-up">Understand VPA concepts and when KEDA is appropriate</li>
                     <li class="fragment fade-up">Monitor scaling with <code>kubectl top</code> and Prometheus</li>
                 </ul>
                 <aside class="notes">We have a lot of ground to cover. The HPA deep dive is the core of this module — we'll spend the most time there. VPA and KEDA are conceptual overviews to round out your understanding of the scaling landscape.</aside>
@@ -121,8 +120,7 @@
                     <div class="card">
                         <h4>&#128308; Over-provisioned</h4>
                         <ul>
-                            <li>Wasted compute resources</li>
-                            <li>Higher cloud costs (EC2 bills)</li>
+                            <li>Wasted compute and higher cloud costs</li>
                             <li>Resources unavailable to other teams</li>
                             <li>Quota exhaustion on the cluster</li>
                         </ul>
@@ -130,8 +128,7 @@
                     <div class="card">
                         <h4>&#128308; Under-provisioned</h4>
                         <ul>
-                            <li>Degraded response times</li>
-                            <li>Request failures and timeouts</li>
+                            <li>Degraded response times and timeouts</li>
                             <li>OOMKilled pods</li>
                             <li>Customer-facing impact</li>
                         </ul>
@@ -214,10 +211,7 @@
                         <p style="font-size: 0.8em;"><em>Use <code>Mi</code>/<code>Gi</code> (binary). Not compressible.</em></p>
                     </div>
                 </div>
-                <div class="highlight-box warning fragment fade-up">
-                    <strong>Common pitfall:</strong> <code>128M</code> (megabytes) ≠ <code>128Mi</code> (mebibytes). Always use <code>Mi</code>/<code>Gi</code> for consistency with how Kubernetes actually allocates memory.
-                </div>
-                <aside class="notes">Millicores are the standard CPU unit — think of them as thousandths of a CPU core. For memory, always use Mi and Gi (binary units) because that's what Kubernetes uses internally. Using M or G (decimal) can cause subtle allocation mismatches.</aside>
+                <aside class="notes">Tip: Common pitfall — 128M (megabytes) is not equal to 128Mi (mebibytes). Always use Mi/Gi for consistency with how Kubernetes actually allocates memory. Millicores are the standard CPU unit — think of them as thousandths of a CPU core.</aside>
             </section>
 
             <!-- QoS Classes -->
@@ -257,10 +251,7 @@ resources:
   limits:
     cpu: "500m"      # Same as request
     memory: "512Mi"  # Same as request</code></pre>
-                <div class="highlight-box fragment fade-up">
-                    <strong>Recommendation:</strong> Production workloads should be Guaranteed or Burstable. Never deploy BestEffort to production.
-                </div>
-                <aside class="notes">QoS class determines what happens under memory pressure. When a node runs low on memory, the kubelet evicts BestEffort pods first, then Burstable, and Guaranteed last. For critical services, Guaranteed QoS gives you the most protection. However, Burstable is often a good trade-off that allows efficient resource utilization while still providing baseline guarantees.</aside>
+                <aside class="notes">Tip: Production workloads should be Guaranteed or Burstable — never deploy BestEffort to production. QoS class determines what happens under memory pressure. The kubelet evicts BestEffort first, then Burstable, and Guaranteed last.</aside>
             </section>
 
             <!-- Section Divider: Metrics Server -->
@@ -302,26 +293,16 @@ kubectl top pods -n my-namespace</code></pre>
                 <h2>&#128200; Monitoring with kubectl top</h2>
                 <pre><code class="language-bash"># Node resource usage
 $ kubectl top nodes
-NAME                           CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
-ip-10-0-1-100.ec2.internal     450m         22%    2847Mi          36%
-ip-10-0-2-200.ec2.internal     1200m        60%    5120Mi          65%
-ip-10-0-3-300.ec2.internal     320m         16%    1920Mi          24%
+NAME                      CPU(cores)  CPU%  MEMORY   MEMORY%
+ip-10-0-1-100.ec2        450m        22%   2847Mi   36%
+ip-10-0-2-200.ec2        1200m       60%   5120Mi   65%
 
 # Pod resource usage (current namespace)
 $ kubectl top pods
-NAME                      CPU(cores)   MEMORY(bytes)
-myapp-7d4b8c6f5-abc12     45m          128Mi
-myapp-7d4b8c6f5-def34     52m          135Mi
-myapp-7d4b8c6f5-ghi56     38m          122Mi
-
-# Pod resource usage with containers breakdown
-$ kubectl top pods --containers
-NAME                      NAME       CPU(cores)   MEMORY(bytes)
-myapp-7d4b8c6f5-abc12     myapp      42m          120Mi
-myapp-7d4b8c6f5-abc12     sidecar    3m           8Mi
-
-# Sort by CPU usage
-$ kubectl top pods --sort-by=cpu</code></pre>
+NAME                      CPU(cores)  MEMORY(bytes)
+myapp-7d4b8c6f5-abc12    45m         128Mi
+myapp-7d4b8c6f5-def34    52m         135Mi
+myapp-7d4b8c6f5-ghi56    38m         122Mi</code></pre>
                 <aside class="notes">kubectl top is your first-line tool for understanding resource utilization. It queries the Metrics Server API. The CPU% on nodes is relative to the node's total capacity. For pods, the values are actual usage — compare these to your requests and limits to see if they're appropriately sized. If a pod consistently uses 95% of its CPU request, it might need more.</aside>
             </section>
 
@@ -354,10 +335,7 @@ $ kubectl top pods --sort-by=cpu</code></pre>
                         </tbody>
                     </table>
                 </div>
-                <div class="highlight-box fragment fade-up">
-                    <strong>Key detail:</strong> The HPA uses the <em>ratio</em> of current to desired metric values. It's percentage-based against <em>requests</em>, not limits.
-                </div>
-                <aside class="notes">The algorithm is straightforward once you understand it. The ceiling function means Kubernetes always rounds up — it prefers to have slightly more capacity than slightly less. The key insight is that HPA computes utilization as a percentage of the REQUEST, not the limit. This is why setting appropriate requests is critical for HPA to work correctly.</aside>
+                <aside class="notes">Tip: The HPA uses the ratio of current to desired metric values — it's percentage-based against requests, not limits. The ceiling function means Kubernetes always rounds up. This is why setting appropriate requests is critical for HPA to work correctly.</aside>
             </section>
 
             <!-- HPA Algorithm Details -->
@@ -393,19 +371,12 @@ spec:
   - type: Resource
     resource:
       name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 60
+      target: { type: Utilization, averageUtilization: 60 }
   - type: Resource
     resource:
       name: memory
-      target:
-        type: Utilization
-        averageUtilization: 75</code></pre>
-                <div class="highlight-box fragment fade-up">
-                    <strong>autoscaling/v2</strong> replaced v2beta2. It supports multiple metric types, custom metrics, and behavior policies. Always use <code>v2</code> for new HPAs.
-                </div>
-                <aside class="notes">This is the standard HPA manifest. Key points: minReplicas prevents scaling to zero (use KEDA for that), maxReplicas is your safety cap, and you can specify multiple metrics. With multiple metrics, HPA evaluates each independently and uses the highest result. The 60% CPU target leaves headroom for traffic spikes before scaling kicks in.</aside>
+      target: { type: Utilization, averageUtilization: 75 }</code></pre>
+                <aside class="notes">Tip: autoscaling/v2 replaced v2beta2. It supports multiple metric types, custom metrics, and behavior policies. Always use v2 for new HPAs. minReplicas prevents scaling to zero (use KEDA for that), maxReplicas is your safety cap, and you can specify multiple metrics. With multiple metrics, HPA evaluates each independently and uses the highest result. The 60% CPU target leaves headroom for traffic spikes before scaling kicks in.</aside>
             </section>
 
             <!-- Custom Metrics HPA -->
@@ -419,15 +390,17 @@ spec:
   minReplicas: 3
   maxReplicas: 50
   metrics:
-  - type: Resource            # Standard CPU metric
+  - type: Resource          # Standard CPU metric
     resource:
       name: cpu
-      target: { type: Utilization, averageUtilization: 60 }
-  - type: Pods                # Custom: requests/sec per pod
+      target:
+        type: Utilization
+        averageUtilization: 60
+  - type: Pods              # Custom: requests/sec per pod
     pods:
       metric: { name: http_requests_per_second }
       target: { type: AverageValue, averageValue: "1000" }
-  - type: External            # SQS queue depth
+  - type: External          # SQS queue depth
     external:
       metric: { name: sqs_queue_length }
       target: { type: Value, value: "100" }</code></pre>
@@ -446,19 +419,23 @@ spec:
   maxReplicas: 100
   metrics:
   - type: Resource
-    resource: { name: cpu, target: { type: Utilization, averageUtilization: 60 } }
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 0       # Scale up immediately
+      stabilizationWindowSeconds: 0     # Scale up immediately
       policies:
-      - { type: Percent, value: 100, periodSeconds: 60 }  # Double replicas
-      - { type: Pods, value: 10, periodSeconds: 60 }      # Or add 10
-      selectPolicy: Max                   # Use whichever adds more
+      - { type: Percent, value: 100, periodSeconds: 60 }  # Double
+      - { type: Pods, value: 10, periodSeconds: 60 }
+      selectPolicy: Max
     scaleDown:
-      stabilizationWindowSeconds: 300     # Wait 5 min before scaling down
+      stabilizationWindowSeconds: 300   # Wait 5 min
       policies:
-      - { type: Percent, value: 10, periodSeconds: 60 }   # Remove 10%
-      selectPolicy: Min                   # Use whichever removes fewer</code></pre>
+      - { type: Percent, value: 10, periodSeconds: 60 }
+      selectPolicy: Min</code></pre>
                 <aside class="notes">Behavior policies are the fine-tuning knobs for HPA. The key pattern: scale UP aggressively (respond to spikes quickly) and scale DOWN conservatively (prevent premature scale-down). The stabilizationWindowSeconds for scale-down means HPA looks at the highest recommended replica count over the last 5 minutes — this prevents flapping on bursty workloads.</aside>
             </section>
 
@@ -473,26 +450,21 @@ spec:
                     <div class="card">
                         <h4>Scale-Up Window</h4>
                         <ul>
-                            <li>Default: <strong>0 seconds</strong></li>
-                            <li>HPA selects the <em>highest</em> recommendation from the window</li>
-                            <li>0 = immediate scale-up</li>
-                            <li>Set higher to smooth out transient spikes</li>
+                            <li>Default: <strong>0 seconds</strong> (immediate)</li>
+                            <li>Selects <em>highest</em> recommendation in window</li>
+                            <li>Set higher to smooth transient spikes</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>Scale-Down Window</h4>
                         <ul>
                             <li>Default: <strong>300 seconds</strong> (5 min)</li>
-                            <li>HPA selects the <em>highest</em> recommendation from the window</li>
-                            <li>Prevents premature scale-down</li>
-                            <li>Increase for workloads with slow ramp-down</li>
+                            <li>Selects <em>highest</em> recommendation in window</li>
+                            <li>Increase for slow-ramp-down workloads</li>
                         </ul>
                     </div>
                 </div>
-                <div class="highlight-box warning fragment fade-up">
-                    <strong>Real-world tip:</strong> For DNS-related services, consider a longer scale-down window (600s+) because DNS caching can redirect traffic back to recently removed endpoints.
-                </div>
-                <aside class="notes">The stabilization window is a sliding window. For scale-down with a 300-second window, the HPA looks at all the recommendations it computed in the last 5 minutes and picks the highest one (most conservative). This means even if utilization drops suddenly, the HPA won't immediately scale down — it waits to see if the drop is sustained. This is especially important for Verisign's DNS-intensive workloads.</aside>
+                <aside class="notes">Tip: For DNS-related services, consider a longer scale-down window (600s+) because DNS caching can redirect traffic back to recently removed endpoints. The stabilization window is a sliding window — the HPA picks the highest recommendation in the window to prevent premature scale-down.</aside>
             </section>
 
             <!-- Scaling Timeline -->
@@ -517,10 +489,7 @@ spec:
                         <tr><td>T+55s</td><td><strong>Traffic served</strong></td><td>New pod handling requests</td></tr>
                     </tbody>
                 </table>
-                <div class="highlight-box danger fragment fade-up">
-                    <strong>Total time: ~55 seconds</strong> in the best case. Longer if image isn't cached or app startup is slow. Plan your resource headroom accordingly.
-                </div>
-                <aside class="notes">This timeline is critical for capacity planning. There's an inherent lag between when the spike starts and when new pods are serving traffic. The Metrics Server scrape interval, HPA evaluation interval, scheduler latency, image pull time, and readiness probe all add up. For latency-sensitive services, keep more headroom (lower target utilization percentage) to absorb spikes during this lag period.</aside>
+                <aside class="notes">Tip: Total time is ~55 seconds in the best case. Longer if image isn't cached or app startup is slow. Plan your resource headroom accordingly. For latency-sensitive services, keep more headroom (lower target utilization percentage) to absorb spikes during this lag period.</aside>
             </section>
 
             <!-- HPA Status -->
@@ -528,25 +497,19 @@ spec:
                 <h2>&#128270; Monitoring HPA Status</h2>
                 <pre><code class="language-bash"># View HPA status
 $ kubectl get hpa myapp-hpa
-NAME        REFERENCE         TARGETS           MINPODS  MAXPODS  REPLICAS  AGE
-myapp-hpa   Deployment/myapp  45%/60%, 62%/75%  3        100      5         2d
+NAME        REFERENCE         TARGETS          REPLICAS
+myapp-hpa   Deployment/myapp  45%/60%,62%/75%  5
 
-# Detailed HPA status with conditions
+# Detailed status with conditions
 $ kubectl describe hpa myapp-hpa
-...
 Conditions:
-  Type            Status  Reason            Message
-  ----            ------  ------            -------
-  AbleToScale     True    ReadyForNewScale  size matches current
-  ScalingActive   True    ValidMetricFound  calc successful
-  ScalingLimited  False   DesiredInRange    desired within range
+  AbleToScale    True  ReadyForNewScale
+  ScalingActive  True  ValidMetricFound
+  ScalingLimited False DesiredInRange
 
-# View HPA events (scaling actions)
-$ kubectl get events --field-selector \
-    involvedObject.name=myapp-hpa
-LAST SEEN  TYPE    REASON             OBJECT         MESSAGE
-5m         Normal  SuccessfulRescale  hpa/myapp-hpa  Size: 5; cpu above target
-2h         Normal  SuccessfulRescale  hpa/myapp-hpa  Size: 3; all below target</code></pre>
+# View HPA scaling events
+$ kubectl get events \
+  --field-selector involvedObject.name=myapp-hpa</code></pre>
                 <aside class="notes">These commands are essential for troubleshooting HPA behavior. The TARGETS column shows current/target for each metric. The Conditions section tells you whether the HPA can scale, whether metrics are available, and whether it's hitting min/max limits. Events show you the actual scaling history. If ScalingActive is False, check that Metrics Server is running and your pod has resource requests set.</aside>
             </section>
 
@@ -620,24 +583,16 @@ LAST SEEN  TYPE    REASON             OBJECT         MESSAGE
                 </table>
                 <pre class="fragment fade-up"><code class="language-yaml">apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
-metadata:
-  name: myapp-vpa
+metadata: { name: myapp-vpa }
 spec:
-  targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: myapp
+  targetRef: { apiVersion: apps/v1, kind: Deployment, name: myapp }
   updatePolicy:
     updateMode: "Off"   # Start with Off to observe
   resourcePolicy:
     containerPolicies:
     - containerName: myapp
-      minAllowed:
-        cpu: "100m"
-        memory: "128Mi"
-      maxAllowed:
-        cpu: "2"
-        memory: "4Gi"</code></pre>
+      minAllowed: { cpu: "100m", memory: "128Mi" }
+      maxAllowed: { cpu: "2", memory: "4Gi" }</code></pre>
                 <aside class="notes">Start with Off mode to observe VPA's recommendations before letting it make changes. This is especially important in production. The minAllowed and maxAllowed provide guardrails to prevent VPA from setting unreasonable values. Important caveat: do NOT use VPA in Auto mode with HPA on the same CPU/memory metrics — they will conflict. You can combine them if HPA uses custom metrics and VPA manages CPU/memory.</aside>
             </section>
 
@@ -688,17 +643,15 @@ spec:
                         <h4>KEDA Capabilities</h4>
                         <ul>
                             <li>Scale to/from zero replicas</li>
-                            <li>60+ built-in scalers (SQS, Kafka, Prometheus, Cron, etc.)</li>
-                            <li>Works alongside native HPA</li>
-                            <li>ScaledObject and ScaledJob resources</li>
+                            <li>60+ built-in scalers (SQS, Kafka, Prometheus, Cron)</li>
+                            <li>Works alongside native HPA via ScaledObject/ScaledJob</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>When to use KEDA</h4>
                         <ul>
                             <li>Queue-based workers (SQS, Kafka)</li>
-                            <li>Schedule-based scaling (cron patterns)</li>
-                            <li>Scale-to-zero for cost savings</li>
+                            <li>Schedule-based or scale-to-zero scenarios</li>
                             <li>Complex multi-metric scaling logic</li>
                         </ul>
                     </div>
@@ -715,19 +668,17 @@ metadata:
   name: sqs-consumer-scaler
 spec:
   scaleTargetRef:
-    name: sqs-consumer          # Deployment to scale
-  pollingInterval: 15            # Check every 15s
+    name: sqs-consumer           # Deployment to scale
+  pollingInterval: 15
   cooldownPeriod: 60             # Wait 60s before scale-to-zero
   minReplicaCount: 0             # Can scale to zero!
   maxReplicaCount: 50
   triggers:
   - type: aws-sqs-queue
     metadata:
-      queueURL: https://sqs.us-east-1.amazonaws.com/123456789/processing-queue
+      queueURL: https://sqs.us-east-1.amazonaws.com/123456789/queue
       queueLength: "5"           # Target 5 messages per pod
-      awsRegion: us-east-1
-    authenticationRef:
-      name: aws-credentials      # TriggerAuthentication reference</code></pre>
+    authenticationRef: { name: aws-credentials }</code></pre>
                 <div class="key-point fragment fade-up">
                     <strong>Scale-to-zero:</strong> When the SQS queue is empty, KEDA scales the Deployment to 0 replicas. When messages arrive, it scales back up. This can significantly reduce costs for bursty workloads.
                 </div>
@@ -777,9 +728,11 @@ spec:
                     </tbody>
                 </table>
                 <pre class="fragment fade-up"><code class="language-promql"># CPU utilization as percentage of request
-sum(rate(container_cpu_usage_seconds_total{pod=~"myapp.*"}[5m])) by (pod)
+sum(rate(container_cpu_usage_seconds_total{
+  pod=~"myapp.*"}[5m])) by (pod)
 /
-sum(kube_pod_container_resource_requests{resource="cpu",pod=~"myapp.*"}) by (pod)
+sum(kube_pod_container_resource_requests{
+  resource="cpu",pod=~"myapp.*"}) by (pod)
 * 100</code></pre>
                 <aside class="notes">These Prometheus metrics let you build dashboards that show scaling behavior over time. The PromQL query at the bottom calculates CPU utilization as a percentage of requests — which is exactly what HPA computes internally. Comparing this with the HPA's current and desired replica counts gives you full visibility into why scaling decisions were made.</aside>
             </section>
@@ -794,22 +747,18 @@ sum(kube_pod_container_resource_requests{resource="cpu",pod=~"myapp.*"}) by (pod
                             <li>Always set resource requests</li>
                             <li>Start with CPU-based HPA at 60-70% target</li>
                             <li>Use conservative scale-down (300s+ window)</li>
-                            <li>Set meaningful min/max replicas</li>
-                            <li>Monitor HPA events and conditions</li>
-                            <li>Load test to validate scaling behavior</li>
-                            <li>Use VPA in Off mode to get right-sizing data</li>
+                            <li>Monitor HPA events and load test to validate</li>
+                            <li>Use VPA in Off mode for right-sizing data</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h4>&#10060; Don't</h4>
                         <ul>
                             <li>Skip resource requests (HPA won't work)</li>
-                            <li>Set target too high (90%+, no headroom)</li>
-                            <li>Set target too low (20%, over-provision)</li>
+                            <li>Set target too high (90%+) or too low (20%)</li>
                             <li>Use VPA Auto + HPA on same metric</li>
                             <li>Set maxReplicas too low for actual demand</li>
-                            <li>Ignore readiness probes (affects scaling lag)</li>
-                            <li>Forget about cluster-level capacity</li>
+                            <li>Ignore readiness probes or cluster capacity</li>
                         </ul>
                     </div>
                 </div>
@@ -821,25 +770,29 @@ sum(kube_pod_container_resource_requests{resource="cpu",pod=~"myapp.*"}) by (pod
                 <h2>&#128221; Production-Ready HPA Configuration</h2>
                 <pre><code class="language-yaml">apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
-metadata: { name: myapp-hpa, labels: { app: myapp, team: platform } }
+metadata: { name: myapp-hpa, labels: { app: myapp } }
 spec:
   scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: myapp }
-  minReplicas: 3              # Minimum for HA across AZs
-  maxReplicas: 30             # Safety cap
+  minReplicas: 3          # HA across AZs
+  maxReplicas: 30         # Safety cap
   metrics:
   - type: Resource
-    resource: { name: cpu, target: { type: Utilization, averageUtilization: 65 } }
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 65
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 0
       policies:
-      - { type: Percent, value: 50, periodSeconds: 60 }   # 50% increase
-      - { type: Pods, value: 5, periodSeconds: 60 }       # Or 5 pods
+      - { type: Percent, value: 50, periodSeconds: 60 }
+      - { type: Pods, value: 5, periodSeconds: 60 }
       selectPolicy: Max
     scaleDown:
       stabilizationWindowSeconds: 300
       policies:
-      - { type: Percent, value: 10, periodSeconds: 120 }  # 10% every 2 min
+      - { type: Percent, value: 10, periodSeconds: 120 }
       selectPolicy: Min</code></pre>
                 <aside class="notes">This is a production-ready HPA you can use as a starting point. The min of 3 ensures at least one pod per AZ for high availability. The scale-up is aggressive (50% increase or 5 pods, whichever is more), while scale-down is gentle (10% every 2 minutes with a 5-minute stabilization window). Adjust these values based on load testing results for your specific application.</aside>
             </section>
@@ -872,8 +825,7 @@ spec:
                         <li class="fragment fade-up"><strong>HPA algorithm:</strong> desiredReplicas = ⌈currentReplicas &times; (current/desired)⌉ with ±10% tolerance</li>
                         <li class="fragment fade-up"><strong>autoscaling/v2</strong> supports multiple metrics, custom metrics, and behavior policies</li>
                         <li class="fragment fade-up"><strong>Scale up fast, scale down slow</strong> — the golden rule of behavior tuning</li>
-                        <li class="fragment fade-up"><strong>VPA</strong> right-sizes individual pods — use Off mode with HPA</li>
-                        <li class="fragment fade-up"><strong>KEDA</strong> enables event-driven scaling and scale-to-zero</li>
+                        <li class="fragment fade-up"><strong>VPA</strong> right-sizes pods (Off mode with HPA); <strong>KEDA</strong> enables scale-to-zero</li>
                         <li class="fragment fade-up"><strong>~55+ seconds</strong> from spike to new pod serving traffic — plan headroom accordingly</li>
                     </ul>
                 </div>
