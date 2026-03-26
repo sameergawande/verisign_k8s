@@ -51,7 +51,7 @@
         .reveal ul, .reveal ol { text-align: left; display: block; margin-left: 1em; }
         .reveal li { margin-bottom: 0.5em; line-height: 1.5; font-size: 0.9em; }
         .reveal p { line-height: 1.6; }
-        .reveal pre code { font-size: 0.7em; line-height: 1.4; max-height: 500px; border-radius: 8px; }
+        .reveal pre code { font-size: 0.7em; line-height: 1.4; max-height: 500px; overflow: auto; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -61,9 +61,9 @@
             <!-- Slide 1: Title -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="title-slide">
                 <h1>&#128256; CI/CD Integration &amp; GitOps</h1>
-                <h2>Automating Kubernetes Delivery Pipelines &mdash; Module 13 of 16</h2>
+                <h2>Automating Kubernetes Delivery Pipelines &mdash; Module 13 of 13</h2>
                 <h3>Verisign EKS Platform</h3>
-                <div class="module-progress">
+                                <div class="module-progress">
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -77,9 +77,6 @@
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step active"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
                 </div>
                 <aside class="notes">Module 13 focuses on CI/CD integration and GitOps patterns for Kubernetes. We'll cover the principles, tools, and production patterns that enable reliable, automated delivery pipelines. This builds on everything we've learned about deployments, Helm, and configuration management.</aside>
             </section>
@@ -288,7 +285,55 @@ docker push ${ECR}/myapp:${GIT_SHA}</code></pre>
                 <aside class="notes">The security model is the primary differentiator. In push-based, your CI system needs a kubeconfig with cluster admin privileges, which is a significant attack surface. In pull-based, the agent runs inside the cluster with the necessary RBAC and only needs read access to the Git repository. The continuous reconciliation loop also ensures that manual kubectl changes are automatically reverted.</aside>
             </section>
 
-            <!-- Slide 10: Git as Single Source of Truth -->
+            <!-- Slide 10: Jenkins CI/CD Pipeline Integration -->
+            <section>
+                <h2>Jenkins CI/CD Pipeline Integration</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>&#9881;&#65039; Jenkinsfile Pipeline Stages</h4>
+                        <ul>
+                            <li class="fragment"><strong>Build</strong> &mdash; compile code, build container image, push to ECR</li>
+                            <li class="fragment"><strong>Test</strong> &mdash; unit tests, integration tests, code coverage</li>
+                            <li class="fragment"><strong>Scan</strong> &mdash; image vulnerability scanning (Trivy, ECR scan)</li>
+                            <li class="fragment"><strong>Deploy</strong> &mdash; <code>kubectl apply</code> or <code>helm upgrade</code> to EKS</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>&#9889; Kubernetes Plugin</h4>
+                        <ul>
+                            <li class="fragment">Dynamic build agents launched as Pods in EKS</li>
+                            <li class="fragment">Each build gets an isolated, ephemeral environment</li>
+                            <li class="fragment">Pod templates define containers (maven, docker, kubectl)</li>
+                            <li class="fragment">Scales to zero when idle &mdash; no persistent agent VMs</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box fragment">
+                    <strong>EKS integration:</strong> Jenkins authenticates to EKS via IRSA (IAM Roles for Service Accounts) or kubeconfig with a service account token &mdash; avoid storing long-lived cluster admin credentials.
+                </div>
+                <aside class="notes">Jenkins remains the most common CI/CD tool in enterprise environments. The Kubernetes plugin transforms Jenkins from a static VM-based system into a cloud-native build platform by scheduling build agents as Pods. For Verisign's EKS clusters, IRSA is the recommended authentication method since it ties IAM roles directly to Kubernetes service accounts without managing static credentials. However, as we discussed in the push vs pull comparison, Jenkins represents the push-based model where the CI system requires direct cluster access. Many organizations keep Jenkins for CI (build, test, scan) but hand off the CD (deploy) step to a GitOps tool like ArgoCD.</aside>
+            </section>
+
+            <!-- Slide 11: From Jenkins to GitOps -->
+            <section>
+                <h2>From Jenkins Push to GitOps Pull</h2>
+                <div class="concept-box">
+                    <h4>Hybrid Pattern: Jenkins CI + GitOps CD</h4>
+                    <pre><code class="language-text">Developer → Git Push → Jenkins Pipeline
+                              ├── Build → Container Image → ECR
+                              ├── Test → Unit + Integration
+                              ├── Scan → Trivy / ECR Scanning
+                              └── Update → Image tag in GitOps repo
+                                            ↓
+                              ArgoCD detects change → Deploys to EKS</code></pre>
+                </div>
+                <div class="key-point fragment">
+                    <strong>Best of both worlds:</strong> Jenkins handles CI (build, test, scan) while ArgoCD owns CD (deploy, reconcile, rollback) &mdash; no cluster credentials leave the cluster.
+                </div>
+                <aside class="notes">This hybrid pattern is rapidly becoming the industry standard. Jenkins excels at running complex build and test pipelines, but giving Jenkins direct kubectl access to production clusters is a security concern. In the hybrid model, the final Jenkins stage simply updates an image tag in the GitOps repository via a Git commit. ArgoCD, running inside the cluster, detects the change and performs the actual deployment. This gives you Jenkins's mature CI ecosystem plus GitOps security and drift detection. Many Verisign teams already running Jenkins can adopt this pattern incrementally without replacing their existing CI investment.</aside>
+            </section>
+
+            <!-- Slide 12: Git as Single Source of Truth -->
             <section>
                 <h2>Git as Single Source of Truth</h2>
                 <div class="concept-box">
@@ -310,7 +355,7 @@ docker push ${ECR}/myapp:${GIT_SHA}</code></pre>
                 <aside class="notes">This mono-repo structure is one common pattern. Applications live under apps/ with Kustomize base/overlay structure. Shared infrastructure components get their own directory. Cluster-level configuration defines which apps and infra components are deployed where. Some teams prefer separate repos for apps and infrastructure. The key principle: if it's not in Git, it shouldn't be in the cluster.</aside>
             </section>
 
-            <!-- Slide 11: Section - ArgoCD -->
+            <!-- Slide 13: Section - ArgoCD -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128737;&#65039; ArgoCD</h2>
                 <h3>Declarative, GitOps continuous delivery for Kubernetes</h3>
@@ -583,6 +628,135 @@ spec:
                     <strong>Both are excellent choices.</strong> ArgoCD excels with its UI and multi-cluster management. FluxCD excels with its lightweight, composable design and native image automation.
                 </div>
                 <aside class="notes">This is not a winner-takes-all comparison. ArgoCD is often preferred when teams want a visual dashboard and centralized multi-cluster management. FluxCD is preferred when teams want a lighter footprint and CLI-first workflow. Both are CNCF graduated projects with strong communities. Some organizations even use both - ArgoCD for application deployments and Flux for cluster infrastructure bootstrapping.</aside>
+            </section>
+
+            <!-- Section Divider: FluxCD in Practice -->
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
+                <h2>&#128736;&#65039; FluxCD in Practice</h2>
+                <h3>Bootstrap, HelmReleases, Image Automation &amp; Multi-Tenancy</h3>
+                <aside class="notes">Now let's go deeper into FluxCD with practical patterns you'll use day-to-day. We'll cover bootstrapping a cluster, managing Helm releases declaratively, automating image updates, and isolating teams with multi-tenancy.</aside>
+            </section>
+
+            <!-- FluxCD: Bootstrap & Cluster Management -->
+            <section>
+                <h2>&#128640; Flux Bootstrap &amp; Repo Structure</h2>
+                <pre><code class="language-bash"># Bootstrap Flux on a new cluster
+flux bootstrap github \
+  --owner=verisign \
+  --repository=fleet-infra \
+  --branch=main \
+  --path=clusters/production \
+  --personal=false</code></pre>
+                <div class="concept-box fragment">
+                    <h4>Recommended Repository Structure</h4>
+                    <pre><code class="language-text">fleet-infra/
+&#9500;&#9472;&#9472; clusters/
+&#9474;   &#9500;&#9472;&#9472; production/
+&#9474;   &#9474;   &#9500;&#9472;&#9472; flux-system/     # Auto-generated
+&#9474;   &#9474;   &#9500;&#9472;&#9472; infrastructure.yaml
+&#9474;   &#9474;   &#9492;&#9472;&#9472; applications.yaml
+&#9474;   &#9492;&#9472;&#9472; staging/
+&#9500;&#9472;&#9472; infrastructure/    # Shared infra components
+&#9492;&#9472;&#9472; applications/      # Application manifests</code></pre>
+                </div>
+                <aside class="notes">Bootstrap is a one-time operation that installs Flux controllers and commits their manifests to Git, making Flux self-managing. The recommended repo structure separates cluster-specific config from shared components. Each cluster directory contains Kustomization resources referencing shared infrastructure and application directories. This pattern scales to dozens of clusters.</aside>
+            </section>
+
+            <!-- FluxCD: HelmRelease CRD -->
+            <section>
+                <h2>&#128220; HelmRelease CRD</h2>
+                <pre><code class="language-yaml">apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata: { name: nginx-ingress, namespace: infrastructure }
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: ingress-nginx
+      version: "4.x"  # Semver range
+      sourceRef:
+        kind: HelmRepository
+        name: ingress-nginx
+  values:
+    controller:
+      replicaCount: 3
+      service: { type: LoadBalancer }
+  upgrade: { remediation: { retries: 3 } }
+  rollback: { cleanupOnFail: true }</code></pre>
+                <ul>
+                    <li class="fragment"><strong>version</strong> &mdash; semver ranges for auto minor/patch upgrades</li>
+                    <li class="fragment"><strong>upgrade.remediation</strong> &mdash; auto-retry or rollback on failure</li>
+                    <li class="fragment"><strong>valuesFrom</strong> &mdash; inject secrets from ConfigMaps/Secrets without storing in Git</li>
+                </ul>
+                <aside class="notes">The HelmRelease CRD replaces imperative helm install/upgrade commands with a declarative spec. Semver ranges let you automatically pick up patch releases while staying within a major version. The remediation settings define what happens when an upgrade fails, including automatic rollback after configurable retries. Use valuesFrom to reference Secrets managed by external-secrets or sealed-secrets for sensitive values.</aside>
+            </section>
+
+            <!-- FluxCD: Image Automation -->
+            <section>
+                <h2>&#128247; Image Automation Pipeline</h2>
+                <pre><code class="language-yaml"># 1. Scan registry for new tags
+kind: ImageRepository
+spec:
+  image: ghcr.io/verisign/my-app
+  interval: 5m
+---
+# 2. Select latest matching tag
+kind: ImagePolicy
+spec:
+  imageRepositoryRef: { name: app-image }
+  policy: { semver: { range: ">=1.0.0 <2.0.0" } }
+---
+# 3. Write selected tag back to Git
+kind: ImageUpdateAutomation
+spec:
+  sourceRef: { kind: GitRepository, name: app-manifests }
+  update: { path: ./clusters/production, strategy: Setters }</code></pre>
+                <div class="key-point fragment">
+                    <strong>Closed loop:</strong> CI builds image &rarr; Flux detects new tag &rarr; updates manifest in Git &rarr; deploys automatically.
+                </div>
+                <aside class="notes">Image automation is a three-step pipeline: ImageRepository scans a container registry, ImagePolicy selects the latest tag matching a semver range, and ImageUpdateAutomation writes the selected tag back to Git using setter markers. This closes the CI/CD loop entirely -- when CI builds a new image, Flux detects it and updates the deployment manifest automatically without any manual intervention.</aside>
+            </section>
+
+            <!-- FluxCD: Multi-Tenancy & Monitoring -->
+            <section>
+                <h2>&#127970; Multi-Tenancy &amp; Alerts</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Tenant Isolation</h4>
+                        <pre><code class="language-yaml">kind: Kustomization
+spec:
+  serviceAccountName: team-alpha-sa
+  sourceRef:
+    kind: GitRepository
+    name: team-alpha-repo
+  path: ./deploy
+  targetNamespace: team-alpha
+  prune: true</code></pre>
+                        <ul style="font-size: 0.85em;">
+                            <li class="fragment"><strong>serviceAccountName</strong> &mdash; RBAC-scoped SA per team</li>
+                            <li class="fragment"><strong>targetNamespace</strong> &mdash; force resources into one NS</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Notification Alerts</h4>
+                        <pre><code class="language-yaml">kind: Provider
+spec:
+  type: slack
+  channel: k8s-deployments
+  secretRef: { name: slack-url }
+---
+kind: Alert
+spec:
+  providerRef: { name: slack-alerts }
+  eventSeverity: error
+  eventSources:
+    - { kind: HelmRelease, name: "*" }</code></pre>
+                    </div>
+                </div>
+                <div class="key-point fragment">
+                    <strong>Monitor:</strong> Alert when <code>gotk_reconcile_condition{status="False"}</code> persists &gt; 10 min. Grafana dashboard ID: <strong>16714</strong>.
+                </div>
+                <aside class="notes">Multi-tenancy in Flux scopes each team's Kustomization to a service account with limited RBAC. The targetNamespace override prevents cross-namespace deployments. For observability, the notification controller routes Flux events to Slack, PagerDuty, or Teams. Combine with Prometheus metrics -- gotk_reconcile_condition tells you whether each resource is Ready, Stalled, or Suspended. The official Grafana dashboard 16714 provides a complete overview of GitOps health.</aside>
             </section>
 
             <!-- Slide 20: Section - Pipeline Tools -->
@@ -964,7 +1138,7 @@ argocd app rollback frontend 3</code></pre>
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="questions-slide" style="text-align: center;">
                 <h2>&#10067; Questions &amp; Discussion</h2>
                 <p>Module 13: CI/CD Integration &amp; GitOps</p>
-                <p style="font-size: 0.9em; margin-top: 30px;">Up Next: Module 14 &mdash; Custom Resources &amp; Operators</p>
+                <p style="font-size: 0.9em; margin-top: 30px;">Final module &mdash; Course Wrap-Up</p>
                 <aside class="notes">Open the floor for questions. Common topics include: choosing between ArgoCD and FluxCD, managing secrets in GitOps workflows, handling database migrations in CI/CD pipelines, multi-cluster strategies, and integrating existing CI tools with a GitOps deployment model.</aside>
             </section>
 

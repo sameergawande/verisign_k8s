@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lab 7: RBAC and Security | Intermediate Kubernetes</title>
+    <title>Lab 7: RBAC, Security, and IRSA | Intermediate Kubernetes</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reset.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/white.css">
@@ -285,9 +285,9 @@
 
             <!-- Title Slide -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="title-slide">
-                <h1>Lab 7: RBAC and Security</h1>
-                <h2>Role-Based Access Control, Pod Security Standards, and SecurityContexts</h2>
-                <h3>Intermediate Kubernetes &mdash; Module 7 of 16</h3>
+                <h1>Lab 7: RBAC, Security, and IRSA</h1>
+                <h2>Pod Security Standards, SecurityContexts, and IAM Roles for Service Accounts</h2>
+                <h3>Intermediate Kubernetes &mdash; Module 7 of 13</h3>
                 <div class="module-progress">
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -920,11 +920,254 @@ kubectl exec secure-app -n lab07-restricted-$STUDENT_NAME -- \
                 </aside>
             </section>
 
-            <!-- ========== STEP 11: Clean Up ========== -->
+            <!-- ========== PART 3: IRSA — IAM Roles for Service Accounts ========== -->
+            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
+                <h2>Part 3</h2>
+                <h3>IRSA &mdash; IAM Roles for Service Accounts</h3>
+                <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step active"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                </div>
+                <aside class="notes">
+                    Part 3 extends the security theme from Kubernetes RBAC into the AWS IAM layer. IRSA (IAM Roles for Service Accounts) lets individual pods assume specific IAM roles, replacing the older pattern of sharing the node's instance profile. This uses the EKS OIDC provider, which should already be provisioned.
+                </aside>
+            </section>
+
+            <!-- ========== STEP 11: Annotate a ServiceAccount with an IAM Role ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
                 <h2>Step 11</h2>
+                <h3>Annotate a ServiceAccount with an IAM Role</h3>
+                <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step active"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                </div>
+                <aside class="notes">
+                    We will use a pre-created IAM role and policy to keep the exercise focused on the Kubernetes side. The IAM role grants read-only access to a specific S3 bucket and has a trust policy scoped to the ServiceAccount we create here.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x1F510; Step 11: Create an IRSA-Annotated ServiceAccount</h2>
+                <p>Retrieve the IAM role ARN and create a ServiceAccount linked to it:</p>
+                <pre><code class="language-bash" data-trim>
+# Capture the OIDC issuer and account ID
+OIDC_ISSUER=$(aws eks describe-cluster --name platform-lab \
+  --query "cluster.identity.oidc.issuer" --output text | sed 's|https://||')
+ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+
+# Build the IRSA role ARN (pre-created by the platform team)
+ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/irsa-s3-reader-$STUDENT_NAME"
+echo "Role ARN: $ROLE_ARN"
+                </code></pre>
+                <div class="fragment">
+                    <pre><code class="language-bash" data-trim>
+# Create a namespace for the IRSA exercise
+kubectl create namespace lab07-irsa-$STUDENT_NAME
+
+# Create the annotated ServiceAccount
+cat &lt;&lt;EOF | kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: s3-reader-$STUDENT_NAME
+  namespace: lab07-irsa-$STUDENT_NAME
+  annotations:
+    eks.amazonaws.com/role-arn: "${ROLE_ARN}"
+EOF
+
+# Verify the annotation is present
+kubectl get sa s3-reader-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME -o yaml
+                    </code></pre>
+                </div>
+                <div class="concept-box fragment">
+                    <h4>How IRSA Works</h4>
+                    <p>The <code>eks.amazonaws.com/role-arn</code> annotation tells the EKS mutating webhook to inject a projected service-account token and two environment variables (<code>AWS_ROLE_ARN</code>, <code>AWS_WEB_IDENTITY_TOKEN_FILE</code>) into every pod that uses this ServiceAccount.</p>
+                </div>
+                <aside class="notes">
+                    The annotation is the critical link between Kubernetes and AWS IAM. Make sure students verify the annotation appears in the YAML output and that the role ARN matches their student name. A typo here is the most common IRSA failure.
+                </aside>
+            </section>
+
+            <!-- ========== STEP 12: Deploy a Pod that Uses IRSA to Access S3 ========== -->
+            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
+                <h2>Step 12</h2>
+                <h3>Deploy a Pod Using IRSA to Access S3</h3>
+                <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step active"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                </div>
+                <aside class="notes">
+                    Now we deploy a pod that references the annotated ServiceAccount and verify it can reach S3.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x1F680; Step 12: Deploy an IRSA Test Pod</h2>
+                <p>Create a pod that uses the IRSA-annotated ServiceAccount:</p>
+                <pre><code class="language-yaml" data-trim>
+# Save as irsa-test-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: irsa-test-$STUDENT_NAME
+  namespace: lab07-irsa-$STUDENT_NAME
+spec:
+  serviceAccountName: s3-reader-$STUDENT_NAME
+  containers:
+  - name: aws-cli
+    image: amazon/aws-cli:latest
+    command: ["sleep", "3600"]
+  restartPolicy: Never</code></pre>
+                <div class="fragment">
+                    <pre><code class="language-bash" data-trim>
+# Apply and wait for the pod
+kubectl apply -f irsa-test-pod.yaml
+kubectl wait --for=condition=Ready \
+  pod/irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME --timeout=60s
+
+# Confirm it is running
+kubectl get pod irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME
+                    </code></pre>
+                </div>
+                <aside class="notes">
+                    The key field is serviceAccountName. This is what triggers the EKS mutating webhook to inject the projected token and AWS environment variables. The amazon/aws-cli image gives us the AWS CLI inside the pod for testing.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x1F50D; Step 12: Test S3 Access from the Pod</h2>
+                <p>Verify the pod can read from the S3 bucket using its IRSA credentials:</p>
+                <pre><code class="language-bash" data-trim>
+# List the S3 bucket contents
+kubectl exec irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME \
+  -- aws s3 ls s3://platform-lab-irsa-demo/
+
+# Read a specific object
+kubectl exec irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME \
+  -- aws s3 cp s3://platform-lab-irsa-demo/test-file.txt -
+                </code></pre>
+                <div class="fragment">
+                    <pre><code class="language-bash" data-trim>
+# Confirm the write is denied (read-only policy)
+kubectl exec irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME \
+  -- bash -c 'echo "test" | aws s3 cp - \
+    s3://platform-lab-irsa-demo/unauthorized-$STUDENT_NAME.txt'
+# Expected: AccessDenied — the policy only allows read
+                    </code></pre>
+                </div>
+                <div class="highlight-box success fragment">
+                    <strong>&#x2705; Expected:</strong> <code>s3 ls</code> and <code>s3 cp</code> (read) succeed. The write attempt returns <strong>AccessDenied</strong>. This confirms least-privilege enforcement through IRSA.
+                </div>
+                <aside class="notes">
+                    The read succeeds because the IAM policy attached to the role allows s3:GetObject and s3:ListBucket. The write fails because s3:PutObject is not in the policy. This demonstrates that IRSA enforces the exact permissions defined in the IAM policy, not the broader node-level permissions.
+                </aside>
+            </section>
+
+            <!-- ========== STEP 13: Verify Temporary Credentials ========== -->
+            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
+                <h2>Step 13</h2>
+                <h3>Verify the Temporary Credentials</h3>
+                <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step active"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                </div>
+                <aside class="notes">
+                    This step proves the credential chain: projected JWT token, STS exchange, temporary AWS credentials. Understanding this flow is essential for debugging IRSA in production.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x1F50F; Step 13: Inspect the IRSA Credential Chain</h2>
+                <p>Examine the injected environment variables and token:</p>
+                <pre><code class="language-bash" data-trim>
+# Check the injected AWS environment variables
+kubectl exec irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME \
+  -- env | grep AWS
+# Expected:
+#   AWS_ROLE_ARN=arn:aws:iam::ACCOUNT:role/irsa-s3-reader-$STUDENT_NAME
+#   AWS_WEB_IDENTITY_TOKEN_FILE=/var/run/secrets/eks.amazonaws.com/serviceaccount/token
+
+# Verify the assumed-role identity
+kubectl exec irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME \
+  -- aws sts get-caller-identity
+# Expected: Arn contains "assumed-role/irsa-s3-reader-$STUDENT_NAME"
+                </code></pre>
+                <div class="fragment">
+                    <pre><code class="language-bash" data-trim>
+# Peek at the projected token (a JWT issued by the OIDC provider)
+kubectl exec irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME \
+  -- cat /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+# The token contains claims: iss (OIDC URL), sub (SA identity), aud (sts.amazonaws.com)
+                    </code></pre>
+                </div>
+                <div class="key-point fragment">
+                    <strong>&#x1F511; Key Point:</strong> The credentials are <em>temporary</em> and automatically rotated. The pod never holds long-lived AWS keys. STS exchanges the projected JWT for short-lived credentials, and the SDK refreshes them transparently.
+                </div>
+                <aside class="notes">
+                    The get-caller-identity output must show the IRSA role ARN, not the EC2 instance role. If it shows the node role, IRSA is not working and the SDK is falling back to the instance metadata service. The two environment variables (AWS_ROLE_ARN and AWS_WEB_IDENTITY_TOKEN_FILE) are the mechanism — the AWS SDK detects them automatically and uses the web-identity token flow.
+                </aside>
+            </section>
+
+            <!-- ========== STEP 14: Clean Up ========== -->
+            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
+                <h2>Step 14</h2>
                 <h3>Clean Up Resources</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -939,7 +1182,7 @@ kubectl exec secure-app -n lab07-restricted-$STUDENT_NAME -- \
                     <div class="step"></div>
                 </div>
                 <aside class="notes">
-                    Always clean up cluster-scoped resources (ClusterRoles, ClusterRoleBindings) in addition to namespace-scoped resources.
+                    Always clean up cluster-scoped resources (ClusterRoles, ClusterRoleBindings) in addition to namespace-scoped resources. Also clean the IRSA namespace.
                 </aside>
             </section>
 
@@ -951,9 +1194,10 @@ kubectl exec secure-app -n lab07-restricted-$STUDENT_NAME -- \
 kubectl delete clusterrolebinding cluster-pod-reader-binding-$STUDENT_NAME
 kubectl delete clusterrole cluster-pod-reader-$STUDENT_NAME
 
-# Delete both namespaces (cascades to all resources within)
+# Delete all lab namespaces (cascades to all resources within)
 kubectl delete namespace lab07-$STUDENT_NAME
 kubectl delete namespace lab07-restricted-$STUDENT_NAME
+kubectl delete namespace lab07-irsa-$STUDENT_NAME
 
 # Verify cleanup
 kubectl get clusterrole cluster-pod-reader-$STUDENT_NAME 2>/dev/null \
@@ -962,17 +1206,22 @@ kubectl get namespace lab07-$STUDENT_NAME 2>/dev/null \
   || echo "Namespace lab07-$STUDENT_NAME deleted"
 kubectl get namespace lab07-restricted-$STUDENT_NAME 2>/dev/null \
   || echo "Namespace lab07-restricted-$STUDENT_NAME deleted"
+kubectl get namespace lab07-irsa-$STUDENT_NAME 2>/dev/null \
+  || echo "Namespace lab07-irsa-$STUDENT_NAME deleted"
                 </code></pre>
                 <aside class="notes">
-                    Tip: All three verification commands should show the "deleted" messages. Deleting a namespace removes Roles and RoleBindings within it, but ClusterRoles and ClusterRoleBindings are cluster-scoped and must be deleted separately. This is a common gotcha in production -- orphaned ClusterRoleBindings can persist long after the namespace is deleted.
+                    Tip: All verification commands should show the "deleted" messages. Deleting a namespace removes Roles, RoleBindings, ServiceAccounts, and Pods within it. ClusterRoles and ClusterRoleBindings are cluster-scoped and must be deleted separately. The IRSA namespace deletion cascades to the annotated ServiceAccount and test pod.
                 </aside>
             </section>
 
-            <!-- ========== STEP 12: Summary ========== -->
+            <!-- ========== STEP 15: Summary ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 12</h2>
+                <h2>Step 15</h2>
                 <h3>Summary</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -987,12 +1236,12 @@ kubectl get namespace lab07-restricted-$STUDENT_NAME 2>/dev/null \
                     <div class="step active"></div>
                 </div>
                 <aside class="notes">
-                    Review the RBAC command reference and key concepts from this lab.
+                    Review the RBAC command reference, security concepts, and IRSA flow from this lab.
                 </aside>
             </section>
 
             <section>
-                <h2>&#x1F4DD; Summary &mdash; RBAC Command Reference</h2>
+                <h2>&#x1F4DD; Summary &mdash; Command Reference</h2>
                 <table>
                     <thead>
                         <tr>
@@ -1010,20 +1259,12 @@ kubectl get namespace lab07-restricted-$STUDENT_NAME 2>/dev/null \
                             <td>List cluster-scoped Roles</td>
                         </tr>
                         <tr>
-                            <td><code>kubectl describe role &lt;name&gt;</code></td>
-                            <td>View Role rules and permissions</td>
-                        </tr>
-                        <tr>
                             <td><code>kubectl auth can-i &lt;verb&gt; &lt;resource&gt;</code></td>
                             <td>Test current user permissions</td>
                         </tr>
                         <tr>
                             <td><code>kubectl auth can-i --as=&lt;sa&gt;</code></td>
                             <td>Test another identity's permissions</td>
-                        </tr>
-                        <tr>
-                            <td><code>kubectl auth can-i --list</code></td>
-                            <td>List all allowed actions</td>
                         </tr>
                         <tr>
                             <td><code>kubectl create sa &lt;name&gt;</code></td>
@@ -1033,10 +1274,18 @@ kubectl get namespace lab07-restricted-$STUDENT_NAME 2>/dev/null \
                             <td><code>kubectl label ns &lt;ns&gt; pod-security...</code></td>
                             <td>Apply Pod Security Standards</td>
                         </tr>
+                        <tr>
+                            <td><code>kubectl annotate sa &lt;name&gt; eks...role-arn=&lt;ARN&gt;</code></td>
+                            <td>Link a ServiceAccount to an IAM role (IRSA)</td>
+                        </tr>
+                        <tr>
+                            <td><code>aws sts get-caller-identity</code></td>
+                            <td>Verify assumed IAM identity inside a pod</td>
+                        </tr>
                     </tbody>
                 </table>
                 <aside class="notes">
-                    This table serves as a quick reference for RBAC operations. Encourage students to keep this handy during subsequent labs and real-world operations.
+                    This table serves as a quick reference for RBAC and IRSA operations. Encourage students to keep this handy during subsequent labs and real-world operations.
                 </aside>
             </section>
 
@@ -1050,16 +1299,18 @@ kubectl get namespace lab07-restricted-$STUDENT_NAME 2>/dev/null \
                     <li class="fragment">&#x2705; <code>kubectl auth can-i</code> is essential for testing and auditing permissions</li>
                     <li class="fragment">&#x2705; Pod Security Standards (restricted, baseline, privileged) replace PodSecurityPolicies</li>
                     <li class="fragment">&#x2705; SecurityContext settings provide defense-in-depth at the container level</li>
+                    <li class="fragment">&#x2705; IRSA provides pod-level IAM identities via projected service-account tokens</li>
+                    <li class="fragment">&#x2705; Always verify IRSA with <code>aws sts get-caller-identity</code> from inside the pod</li>
                 </ul>
                 <aside class="notes">
-                    Reinforce that RBAC and Pod Security are complementary layers. RBAC controls who can do what at the API level. Pod Security Standards control what workloads can run. SecurityContexts provide runtime hardening.
+                    Reinforce that RBAC, Pod Security, and IRSA are complementary security layers. RBAC controls who can do what at the Kubernetes API level. Pod Security Standards control what workloads can run. SecurityContexts provide runtime hardening. IRSA extends the security boundary into AWS, giving each workload its own scoped IAM identity instead of sharing the node's instance profile.
                 </aside>
             </section>
 
             <!-- Questions Slide -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="questions-slide">
                 <h2>&#x2753; Questions?</h2>
-                <p>Lab 7 Complete &mdash; RBAC and Security</p>
+                <p>Lab 7 Complete &mdash; RBAC, Security, and IRSA</p>
                 <p class="small-text" style="color: #cbd5e0;">Up Next: Lab 8 &mdash; Network Policies</p>
                 <div class="module-progress">
                     <div class="step completed"></div>
@@ -1080,7 +1331,7 @@ kubectl get namespace lab07-restricted-$STUDENT_NAME 2>/dev/null \
                     <div class="step"></div>
                 </div>
                 <aside class="notes">
-                    Lab 7 is complete. Students should now understand RBAC primitives, Pod Security Standards, and SecurityContexts. Lab 8 on Network Policies will build on these security concepts at the network layer.
+                    Lab 7 is complete. Students should now understand RBAC primitives, Pod Security Standards, SecurityContexts, and IRSA. Lab 8 on Network Policies will build on these security concepts at the network layer.
                 </aside>
             </section>
 

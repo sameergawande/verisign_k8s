@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lab 13: CI/CD Integration | Intermediate Kubernetes</title>
+    <title>Lab 13: CI/CD &amp; GitOps with FluxCD | Intermediate Kubernetes</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reset.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/white.css">
@@ -285,9 +285,9 @@
 
             <!-- Title Slide -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="title-slide">
-                <h1>Lab 13: CI/CD Integration</h1>
+                <h1>Lab 13: CI/CD &amp; GitOps with FluxCD</h1>
                 <h2>Building, Pushing, and Deploying with GitOps Pipelines</h2>
-                <h3>Intermediate Kubernetes &mdash; Module 13 of 16</h3>
+                <h3>Intermediate Kubernetes &mdash; Module 13 of 13</h3>
                 <div class="module-progress">
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -958,11 +958,294 @@ flux reconcile kustomization flux-system --with-source
                 </aside>
             </section>
 
-            <!-- ========== STEP 11: Clean Up ========== -->
+            <!-- ========== PART 3: FLUXCD HANDS-ON ========== -->
+            <section data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)" class="section-divider">
+                <h2>Part 3: FluxCD Hands-On</h2>
+                <h3>Exploring Flux Resources, HelmReleases &amp; Reconciliation</h3>
+                <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step active"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                </div>
+                <aside class="notes">
+                    Part 3 transitions from the FluxCD overview into hands-on exercises. Students will explore the Flux installation, create a HelmRelease, observe reconciliation and drift correction, and practice the troubleshooting workflow.
+                </aside>
+            </section>
+
+            <!-- ========== STEP 11: Explore Flux Resources ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
                 <h2>Step 11</h2>
+                <h3>Explore Flux Resources in the Cluster</h3>
+                <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step active"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                </div>
+                <aside class="notes">
+                    This step has students verify the Flux installation and inspect the existing sources and Kustomizations that are already configured on the cluster.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x1F50D; Step 11: Verify FluxCD &amp; Inspect Sources</h2>
+                <div class="highlight-box warning">
+                    <strong>Important:</strong> Flux is pre-installed on the cluster. Do not run <code>flux bootstrap</code> or <code>flux uninstall</code>.
+                </div>
+                <p>Confirm FluxCD is healthy and explore existing resources:</p>
+                <pre><code class="language-bash" data-trim>
+# Check Flux installation health
+flux check
+
+# View Flux controller pods
+kubectl get pods -n flux-system
+
+# List Flux CRDs installed in the cluster
+kubectl get crds | grep flux
+                </code></pre>
+                <pre><code class="language-bash" data-trim>
+# List all Git sources and Helm repository sources
+flux get sources git
+flux get sources helm
+
+# List existing Kustomizations managed by Flux
+flux get kustomizations
+
+# Get detailed YAML for Git sources
+kubectl get gitrepository -n flux-system -o yaml
+                </code></pre>
+                <div class="key-point">
+                    <strong>Observe:</strong> Note the <code>REVISION</code> column showing the current Git commit SHA, the <code>READY</code> status, and the <code>spec.interval</code> controlling how often Flux checks for changes.
+                </div>
+                <aside class="notes">
+                    Expected: All four Flux controllers (source, kustomize, helm, notification) should show Ready. You should see CRDs including gitrepositories, kustomizations, helmreleases. Have students examine the interval and ref fields to understand how Flux knows what to track and how often. Walk around and verify every student sees all checks passing.
+                </aside>
+            </section>
+
+            <!-- ========== STEP 12: Create a HelmRelease ========== -->
+            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
+                <h2>Step 12</h2>
+                <h3>Create a FluxCD HelmRelease</h3>
+                <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step active"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                </div>
+                <aside class="notes">
+                    Now students create their own Flux-managed Helm release. This demonstrates how Flux manages Helm chart lifecycle declaratively through the HelmRelease CRD.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x2638;&#xFE0F; Step 12: Create a HelmRelease (Part 1 &mdash; Source)</h2>
+                <p>Create your namespace and a HelmRepository source:</p>
+                <pre><code class="language-bash" data-trim>
+# Create your student namespace for Flux resources
+kubectl create namespace flux-lab-$STUDENT_NAME
+                </code></pre>
+                <pre><code class="language-yaml" data-trim>
+# Save as helm-source.yaml
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: bitnami-$STUDENT_NAME
+  namespace: flux-system
+spec:
+  interval: 30m
+  url: https://charts.bitnami.com/bitnami
+                </code></pre>
+                <pre><code class="language-bash" data-trim>
+# Apply the Helm source
+kubectl apply -f helm-source.yaml
+
+# Verify it becomes Ready
+flux get sources helm bitnami-$STUDENT_NAME
+                </code></pre>
+                <aside class="notes">
+                    The HelmRepository source is similar to running helm repo add. It tells Flux where to find Helm charts. The interval for Helm repos can be longer since chart indexes are updated less frequently. Once this source is Ready, we can reference it from a HelmRelease.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x2638;&#xFE0F; Step 12: Create a HelmRelease (Part 2 &mdash; Release)</h2>
+                <p>Create a HelmRelease to deploy nginx using the Bitnami chart:</p>
+                <pre><code class="language-yaml" data-trim>
+# Save as helm-release.yaml
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: lab-nginx-$STUDENT_NAME
+  namespace: flux-lab-$STUDENT_NAME
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: nginx
+      version: ">=15.0.0 <16.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: bitnami-$STUDENT_NAME
+        namespace: flux-system
+  values:
+    replicaCount: 2
+    service: { type: ClusterIP }
+  install:
+    remediation: { retries: 3 }
+  upgrade:
+    remediation: { retries: 3, remediationStrategy: rollback }
+                </code></pre>
+                <div class="key-point">
+                    <strong>Note:</strong> The chart version uses a semver range &mdash; Flux auto-selects the latest patch within 15.x. The remediation section ensures retries and rollback on failure.
+                </div>
+                <aside class="notes">
+                    Explain the semver range: Flux will automatically pick up the latest patch release within the 15.x range. The values section overrides chart defaults. The remediation section ensures that if install or upgrade fails, Flux retries up to 3 times and rolls back on failure, making the release self-healing.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x2638;&#xFE0F; Step 12: Create a HelmRelease (Part 3 &mdash; Verify)</h2>
+                <pre><code class="language-bash" data-trim>
+# Apply the HelmRelease
+kubectl apply -f helm-release.yaml
+
+# Watch the release become Ready
+flux get helmreleases -n flux-lab-$STUDENT_NAME lab-nginx-$STUDENT_NAME --watch
+
+# Confirm it appears in Helm (Flux uses the Helm SDK internally)
+helm list -n flux-lab-$STUDENT_NAME
+
+# Check the deployed resources
+kubectl get all -n flux-lab-$STUDENT_NAME \
+  -l app.kubernetes.io/instance=lab-nginx-$STUDENT_NAME
+
+# View detailed release info
+flux get helmreleases -n flux-lab-$STUDENT_NAME lab-nginx-$STUDENT_NAME -o wide
+                </code></pre>
+                <div class="highlight-box success">
+                    <strong>Checkpoint:</strong> The HelmRelease shows <code>Ready: True</code> and appears in <code>helm list</code>. Nginx pods are running in <code>flux-lab-$STUDENT_NAME</code> with the configured replica count. Running <code>helm upgrade</code> manually would create drift that Flux reverts on the next reconciliation.
+                </div>
+                <aside class="notes">
+                    Point out that Flux-managed Helm releases appear in helm list just like manually installed releases. The difference is that Flux owns the lifecycle. If a student runs helm upgrade manually, Flux will detect the drift and revert to the declared state. The -o wide flag shows additional details including the chart version and last applied values hash.
+                </aside>
+            </section>
+
+            <!-- ========== STEP 13: Observe Reconciliation & Drift Detection ========== -->
+            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
+                <h2>Step 13</h2>
+                <h3>Observe Reconciliation &amp; Drift Detection</h3>
+                <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step active"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                </div>
+                <aside class="notes">
+                    This is one of the most impactful exercises. Students introduce manual drift and watch Flux correct it. This drives home the GitOps principle that Git is the single source of truth.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x1F504; Step 13: Force Reconciliation</h2>
+                <p>Trigger a manual reconciliation and observe Flux applying changes:</p>
+                <pre><code class="language-bash" data-trim>
+# Check current nginx replica count
+kubectl get deployment -n flux-lab-$STUDENT_NAME \
+  -l app.kubernetes.io/instance=lab-nginx-$STUDENT_NAME
+
+# Force an immediate reconciliation of the HelmRelease
+flux reconcile helmrelease lab-nginx-$STUDENT_NAME \
+  -n flux-lab-$STUDENT_NAME
+
+# Watch reconciliation events
+flux events --for HelmRelease/lab-nginx-$STUDENT_NAME \
+  -n flux-lab-$STUDENT_NAME
+                </code></pre>
+                <aside class="notes">
+                    Even if nothing changed, reconciliation verifies the cluster state matches the desired state. The events show the reconciliation cycle: fetching the chart, running helm upgrade --install, and verifying health checks.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x1F6E1;&#xFE0F; Step 13: Test Drift Detection</h2>
+                <p>Introduce manual drift and watch Flux correct it:</p>
+                <pre><code class="language-bash" data-trim>
+# Scale nginx to 5 replicas manually (creating drift)
+kubectl scale deployment -n flux-lab-$STUDENT_NAME \
+  -l app.kubernetes.io/instance=lab-nginx-$STUDENT_NAME \
+  --replicas=5
+
+# Confirm the manual change took effect
+kubectl get deployment -n flux-lab-$STUDENT_NAME
+
+# Now force reconciliation -- Flux will revert to 2 replicas
+flux reconcile helmrelease lab-nginx-$STUDENT_NAME \
+  -n flux-lab-$STUDENT_NAME
+
+# Watch Flux correct the drift
+kubectl get deployment -n flux-lab-$STUDENT_NAME --watch
+                </code></pre>
+                <div class="highlight-box success">
+                    <strong>Checkpoint:</strong> After manually scaling to 5 replicas and triggering reconciliation, Flux reverted the count to 2 (the value declared in the HelmRelease). This confirms drift detection and correction. In production, this happens automatically at the reconciliation interval.
+                </div>
+                <aside class="notes">
+                    This is the moment where GitOps clicks for most students. They manually scale to 5 replicas, see it take effect, then watch Flux revert it back. Emphasize that in production they would not need to manually reconcile; it happens on the interval. Ask: what if you need to truly change replicas? Answer: update the HelmRelease values in Git, commit, and push.
+                </aside>
+            </section>
+
+            <!-- ========== STEP 14: Clean Up ========== -->
+            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
+                <h2>Step 14</h2>
                 <h3>Clean Up</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -977,41 +1260,57 @@ flux reconcile kustomization flux-system --with-source
                     <div class="step"></div>
                 </div>
                 <aside class="notes">
-                    Clean up all resources. If ArgoCD was used, delete the Application resource first to let ArgoCD clean up its managed resources.
+                    Clean up all resources from both CI/CD and FluxCD exercises. Delete Flux resources before their sources so Flux can properly clean up managed resources. Delete ArgoCD Applications before deleting namespaces.
                 </aside>
             </section>
 
             <section>
                 <h2>&#x1F9F9; Clean Up Resources</h2>
-                <p>Remove all resources created during this lab:</p>
+                <p>Remove all CI/CD resources:</p>
                 <pre><code class="language-bash" data-trim>
+# ArgoCD resources
 kubectl delete application cicd-demo-$STUDENT_NAME -n argocd --ignore-not-found
 
+# CI/CD namespace and ECR
 kubectl delete namespace cicd-lab-$STUDENT_NAME
-
 aws ecr delete-repository --repository-name cicd-lab-app-$STUDENT_NAME \
   --region us-east-1 --force || echo "Skipping ECR cleanup"
-
 rm -rf ~/cicd-lab
-
 docker rmi $(docker images my-app -q) 2>/dev/null || true
+                </code></pre>
+                <p>Remove all FluxCD resources:</p>
+                <pre><code class="language-bash" data-trim>
+# Delete the HelmRelease (triggers helm uninstall automatically)
+kubectl delete helmrelease lab-nginx-$STUDENT_NAME \
+  -n flux-lab-$STUDENT_NAME --ignore-not-found
 
-kubectl get namespace cicd-lab-$STUDENT_NAME
+# Delete the HelmRepository source
+kubectl delete helmrepository bitnami-$STUDENT_NAME \
+  -n flux-system --ignore-not-found
+
+# Delete the Flux student namespace
+kubectl delete namespace flux-lab-$STUDENT_NAME
+
+# Verify cleanup
+kubectl get namespace cicd-lab-$STUDENT_NAME 2>/dev/null || echo "cicd namespace gone"
+kubectl get namespace flux-lab-$STUDENT_NAME 2>/dev/null || echo "flux namespace gone"
                 </code></pre>
                 <div class="highlight-box danger">
-                    <strong>Do NOT delete the argocd namespace</strong> &mdash; it is shared by all students. Only delete your own Application and namespace.
+                    <strong>Do NOT delete the argocd or flux-system namespaces</strong> &mdash; they are shared by all students. Only delete your own resources and namespaces.
                 </div>
-                <aside class="notes">Expected Output: namespace "cicd-lab-$STUDENT_NAME" deleted Error from server (NotFound): namespaces "cicd-lab-$STUDENT_NAME" not found
-
-                    When ArgoCD manages resources, deleting the Application CRD triggers ArgoCD to prune the managed resources. Always delete ArgoCD Applications before deleting the namespace to ensure clean teardown. Do NOT delete the argocd namespace.
+                <aside class="notes">
+                    The order matters: delete HelmReleases before HelmRepositories so Flux can properly uninstall the Helm chart. Deleting the HelmRelease triggers a helm uninstall automatically. Do NOT delete the argocd or flux-system namespaces as they are shared infrastructure.
                 </aside>
             </section>
 
-            <!-- ========== STEP 12: Summary ========== -->
+            <!-- ========== STEP 15: Summary ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 12</h2>
-                <h3>Summary &amp; CI/CD Patterns Reference</h3>
+                <h2>Step 15</h2>
+                <h3>Summary &amp; Patterns Reference</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -1026,7 +1325,7 @@ kubectl get namespace cicd-lab-$STUDENT_NAME
                     <div class="step active"></div>
                 </div>
                 <aside class="notes">
-                    Wrap up with a summary of CI/CD patterns and best practices for Kubernetes deployments.
+                    Wrap up with a summary of CI/CD and GitOps patterns and best practices for Kubernetes deployments.
                 </aside>
             </section>
 
@@ -1094,7 +1393,7 @@ kubectl get namespace cicd-lab-$STUDENT_NAME
                         <li class="fragment">&#x1F4E4; <strong>Registry Push</strong> &mdash; authenticate to ECR, push immutable image tags</li>
                         <li class="fragment">&#x1F680; <strong>Deployment</strong> &mdash; kubectl apply for learning, GitOps for production</li>
                         <li class="fragment">&#x1F4E6; <strong>ArgoCD</strong> &mdash; Application CRD defines source, destination, and sync policy</li>
-                        <li class="fragment">&#x1F300; <strong>FluxCD</strong> &mdash; Kubernetes-native CRDs for GitOps reconciliation</li>
+                        <li class="fragment">&#x1F300; <strong>FluxCD Hands-On</strong> &mdash; HelmRelease CRD for declarative Helm chart lifecycle, reconciliation loop, and automatic drift correction</li>
                         <li class="fragment">&#x23EA; <strong>Rollback</strong> &mdash; git revert for permanent rollback, tool-specific commands for emergencies</li>
                     </ul>
                 </div>
@@ -1111,9 +1410,12 @@ kubectl get namespace cicd-lab-$STUDENT_NAME
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
+                    <div class="step completed"></div>
                 </div>
                 <aside class="notes">
-                    Congratulations on completing Lab 13. Students now understand the full CI/CD pipeline for Kubernetes and the differences between push-based and pull-based deployment models. The next labs will cover more advanced operational topics.
+                    Congratulations on completing Lab 13. Students now understand the full CI/CD pipeline for Kubernetes, the differences between push-based and pull-based deployment models, and have hands-on experience with FluxCD HelmReleases, reconciliation, and drift detection. The next labs will cover more advanced operational topics.
                 </aside>
             </section>
 

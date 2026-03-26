@@ -51,7 +51,7 @@
         .reveal ul, .reveal ol { text-align: left; display: block; margin-left: 1em; }
         .reveal li { margin-bottom: 0.5em; line-height: 1.5; font-size: 0.9em; }
         .reveal p { line-height: 1.6; }
-        .reveal pre code { font-size: 0.7em; line-height: 1.4; max-height: 500px; border-radius: 8px; }
+        .reveal pre code { font-size: 0.7em; line-height: 1.4; max-height: 500px; overflow: auto; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -61,9 +61,9 @@
             <!-- Slide 1: Title -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="title-slide">
                 <h1>&#128269; Observability</h1>
-                <h2>Logging, Metrics &amp; Tracing &mdash; Module 9 of 16</h2>
+                <h2>Logging, Metrics &amp; Tracing &mdash; Module 9 of 13</h2>
                 <h3>Verisign EKS Platform</h3>
-                <div class="module-progress">
+                                <div class="module-progress">
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -73,9 +73,6 @@
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step active"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
                     <div class="step"></div>
                     <div class="step"></div>
                     <div class="step"></div>
@@ -226,7 +223,7 @@
             <!-- Slide 9: kubectl logs -->
             <section>
                 <h2>&#128187; kubectl logs</h2>
-                <pre><code class="bash"># Follow logs in real-time
+                <pre><code class="language-bash"># Follow logs in real-time
 kubectl logs -f deployment/api-server
 
 # View logs from a previous container instance (after restart)
@@ -282,7 +279,7 @@ kubectl logs deployment/api-server --since=30m</code></pre>
             <!-- Slide 11: Fluent Bit DaemonSet -->
             <section>
                 <h2>&#128295; Fluent Bit on EKS</h2>
-                <pre><code class="yaml">apiVersion: apps/v1
+                <pre><code class="language-yaml">apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: fluent-bit
@@ -311,14 +308,14 @@ spec:
                 <div class="two-columns">
                     <div class="card">
                         <h4>&#10060; Unstructured</h4>
-                        <pre><code class="text">2024-03-15 ERROR: Failed to
+                        <pre><code class="language-text">2024-03-15 ERROR: Failed to
 connect to database host
 db-primary port 5432 timeout
 after 30s for user api-svc</code></pre>
                     </div>
                     <div class="card">
                         <h4>&#9989; Structured (JSON)</h4>
-                        <pre><code class="json">{
+                        <pre><code class="language-json">{
   "timestamp": "2024-03-15T10:23:45Z",
   "level": "error",
   "message": "database connection failed",
@@ -356,6 +353,33 @@ after 30s for user api-svc</code></pre>
 | limit 50</code></pre>
                 </div>
                 <aside class="notes">EKS integrates with CloudWatch Logs using a consistent log group hierarchy. Control plane logs — API server, scheduler, controller manager — are available natively when enabled in the EKS cluster configuration. Application and node logs require Fluent Bit or the CloudWatch agent. CloudWatch Logs Insights provides a SQL-like query language for searching across log groups.</aside>
+            </section>
+
+            <!-- Slide 13b: Logging to Splunk via Fluent Bit -->
+            <section>
+                <h2>&#128300; Logging to Splunk on EKS</h2>
+                <div class="concept-box">
+                    <h4>Fluent Bit &rarr; Splunk HEC Pipeline</h4>
+                    <p>Verisign's EKS clusters ship logs to Splunk using Fluent Bit's native <code>splunk</code> output plugin via the HTTP Event Collector (HEC)</p>
+                </div>
+                <pre class="fragment fade-up"><code class="ini"># fluent-bit OUTPUT section
+[OUTPUT]
+    Name           splunk
+    Match          kube.*
+    Host           splunk-hec.internal.verisign.com
+    Port           8088
+    Splunk_Token   ${SPLUNK_HEC_TOKEN}
+    TLS            On
+    TLS.Verify     On
+    Splunk_Send_Raw On
+    # index, source, sourcetype set per-namespace
+    Event_Index    k8s_prod
+    Event_Sourcetype _json
+    Event_Source   fluent-bit</code></pre>
+                <div class="highlight-box fragment fade-up" style="margin-top: 10px;">
+                    <strong>Key detail:</strong> HEC token is stored in a Kubernetes Secret and injected via <code>envFrom</code>. Index-per-namespace routing uses Fluent Bit's <code>Rewrite_Tag</code> filter to direct logs to the correct Splunk index.
+                </div>
+                <aside class="notes">Verisign's EKS platform uses Fluent Bit DaemonSets to collect container logs and forward them to Splunk via the HTTP Event Collector. The Splunk output plugin ships JSON-structured logs over TLS to the HEC endpoint. The HEC token is stored as a Kubernetes Secret and mounted into the Fluent Bit pods. Index routing is handled by Fluent Bit's Rewrite_Tag filter — logs from different namespaces can be sent to separate Splunk indexes based on label or namespace metadata, which aligns with Splunk's role-based access controls. Splunk_Send_Raw preserves the JSON structure so fields are automatically extracted in Splunk without additional parsing configuration.</aside>
             </section>
 
             <!-- Slide 14: Section — Metrics -->
@@ -418,7 +442,7 @@ after 30s for user api-svc</code></pre>
             <!-- Slide 17: ServiceMonitor and Scraping -->
             <section>
                 <h2>&#128301; ServiceMonitor Configuration</h2>
-                <pre><code class="yaml">apiVersion: monitoring.coreos.com/v1
+                <pre><code class="language-yaml">apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: api-server-monitor
@@ -445,7 +469,7 @@ spec:
             <!-- Slide 18: PromQL Essentials -->
             <section>
                 <h2>&#128270; PromQL Essentials</h2>
-                <pre><code class="promql"># Request rate per second over 5 minutes
+                <pre><code class="language-promql"># Request rate per second over 5 minutes
 rate(http_requests_total{service="api"}[5m])
 
 # 99th percentile latency
@@ -540,7 +564,7 @@ container_memory_working_set_bytes / container_spec_memory_limit_bytes</code></p
                         <li class="fragment fade-up">Enhanced observability mode adds Prometheus-compatible metrics</li>
                     </ul>
                 </div>
-                <pre class="fragment fade-up"><code class="bash"># Enable Container Insights with the ADOT add-on
+                <pre class="fragment fade-up"><code class="language-bash"># Enable Container Insights with the ADOT add-on
 aws eks create-addon --cluster-name verisign-prod \
   --addon-name amazon-cloudwatch-observability \
   --addon-version v1.5.0-eksbuild.1</code></pre>
@@ -570,7 +594,7 @@ aws eks create-addon --cluster-name verisign-prod \
                     <div>
                         <div class="card">
                             <h4>&#128337;&#65039; Anatomy of a Trace</h4>
-                            <pre><code class="text">Trace: abc-123
+                            <pre><code class="language-text">Trace: abc-123
 ├─ Span: API Gateway    [0ms - 250ms]
 │  ├─ Span: Auth Svc    [10ms - 40ms]
 │  └─ Span: Order Svc   [50ms - 240ms]
@@ -617,7 +641,7 @@ aws eks create-addon --cluster-name verisign-prod \
             <!-- Slide 25: OTel Collector Configuration -->
             <section>
                 <h2>&#128295; OTel Collector Pipeline</h2>
-                <pre><code class="yaml"># OTel Collector config.yaml
+                <pre><code class="language-yaml"># OTel Collector config.yaml
 receivers:
   otlp:
     protocols:
@@ -682,7 +706,7 @@ service:
             <!-- Slide 28: Alertmanager Configuration -->
             <section>
                 <h2>&#128276; Alertmanager Configuration</h2>
-                <pre><code class="yaml">apiVersion: monitoring.coreos.com/v1
+                <pre><code class="language-yaml">apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: api-server-alerts
@@ -707,7 +731,7 @@ spec:
             <!-- Slide 29: Alert Routing and Notification Channels -->
             <section>
                 <h2>&#128232; Alert Routing</h2>
-                <pre><code class="yaml"># Alertmanager configuration
+                <pre><code class="language-yaml"># Alertmanager configuration
 route:
   receiver: default-slack
   group_by: [alertname, namespace]
@@ -730,6 +754,44 @@ receivers:
   - service_key_file: /etc/alertmanager/secrets/pd-key
   # ... slack, email, and other receiver configs</code></pre>
                 <aside class="notes">Alertmanager routes alerts based on label matching. The route tree is hierarchical — more specific matches override the default. group_by batches related alerts into a single notification to reduce noise. group_wait delays the first notification slightly to catch related alerts that fire around the same time. Critical severity goes to PagerDuty for immediate response; warnings go to Slack for awareness. The send_resolved flag sends a recovery notification when the alert clears.</aside>
+            </section>
+
+            <!-- Slide 29b: Verisign Alerting Destinations -->
+            <section>
+                <h2>&#128232; Verisign Alerting Destinations</h2>
+                <div class="three-columns">
+                    <div class="card fragment fade-up">
+                        <h4>&#127381; Netcool (Webhook)</h4>
+                        <ul>
+                            <li>Enterprise event management</li>
+                            <li>Alertmanager <code>webhook_configs</code></li>
+                            <li>POST JSON to Netcool probe REST endpoint</li>
+                            <li>Maps severity &rarr; Netcool class</li>
+                        </ul>
+                    </div>
+                    <div class="card fragment fade-up">
+                        <h4>&#128231; Email (SMTP)</h4>
+                        <ul>
+                            <li>Built-in <code>email_configs</code> receiver</li>
+                            <li>Corporate SMTP relay</li>
+                            <li>HTML templates for context</li>
+                            <li>Best for low-urgency / ticket alerts</li>
+                        </ul>
+                    </div>
+                    <div class="card fragment fade-up">
+                        <h4>&#128172; WebEx (Webhook)</h4>
+                        <ul>
+                            <li>WebEx Teams Incoming Webhook</li>
+                            <li>Uses <code>webhook_configs</code></li>
+                            <li>Adaptive Card payload</li>
+                            <li>Team Spaces for on-call visibility</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box fragment fade-up" style="margin-top: 12px;">
+                    <strong>Routing tree strategy:</strong> <code>severity: critical</code> &rarr; Netcool + WebEx &ensp;|&ensp; <code>severity: warning</code> &rarr; Email + WebEx &ensp;|&ensp; <code>severity: info</code> &rarr; Email only
+                </div>
+                <aside class="notes">On Verisign's EKS platform, Alertmanager routes to three primary destinations. Netcool is the enterprise event management system — alerts reach it through a webhook receiver that POSTs JSON to the Netcool OMNIbus REST probe. The probe maps Kubernetes alert labels (severity, namespace, alertname) into Netcool event fields such as Class, Summary, and Node. Email uses the built-in SMTP receiver pointed at the corporate relay, and is typically reserved for warning and informational alerts that create tickets rather than pages. WebEx Teams integration uses the Incoming Webhook connector — Alertmanager posts an Adaptive Card with alert details to a designated Space so the on-call team has real-time visibility. In the routing tree, critical alerts fan out to both Netcool and WebEx for immediate response, while lower-severity alerts go to email for tracking.</aside>
             </section>
 
             <!-- Slide 30: SLOs and Error Budgets -->
@@ -831,7 +893,7 @@ receivers:
             <!-- Slide 33: Essential kubectl Debugging Commands -->
             <section>
                 <h2>&#128187; kubectl Debugging Commands</h2>
-                <pre><code class="bash"># Check recent events for anomalies
+                <pre><code class="language-bash"># Check recent events for anomalies
 kubectl get events --sort-by='.lastTimestamp' -n production
 
 # Identify resource pressure on nodes

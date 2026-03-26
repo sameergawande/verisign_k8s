@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Checks &amp; Probes | Intermediate Kubernetes</title>
+    <title>Health Checks, Probes &amp; Application Debugging | Intermediate Kubernetes</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reset.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/white.css">
@@ -51,7 +51,7 @@
         .reveal ul, .reveal ol { text-align: left; display: block; margin-left: 1em; }
         .reveal li { margin-bottom: 0.5em; line-height: 1.5; font-size: 0.9em; }
         .reveal p { line-height: 1.6; }
-        .reveal pre code { font-size: 0.7em; line-height: 1.4; max-height: 500px; border-radius: 8px; }
+        .reveal pre code { font-size: 0.7em; line-height: 1.4; max-height: 500px; overflow: auto; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -60,10 +60,10 @@
 
             <!-- Slide 1: Title -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="title-slide">
-                <h1>&#129657; Health Checks &amp; Probes</h1>
-                <h2>Keeping Applications Resilient &mdash; Module 10 of 16</h2>
+                <h1>&#129657; Health Probes &amp; Application Debugging</h1>
+                <h2>Keeping Applications Resilient &amp; Diagnosable &mdash; Module 10 of 13</h2>
                 <h3>Verisign EKS Platform</h3>
-                <div class="module-progress">
+                                <div class="module-progress">
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -74,9 +74,6 @@
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step active"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
                     <div class="step"></div>
                     <div class="step"></div>
                     <div class="step"></div>
@@ -848,6 +845,101 @@ spec:
                 <aside class="notes">Time for hands-on practice. In this lab you'll configure all three probe types on a web application, deliberately break the application to watch Kubernetes self-heal, debug probe failures using the techniques we covered, and set up PDBs. Take your time with the debugging section — understanding probe events is a critical operational skill.</aside>
             </section>
 
+            <!-- Section Divider: Debugging Your Application -->
+            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
+                <h2>&#128269; Debugging Your Application</h2>
+                <h3>Common Failure States &amp; Essential Troubleshooting Tools</h3>
+                <aside class="notes">Health probes help Kubernetes detect problems automatically, but when something goes wrong you need to diagnose the root cause yourself. This section covers the most common failure states you'll encounter in EKS and the kubectl tools to investigate them.</aside>
+            </section>
+
+            <!-- Slide: Common Application Failure States -->
+            <section>
+                <h2>&#128680; Common Application Failure States</h2>
+                <div class="three-columns">
+                    <div class="card">
+                        <h4>&#128308; CrashLoopBackOff</h4>
+                        <ul>
+                            <li class="fragment fade-up">OOMKilled &mdash; memory limit exceeded</li>
+                            <li class="fragment fade-up">Missing dependencies or binaries</li>
+                            <li class="fragment fade-up">Configuration errors at startup</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>&#128308; ImagePullBackOff</h4>
+                        <ul>
+                            <li class="fragment fade-up">Wrong image name or tag</li>
+                            <li class="fragment fade-up">ECR auth failure or expired token</li>
+                            <li class="fragment fade-up">Registry unreachable from EKS nodes</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>&#128308; Pending Pods</h4>
+                        <ul>
+                            <li class="fragment fade-up">Insufficient CPU/memory on nodes</li>
+                            <li class="fragment fade-up">Node affinity or taint mismatch</li>
+                            <li class="fragment fade-up">PVC stuck in pending (EBS not bound)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="two-columns" style="margin-top: 0.5em;">
+                    <div class="highlight-box warning fragment fade-up">
+                        <strong>CreateContainerConfigError:</strong> Missing ConfigMap or Secret referenced by the pod spec &mdash; container never starts.
+                    </div>
+                    <div class="highlight-box danger fragment fade-up">
+                        <strong>OOMKilled:</strong> Container exceeded its memory limit. Increase <code>resources.limits.memory</code> or fix the memory leak.
+                    </div>
+                </div>
+                <aside class="notes">These are the five failure states you'll encounter most often in EKS. CrashLoopBackOff means the container starts and immediately exits — Kubernetes backs off exponentially between restarts. ImagePullBackOff is usually an ECR authentication issue or a typo in the image reference. Pending pods indicate a scheduling problem — the cluster can't find a node that meets the pod's requirements. CreateContainerConfigError is a silent killer — the pod never starts because a ConfigMap or Secret it references doesn't exist. And OOMKilled is the kernel's out-of-memory killer terminating your process — you'll see exit code 137.</aside>
+            </section>
+
+            <!-- Slide: Essential Troubleshooting Tools -->
+            <section>
+                <h2>&#128736;&#65039; Essential Troubleshooting Tools</h2>
+                <pre><code class="language-bash"># Inspect pod status, events, and conditions
+kubectl describe pod &lt;pod-name&gt;
+kubectl describe node &lt;node-name&gt;
+
+# View logs — current, previous crash, specific container
+kubectl logs &lt;pod&gt; --tail=100
+kubectl logs &lt;pod&gt; --previous
+kubectl logs &lt;pod&gt; -c &lt;container&gt; --follow
+
+# Interactive shell into a running container
+kubectl exec -it &lt;pod&gt; -- /bin/sh
+
+# Ephemeral debug container (no shell in distroless images)
+kubectl debug -it &lt;pod&gt; --image=busybox --target=&lt;container&gt;
+
+# Resource usage (requires metrics-server)
+kubectl top pod     # CPU/memory per pod
+kubectl top node    # CPU/memory per node
+
+# Cluster events sorted by time
+kubectl get events --sort-by=.lastTimestamp -n &lt;namespace&gt;</code></pre>
+                <div class="key-point fragment fade-up">
+                    <strong>Workflow:</strong> Events &#10132; Describe &#10132; Logs &#10132; Exec/Debug &#10132; Top
+                </div>
+                <aside class="notes">Follow this workflow when debugging: start with events to see what Kubernetes is telling you, then describe the pod for detailed status and conditions. Check logs next — use --previous to see logs from a crashed container. If the container is running but misbehaving, exec into it to inspect the filesystem, test network connectivity, or check environment variables. For distroless or minimal images that lack a shell, use kubectl debug to attach an ephemeral container with debugging tools. Finally, kubectl top shows real-time resource consumption, which is essential for diagnosing OOMKilled and CPU throttling. On EKS, ensure the metrics-server add-on is deployed for kubectl top to work.</aside>
+            </section>
+
+            <!-- Slide: Debugging Decision Tree -->
+            <section>
+                <h2>&#129702; Debugging Decision Tree</h2>
+                <table>
+                    <thead>
+                        <tr><th>Symptom</th><th>First Command</th><th>What to Look For</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr class="fragment fade-up"><td>Pod stuck <strong>Pending</strong></td><td><code>kubectl describe pod</code></td><td>Events: FailedScheduling, resource requests, node selectors</td></tr>
+                        <tr class="fragment fade-up"><td>Pod in <strong>CrashLoopBackOff</strong></td><td><code>kubectl logs --previous</code></td><td>Stack traces, missing env vars, exit code (137=OOM, 1=app error)</td></tr>
+                        <tr class="fragment fade-up"><td><strong>ImagePullBackOff</strong></td><td><code>kubectl describe pod</code></td><td>Events: image name typo, 401/403 from ECR, ImagePullSecrets</td></tr>
+                        <tr class="fragment fade-up"><td>Pod <strong>Running</strong> but not working</td><td><code>kubectl exec</code> + <code>logs</code></td><td>App-level errors, connectivity to services, DNS resolution</td></tr>
+                        <tr class="fragment fade-up"><td>High latency / restarts</td><td><code>kubectl top pod</code></td><td>CPU throttling (near limit), memory creeping toward limit</td></tr>
+                    </tbody>
+                </table>
+                <aside class="notes">This decision tree gives you a fast path from symptom to diagnosis. The exit code in CrashLoopBackOff is particularly telling — 137 means OOMKilled by the kernel, 1 is a generic application error, and 143 is SIGTERM which usually means a failed liveness probe. For EKS-specific issues, also check that your node IAM role has the right ECR permissions and that your VPC networking allows pod-to-service communication.</aside>
+            </section>
+
             <!-- Slide 29: Module Summary -->
             <section>
                 <h2>&#128203; Module Summary</h2>
@@ -857,6 +949,8 @@ spec:
                     <li>Startup probes protect slow-starting applications from premature kills</li>
                     <li>Probe protocols include HTTP, TCP, gRPC, and exec for different workload types</li>
                     <li>Graceful shutdown requires coordinating preStop hooks, SIGTERM handling, and PDBs</li>
+                    <li>Recognize common failure states: CrashLoopBackOff, ImagePullBackOff, Pending, OOMKilled</li>
+                    <li>Use <code>describe</code>, <code>logs</code>, <code>exec</code>, <code>debug</code>, and <code>top</code> for systematic troubleshooting</li>
                 </ul>
             </section>
 
@@ -870,14 +964,15 @@ spec:
                     <li class="fragment fade-up"><strong>Use all three together</strong> for comprehensive health management</li>
                     <li class="fragment fade-up"><strong>Tune parameters carefully</strong> &mdash; too aggressive causes flapping, too relaxed delays recovery</li>
                     <li class="fragment fade-up"><strong>Graceful shutdown</strong> requires coordination between preStop hooks, SIGTERM handling, and PDBs</li>
+                    <li class="fragment fade-up"><strong>Systematic debugging:</strong> Events &rarr; Describe &rarr; Logs &rarr; Exec/Debug &rarr; Top</li>
                 </ul>
-                <aside class="notes">Let's recap the core lessons. The three probe types serve distinct purposes and work best together. The most common mistake is checking dependencies in liveness probes. Tune your parameters based on your application's actual behavior, and always implement graceful shutdown to prevent dropped connections during termination.</aside>
+                <aside class="notes">Let's recap the core lessons. The three probe types serve distinct purposes and work best together. The most common mistake is checking dependencies in liveness probes. Tune your parameters based on your application's actual behavior, and always implement graceful shutdown to prevent dropped connections during termination. When things go wrong, follow the debugging workflow: check events first, then describe, then logs, then exec or debug into the container, and use top for resource issues.</aside>
             </section>
 
             <!-- Slide 30: Questions -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="questions-slide" style="text-align: center;">
                 <h2>&#10067; Questions &amp; Discussion</h2>
-                <p>Health Checks &amp; Probes</p>
+                <p>Health Probes &amp; Application Debugging</p>
                 <p style="font-size: 0.8em; margin-top: 40px;">Up Next: Module 11</p>
                 <aside class="notes">Open the floor for questions. Common questions include: when to use exec vs HTTP probes, how to handle probe timeouts during garbage collection pauses, and whether to use the same endpoint for liveness and readiness. If time permits, discuss how probes interact with Horizontal Pod Autoscaler scaling decisions.</aside>
             </section>

@@ -51,7 +51,7 @@
         .reveal ul, .reveal ol { text-align: left; display: block; margin-left: 1em; }
         .reveal li { margin-bottom: 0.5em; line-height: 1.5; font-size: 0.9em; }
         .reveal p { line-height: 1.6; }
-        .reveal pre code { font-size: 0.7em; line-height: 1.4; max-height: 500px; border-radius: 8px; }
+        .reveal pre code { font-size: 0.7em; line-height: 1.4; max-height: 500px; overflow: auto; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -61,16 +61,13 @@
             <!-- Title Slide -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="title-slide">
                 <h1>&#127760; Services &amp; Service Discovery</h1>
-                <h2>Intermediate Kubernetes &mdash; Module 4 of 16</h2>
+                <h2>Intermediate Kubernetes &mdash; Module 4 of 13</h2>
                 <h3>Verisign EKS Platform</h3>
-                <div class="module-progress">
+                                <div class="module-progress">
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step active"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
                     <div class="step"></div>
                     <div class="step"></div>
                     <div class="step"></div>
@@ -446,7 +443,7 @@ metadata:
                 <h2>DNS Record Formats</h2>
                 <div class="concept-box">
                     <h4>Fully Qualified Domain Names</h4>
-                    <pre><code class="text" data-trim># Service A record
+                    <pre><code class="language-text" data-trim># Service A record
 &lt;service-name&gt;.&lt;namespace&gt;.svc.cluster.local
 
 # Examples
