@@ -151,15 +151,10 @@ metadata:
     ingressclass.kubernetes.io/is-default-class: "true"
 spec:
   controller: k8s.io/ingress-nginx
-  parameters:
-    apiGroup: k8s.io/ingress-nginx
-    kind: IngressNginxConfig
-    name: external-config
 ---
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
-metadata:
-  name: nginx-internal
+metadata: { name: nginx-internal }
 spec:
   controller: k8s.io/ingress-nginx-internal</code></pre>
                 <div class="key-point fragment fade-up">
@@ -216,10 +211,7 @@ spec:
       paths:
       - path: /
         pathType: Prefix
-        backend:
-          service:
-            name: dashboard-service
-            port: { number: 3000 }
+        backend: { service: { name: dashboard-service, port: { number: 3000 } } }
   defaultBackend:
     service: { name: default-404-service, port: { number: 80 } }</code></pre>
                 <aside class="notes">Host-based routing uses the Host header to direct traffic. Each hostname maps to a different backend service. The defaultBackend handles requests that don't match any host rule — useful for returning a custom 404 page. In production, combine this with External DNS to automatically create DNS records.</aside>
@@ -261,33 +253,17 @@ spec:
 
             <section>
                 <h2>&#128295; Essential NGINX Ingress Annotations</h2>
-                <pre class="fragment fade-up"><code class="language-yaml">apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
+                <pre class="fragment fade-up"><code class="language-yaml">metadata:
   name: production-ingress
   annotations:
-    # SSL Redirect
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-
-    # Request Body Size (file uploads)
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-
-    # Timeouts
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
-
-    # Rate Limiting
     nginx.ingress.kubernetes.io/limit-rps: "50"
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
-
-    # CORS
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.verisign.com"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE"
-    nginx.ingress.kubernetes.io/
-      cors-allow-headers: "Authorization"</code></pre>
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.verisign.com"</code></pre>
                 <aside class="notes">These are the most commonly used annotations in production. SSL redirect ensures all HTTP traffic is upgraded to HTTPS. proxy-body-size controls upload limits. Rate limiting protects your backends from overload. CORS headers are essential for APIs consumed by web frontends. Each annotation maps to an NGINX directive in the generated configuration.</aside>
             </section>
 
@@ -328,63 +304,46 @@ metadata:
 
             <section>
                 <h2>&#128274; TLS with Manual Certificates</h2>
-                <pre class="fragment fade-up"><code class="language-bash"># Create TLS secret from certificate files
-kubectl create secret tls app-tls \
-  --cert=fullchain.pem \
-  --key=privkey.pem \
-  -n verisign-apps</code></pre>
                 <pre class="fragment fade-up"><code class="language-yaml">apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: secure-ingress
-  namespace: verisign-apps
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  annotations: { nginx.ingress.kubernetes.io/ssl-redirect: "true" }
 spec:
   ingressClassName: nginx-external
   tls:
-  - hosts:
-    - api.verisign.internal
-    - dashboard.verisign.internal
-    secretName: app-tls    # References the TLS secret
+  - hosts: [api.verisign.internal, dashboard.verisign.internal]
+    secretName: app-tls
   rules:
   - host: api.verisign.internal
     http:
       paths:
       - path: /
         pathType: Prefix
-        backend:
-          service:
-            name: api-service
-            port:
-              number: 8080</code></pre>
+        backend: { service: { name: api-service, port: { number: 8080 } } }</code></pre>
                 <aside class="notes">The tls block references a kubernetes.io/tls type Secret containing the certificate chain and private key. The hosts list must match the certificate's Subject Alternative Names. Multiple hosts can share the same certificate if it's a wildcard cert or has multiple SANs.</aside>
             </section>
 
             <section>
-                <h2>&#9889; ClusterIssuer Configuration</h2>
-                <pre><code class="language-yaml"># ClusterIssuer for Let's Encrypt (or internal CA)
-apiVersion: cert-manager.io/v1
+                <h2>&#9889; Automated TLS with cert-manager</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>ClusterIssuer</h4>
+                        <pre><code class="language-yaml">apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
-metadata:
-  name: letsencrypt-prod
+metadata: { name: letsencrypt-prod }
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
     email: certs@verisign.com
-    privateKeySecretRef:
-      name: letsencrypt-prod-key
+    privateKeySecretRef: { name: letsencrypt-prod-key }
     solvers:
     - http01:
-        ingress:
-          class: nginx-external</code></pre>
-                <aside class="notes">cert-manager watches for Ingress resources with its annotation, automatically requests certificates from the configured issuer, and stores them in the referenced Secret. It also handles renewals before expiry. For Verisign internal services, you'd typically use an internal CA issuer rather than Let's Encrypt.</aside>
-            </section>
-
-            <section>
-                <h2>&#9889; Ingress with cert-manager</h2>
-                <pre><code class="language-yaml"># Ingress with automatic certificate provisioning
-apiVersion: networking.k8s.io/v1
+        ingress: { class: nginx-external }</code></pre>
+                    </div>
+                    <div>
+                        <h4>Ingress with auto-TLS</h4>
+                        <pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: auto-tls-ingress
@@ -394,16 +353,17 @@ spec:
   ingressClassName: nginx-external
   tls:
   - hosts: [api.verisign.internal]
-    secretName: api-tls-auto       # cert-manager creates this
+    secretName: api-tls-auto
   rules:
   - host: api.verisign.internal
     http:
       paths:
       - path: /
         pathType: Prefix
-        backend:
-          service: { name: api-service, port: { number: 8080 } }</code></pre>
-                <aside class="notes">The cert-manager annotation on the Ingress triggers automatic certificate provisioning. cert-manager creates and manages the Secret referenced in secretName. Certificates are renewed automatically before expiry.</aside>
+        backend: { service: { name: api-service, port: { number: 8080 } } }</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">cert-manager watches for Ingress resources with its annotation, automatically requests certificates, stores them in the referenced Secret, and handles renewals before expiry.</aside>
             </section>
 
             <!-- Gateway API -->
@@ -465,12 +425,7 @@ spec:
 
             <section>
                 <h2>&#128310; GatewayClass and Gateway</h2>
-                <pre class="fragment fade-up"><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
-kind: GatewayClass
-metadata: { name: envoy-gateway }
-spec:
-  controllerName: gateway.envoyproxy.io/gatewayclass-controller
----
+                <pre class="fragment fade-up"><code class="language-yaml"># GatewayClass is typically pre-installed by the platform
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata: { name: verisign-gateway, namespace: gateway-system }
@@ -480,8 +435,7 @@ spec:
   - name: http
     protocol: HTTP
     port: 80
-    allowedRoutes:
-      namespaces: { from: All }
+    allowedRoutes: { namespaces: { from: All } }
   - name: https
     protocol: HTTPS
     port: 443
@@ -492,9 +446,7 @@ spec:
     allowedRoutes:
       namespaces:
         from: Selector
-        selector:
-          matchLabels:
-            gateway-access: "true"</code></pre>
+        selector: { matchLabels: { gateway-access: "true" } }</code></pre>
                 <aside class="notes">The Gateway resource defines listeners with protocols, ports, and TLS configuration. The allowedRoutes field controls which namespaces can attach routes — this is the RBAC model. Using a namespace selector with labels gives platform teams fine-grained control over which application namespaces can use the gateway.</aside>
             </section>
 
@@ -529,29 +481,17 @@ spec:
                 <h2>&#9878;&#65039; Canary Deployments with HTTPRoute</h2>
                 <pre class="fragment fade-up"><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata:
-  name: dns-service-canary
-  namespace: verisign-apps
+metadata: { name: dns-service-canary, namespace: verisign-apps }
 spec:
   parentRefs:
-  - name: verisign-gateway
-    namespace: gateway-system
-  hostnames:
-  - "dns.verisign.internal"
+  - { name: verisign-gateway, namespace: gateway-system }
+  hostnames: ["dns.verisign.internal"]
   rules:
   - matches:
-    - path:
-        type: PathPrefix
-        value: /
+    - path: { type: PathPrefix, value: / }
     backendRefs:
-    # Stable version gets 90% of traffic
-    - name: dns-service-stable
-      port: 8080
-      weight: 90
-    # Canary version gets 10% of traffic
-    - name: dns-service-canary
-      port: 8080
-      weight: 10</code></pre>
+    - { name: dns-service-stable, port: 8080, weight: 90 }
+    - { name: dns-service-canary, port: 8080, weight: 10 }</code></pre>
                 <div class="concept-box fragment fade-up">
                     <h4>Progressive Rollout Strategy</h4>
                     <p style="font-size: 0.85em;">Start at <strong>5%</strong> &rarr; Monitor metrics &rarr; <strong>25%</strong> &rarr; Verify &rarr; <strong>50%</strong> &rarr; Validate &rarr; <strong>100%</strong></p>
@@ -563,32 +503,20 @@ spec:
                 <h2>&#128202; Header-Based Canary Routing</h2>
                 <pre class="fragment fade-up"><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata:
-  name: dns-service-header-canary
-  namespace: verisign-apps
+metadata: { name: dns-service-header-canary, namespace: verisign-apps }
 spec:
   parentRefs:
-  - name: verisign-gateway
-    namespace: gateway-system
-  hostnames:
-  - "dns.verisign.internal"
+  - { name: verisign-gateway, namespace: gateway-system }
+  hostnames: ["dns.verisign.internal"]
   rules:
-  # Internal testers get canary version
   - matches:
-    - headers:
-      - name: X-Canary
-        value: "true"
+    - headers: [{ name: X-Canary, value: "true" }]
     backendRefs:
-    - name: dns-service-canary
-      port: 8080
-  # Everyone else gets stable
+    - { name: dns-service-canary, port: 8080 }
   - matches:
-    - path:
-        type: PathPrefix
-        value: /
+    - path: { type: PathPrefix, value: / }
     backendRefs:
-    - name: dns-service-stable
-      port: 8080</code></pre>
+    - { name: dns-service-stable, port: 8080 }</code></pre>
                 <aside class="notes">Tip: QA team sets X-Canary: true header to test new versions in production before enabling weight-based rollout. This lets you verify the canary in the real production environment before exposing it to all users.</aside>
             </section>
 
@@ -702,42 +630,17 @@ containers:
                 <h2>&#129489;&#8205;&#128187; Lab: Ingress and Gateway API</h2>
                 <h3>Hands-On Exercise</h3>
                 <ul>
-                    <li class="fragment fade-up">Deploy NGINX Ingress Controller on your EKS cluster</li>
-                    <li class="fragment fade-up">Create path-based and host-based Ingress resources</li>
+                    <li class="fragment fade-up">Verify the NGINX Ingress Controller and IngressClass</li>
+                    <li class="fragment fade-up">Create host-based and path-based Ingress resources</li>
                     <li class="fragment fade-up">Configure TLS termination with a self-signed certificate</li>
-                    <li class="fragment fade-up">Test Ingress annotations: rate limiting, CORS, body size</li>
-                    <li class="fragment fade-up">Deploy Envoy Gateway and create Gateway + HTTPRoute</li>
-                    <li class="fragment fade-up">Implement weight-based traffic splitting (canary deployment)</li>
-                    <li class="fragment fade-up">Test header-based routing for internal QA traffic</li>
+                    <li class="fragment fade-up">Test Ingress annotations: rate limiting, CORS, rewrite</li>
+                    <li class="fragment fade-up">Deploy Gateway API resources with HTTPRoute traffic splitting</li>
+                    <li class="fragment fade-up">Configure egress NetworkPolicies to control outbound traffic</li>
                 </ul>
                 <div class="highlight-box" style="margin-top: 20px;">
                     <strong>Duration:</strong> ~60 minutes
                 </div>
                 <aside class="notes">This lab covers both the traditional Ingress approach and the modern Gateway API. Participants will see firsthand how Gateway API simplifies traffic management compared to Ingress annotations. The canary deployment exercise is particularly valuable for understanding production rollout strategies.</aside>
-            </section>
-
-            <!-- Summary -->
-            <section>
-                <h2>&#128218; Module 6 Summary</h2>
-                <div class="two-columns">
-                    <div class="card">
-                        <h4>&#128208; Ingress</h4>
-                        <ul>
-                            <li>NGINX Ingress Controller for L7 routing</li>
-                            <li>Path/host-based routing with TLS via cert-manager</li>
-                            <li>Feature-frozen — use for existing setups</li>
-                        </ul>
-                    </div>
-                    <div class="card">
-                        <h4>&#128310; Gateway API</h4>
-                        <ul>
-                            <li>Role-oriented, typed, portable resource model</li>
-                            <li>Native traffic splitting, header matching, multi-protocol</li>
-                            <li>Recommended path forward</li>
-                        </ul>
-                    </div>
-                </div>
-                <aside class="notes">The key message is that Gateway API is the future of Kubernetes traffic management. If you're starting new, go directly to Gateway API. If you have existing Ingress resources, they'll continue to work, but plan your migration path. Both approaches solve the same problem but Gateway API does it with better architecture.</aside>
             </section>
 
             <!-- Key Takeaways -->
@@ -755,7 +658,7 @@ containers:
                 <div class="key-point fragment fade-up">
                     <strong>4. Control egress too</strong> &mdash; Ingress is only half the story. Egress controls are critical for security and compliance.
                 </div>
-                <aside class="notes">Four takeaways: consolidate external access, adopt Gateway API, automate certificate management, and don't forget egress controls. These principles will guide your architecture decisions on the Verisign EKS platform.</aside>
+                <aside class="notes">Four takeaways: consolidate external access, adopt Gateway API, automate certificate management, and don't forget egress controls.</aside>
             </section>
 
             <!-- Questions -->

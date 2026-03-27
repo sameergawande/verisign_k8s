@@ -61,16 +61,10 @@ kubectl create namespace probes-lab-$STUDENT_NAME
 kubectl config set-context --current --namespace=probes-lab-$STUDENT_NAME
 ```
 
-> ✅ **Expected Output:**
-> ```
-> namespace/probes-lab-<your-name> created
-> Context modified.
-> ```
-
 ### Deploy App Without Probes
 
 ```yaml
-cat <<'EOF' | kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -120,7 +114,7 @@ kubectl exec $curl_pod -- curl -s -o /dev/null -w "%{http_code}" localhost:80
 ### Deploy with Liveness Probe
 
 ```yaml
-cat <<'EOF' | kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata: { name: liveness-http, namespace: probes-lab-$STUDENT_NAME }
@@ -142,13 +136,7 @@ spec:
 EOF
 ```
 
-> 💡 **Probe parameters explained:**
-> - `initialDelaySeconds: 5` — wait 5s before first probe
-> - `periodSeconds: 10` — check every 10s
-> - `failureThreshold: 3` (default) — 3 consecutive failures to declare unhealthy
-> - `timeoutSeconds: 1` (default) — probe must respond within 1s
->
-> The kubelet sends an HTTP GET request. Any status code between 200 and 399 counts as success. 400+ or a timeout counts as failure.
+> 💡 **Probe parameters:** Defaults are `failureThreshold: 3`, `timeoutSeconds: 1`, `periodSeconds: 10`. Any HTTP status 200-399 counts as success.
 
 ### Test the Liveness Probe
 
@@ -188,11 +176,19 @@ kubectl describe pod $LIVE_POD | grep -A 5 "Liveness"
 ### Deploy with Readiness Probe
 
 ```yaml
-cat <<'EOF' | kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: readiness-app, namespace: probes-lab-$STUDENT_NAME }
-# ... spec.replicas: 3, selector/template labels: app: readiness-app
+metadata:
+  name: readiness-app
+  namespace: probes-lab-$STUDENT_NAME
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: readiness-app }
+  template:
+    metadata:
+      labels: { app: readiness-app }
     spec:
       containers:
       - name: server
@@ -207,6 +203,15 @@ metadata: { name: readiness-app, namespace: probes-lab-$STUDENT_NAME }
         livenessProbe:
           httpGet: { path: /, port: 80 }
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: readiness-svc
+  namespace: probes-lab-$STUDENT_NAME
+spec:
+  selector: { app: readiness-app }
+  ports:
+  - port: 80
 EOF
 ```
 
@@ -252,8 +257,6 @@ kubectl get endpoints readiness-svc
 > ```
 > Endpoints now show only 2 IP addresses instead of 3.
 
-> 📝 **Key Difference:** Readiness failure **removes** the pod from Service endpoints. Liveness failure **restarts** the container. They serve different purposes.
-
 ### Restore Readiness
 
 ```bash
@@ -279,11 +282,19 @@ kubectl get endpoints readiness-svc
 ### Deploy with a Startup Probe
 
 ```yaml
-cat <<'EOF' | kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: slow-start-app, namespace: probes-lab-$STUDENT_NAME }
-# ... spec.replicas: 1, selector/template labels: app: slow-start-app
+metadata:
+  name: slow-start-app
+  namespace: probes-lab-$STUDENT_NAME
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: slow-start-app }
+  template:
+    metadata:
+      labels: { app: slow-start-app }
     spec:
       containers:
       - name: server
@@ -324,17 +335,6 @@ kubectl get events --field-selector reason=Unhealthy \
 
 ---
 
-## Checkpoint: Probe Types
-
-Verify your understanding:
-
-1. Liveness probe failure causes a container **restart**
-2. Readiness probe failure removes the pod from **Service endpoints**
-3. Startup probe **gates** liveness and readiness probes
-4. Without probes, broken pods continue receiving traffic
-
----
-
 ## Step 5: Configure Probe Parameters
 
 ### Probe Parameter Reference
@@ -354,8 +354,19 @@ Verify your understanding:
 ### Tuning Exercise
 
 ```yaml
-cat <<'EOF' | kubectl apply -f -
-# ... standard metadata/selector/template (app: tuned-probes)
+cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tuned-probes
+  namespace: probes-lab-$STUDENT_NAME
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: tuned-probes }
+  template:
+    metadata:
+      labels: { app: tuned-probes }
     spec:
       containers:
       - name: server
@@ -389,11 +400,19 @@ EOF
 ### Deploy with TCP Probe
 
 ```yaml
-cat <<'EOF' | kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: tcp-probe-app, namespace: probes-lab-$STUDENT_NAME }
-# ... spec.replicas: 1, selector/template labels: app: tcp-probe-app
+metadata:
+  name: tcp-probe-app
+  namespace: probes-lab-$STUDENT_NAME
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: tcp-probe-app }
+  template:
+    metadata:
+      labels: { app: tcp-probe-app }
     spec:
       containers:
       - name: redis
@@ -409,12 +428,7 @@ metadata: { name: tcp-probe-app, namespace: probes-lab-$STUDENT_NAME }
 EOF
 ```
 
-> 💡 **When to Use TCP Probes:**
-> - Services that speak non-HTTP protocols (Redis, PostgreSQL, MQTT)
-> - When you only need to verify the port is accepting connections
-> - Lower overhead than HTTP probes
->
-> TCP probes verify that a TCP connection can be established. They are less thorough than HTTP probes (they do not verify the application is actually functional) but work with any TCP-based service.
+> 💡 **When to Use TCP Probes:** Use for non-HTTP services (Redis, PostgreSQL, MQTT) where you only need to verify the port is accepting connections.
 
 ### Test the TCP Probe
 
@@ -444,7 +458,7 @@ kubectl describe pod $TCP_POD | grep -A 3 "Liveness\|Readiness"
 ### Deploy with Exec Probe (File-Based Health Check)
 
 ```yaml
-cat <<'EOF' | kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata: { name: exec-probe-app, namespace: probes-lab-$STUDENT_NAME }
@@ -467,12 +481,7 @@ spec:
 EOF
 ```
 
-> 💡 **How It Works:**
-> - The probe runs `cat /tmp/healthy` inside the container
-> - Exit code 0 = success, non-zero = failure
-> - `failureThreshold` defaults to 3 (3 consecutive failures to declare unhealthy)
->
-> File-based health checks are a simple pattern. The application creates a sentinel file to indicate health and removes it when unhealthy.
+> 💡 **How It Works:** The probe runs `cat /tmp/healthy` inside the container — exit code 0 = success, non-zero = failure. File-based health checks are a simple sentinel pattern.
 
 ### Test the Exec Probe
 
@@ -499,11 +508,19 @@ kubectl get pods -l app=exec-probe-app -w
 ### Deploy with Graceful Shutdown Configuration
 
 ```yaml
-cat <<'EOF' | kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: graceful-app, namespace: probes-lab-$STUDENT_NAME }
-# ... spec.replicas: 2, selector/template labels: app: graceful-app
+metadata:
+  name: graceful-app
+  namespace: probes-lab-$STUDENT_NAME
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: graceful-app }
+  template:
+    metadata:
+      labels: { app: graceful-app }
     spec:
       terminationGracePeriodSeconds: 45
       containers:
@@ -521,7 +538,7 @@ metadata: { name: graceful-app, namespace: probes-lab-$STUDENT_NAME }
 EOF
 ```
 
-> 💡 The `preStop` hook runs BEFORE the SIGTERM signal. The `terminationGracePeriodSeconds` defines the maximum time allowed for graceful shutdown (preStop + SIGTERM handling). After this period, SIGKILL is sent.
+> 💡 The `preStop` hook runs BEFORE the SIGTERM signal. The `terminationGracePeriodSeconds` defines the maximum time for graceful shutdown (preStop + SIGTERM handling). After this period, SIGKILL is sent.
 
 ### Observe Graceful Shutdown
 
@@ -539,116 +556,11 @@ kubectl delete pod $GRACEFUL_POD
 # Note the time between the delete command and actual termination
 ```
 
-> ✅ **Expected:** The pod enters `Terminating` state and takes approximately 10+ seconds to fully terminate (due to the `sleep 10` in the preStop hook).
-
-> 📝 **Shutdown Sequence:**
-> 1. Pod marked as Terminating (removed from endpoints)
-> 2. preStop hook executes
-> 3. SIGTERM sent to container
-> 4. Wait for `terminationGracePeriodSeconds`
-> 5. SIGKILL if still running
->
-> Endpoints are removed immediately when termination begins, so new traffic stops flowing to the pod while it drains existing connections.
+> 📝 **Shutdown Sequence:** Pod is marked Terminating (removed from endpoints immediately), preStop hook executes, SIGTERM is sent, then SIGKILL after `terminationGracePeriodSeconds`. The pod should take ~10+ seconds to terminate due to the `sleep 10` in the preStop hook.
 
 ---
 
-## Step 9: Pod Disruption Budgets
-
-### Create a Pod Disruption Budget
-
-```yaml
-cat <<'EOF' | kubectl apply -f -
-apiVersion: apps/v1
-kind: Deployment
-metadata: { name: pdb-app, namespace: probes-lab-$STUDENT_NAME }
-# ... spec.replicas: 4, selector/template labels: app: pdb-app
-    spec:
-      containers:
-      - name: server
-        image: nginx:1.25
-        ports: [{containerPort: 80}]
-        readinessProbe:
-          httpGet: { path: /, port: 80 }
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata: { name: pdb-app-pdb, namespace: probes-lab-$STUDENT_NAME }
-spec:
-  minAvailable: 2
-  selector:
-    matchLabels: { app: pdb-app }
-EOF
-```
-
-> 💡 **PDB Options:**
-> - `minAvailable: 2` — at least 2 pods must remain available
-> - `maxUnavailable: 1` — at most 1 pod can be unavailable (alternative syntax)
-> - Can use absolute numbers or percentages (e.g., `"50%"`)
->
-> PDBs are respected by voluntary disruption operations like `kubectl drain` and cluster autoscaler. They are **NOT** respected by involuntary disruptions like node hardware failures.
-
-### Examine the PDB
-
-```bash
-# View the PDB status
-kubectl get pdb -n probes-lab-$STUDENT_NAME
-
-# Describe for details
-kubectl describe pdb pdb-app-pdb -n probes-lab-$STUDENT_NAME
-```
-
-> ✅ **Expected Output:**
-> ```
-> NAME          MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
-> pdb-app-pdb   2               N/A               2                     10s
-> ```
-
-> 📝 **ALLOWED DISRUPTIONS:** With 4 replicas and `minAvailable=2`, Kubernetes allows **2 pods** to be disrupted simultaneously while maintaining the minimum. This value is dynamically calculated: current healthy pods minus `minAvailable`.
-
----
-
-## Step 10: Test PDB During Voluntary Disruption
-
-### Test PDB with Pod Deletion
-
-```bash
-# See where pods are scheduled
-kubectl get pods -l app=pdb-app -o wide
-
-# Try to delete multiple pods simultaneously
-# PDB will allow this as long as minAvailable is maintained
-kubectl delete pod -l app=pdb-app --grace-period=0 --force &
-
-# Immediately check PDB status
-kubectl get pdb pdb-app-pdb -n probes-lab-$STUDENT_NAME -w
-```
-
-> ⚠️ **Note:** Direct `kubectl delete pod` does **NOT** respect PDBs. PDBs are enforced by the Eviction API, used by `kubectl drain` and cluster autoscaler.
-
-### Test PDB with Node Drain (Dry Run Only)
-
-```bash
-NODE_NAME=$(kubectl get pods -l app=pdb-app \
-  -o jsonpath='{.items[0].spec.nodeName}')
-
-echo "Will attempt to drain node: $NODE_NAME"
-
-kubectl drain $NODE_NAME \
-  --ignore-daemonsets \
-  --delete-emptydir-data \
-  --dry-run=client
-```
-
-> ⚠️ **Shared Cluster Warning:** NEVER run `kubectl drain` without `--dry-run=client` in a shared cluster. A real drain would evict all students' workloads from the node.
-
-```bash
-# Don't forget to uncordon the node afterward!
-# kubectl uncordon $NODE_NAME
-```
-
----
-
-## Step 11: Clean Up
+## Step 9: Clean Up
 
 ```bash
 # Delete the lab namespace (removes all resources)
@@ -660,33 +572,6 @@ kubectl get namespace probes-lab-$STUDENT_NAME
 
 > ✅ **Expected:** `Error from server (NotFound): namespaces "probes-lab-<your-name>" not found`
 
-> ⚠️ **Reminder:** If you drained a node in Step 10, make sure to uncordon it: `kubectl uncordon $NODE_NAME`. A cordoned node will not accept new pods and can cause scheduling issues for other workloads.
-
----
-
-## Step 12: Summary and Reference
-
-### Probe Configuration Reference
-
-| Probe Type | Mechanism | On Failure | Best For |
-|-----------|-----------|------------|----------|
-| **Liveness** | HTTP / TCP / Exec | Restart container | Deadlock detection |
-| **Readiness** | HTTP / TCP / Exec | Remove from endpoints | Traffic gating |
-| **Startup** | HTTP / TCP / Exec | Kill container | Slow-starting apps |
-
-### Probe Mechanisms
-
-- **httpGet:** HTTP GET request, success = status code 200–399
-- **tcpSocket:** TCP connect, success = connection established
-- **exec:** Run command, success = exit code 0
-
-### Recommended Defaults
-
-- `periodSeconds: 10`
-- `timeoutSeconds: 3`
-- `failureThreshold: 3`
-- `successThreshold: 1` (2+ for readiness)
-
 ---
 
 ## Key Takeaways
@@ -697,4 +582,3 @@ kubectl get namespace probes-lab-$STUDENT_NAME
 - **Startup:** Protects slow-starting containers from premature liveness kills
 - **Tuning:** Balance detection speed against probe overhead and false positives
 - **Graceful Shutdown:** preStop hooks and `terminationGracePeriodSeconds` ensure clean termination
-- **PDBs:** Protect workload availability during voluntary disruptions

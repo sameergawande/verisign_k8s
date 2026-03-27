@@ -792,7 +792,25 @@ curl -sf https://api.verisign.com/healthz || \
                 </ul>
             </section>
 
-            <!-- Slide 28: Key Takeaways -->
+            <!-- Slide 28: Lab Callout -->
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout">
+                <h2>&#129489;&#8205;&#128187; Lab 11: Deployment Strategies</h2>
+                <h3>Hands-On Exercise</h3>
+                <ul>
+                    <li class="fragment fade-up">Configure a rolling update with custom maxSurge and maxUnavailable</li>
+                    <li class="fragment fade-up">Monitor a rollout and perform a rollback to a specific revision</li>
+                    <li class="fragment fade-up">Implement a blue-green deployment with Service label switching</li>
+                    <li class="fragment fade-up">Implement canary deployment with replica ratios</li>
+                    <li class="fragment fade-up">Set up Pod Disruption Budgets and test with node drains</li>
+                    <li class="fragment fade-up">Implement progressDeadlineSeconds and trigger a failed rollout</li>
+                </ul>
+                <div class="highlight-box" style="margin-top: 20px;">
+                    <strong>Duration:</strong> ~45 minutes
+                </div>
+                <aside class="notes">This lab covers the practical implementation of all major strategies discussed. Participants will deploy applications using rolling updates, blue-green, and canary patterns. The rollback exercise is intentionally designed to simulate a production incident. The PDB exercise demonstrates how disruption budgets interact with node maintenance and rolling updates.</aside>
+            </section>
+
+            <!-- Slide 29: Key Takeaways -->
             <section>
                 <h2>&#127919; Key Takeaways</h2>
                 <div class="key-point fragment fade-up">
@@ -805,25 +823,6 @@ curl -sf https://api.verisign.com/healthz || \
                     <strong>3. Safety mechanisms are not optional.</strong> PDBs, <code>progressDeadlineSeconds</code>, readiness probes, and <code>revisionHistoryLimit</code> are essential. Combine strategies with feature flags to decouple deployment from release risk.
                 </div>
                 <aside class="notes">Five key takeaways. Start simple with rolling updates and add complexity only when the risk profile demands it. Safety mechanisms should be on every Deployment regardless of strategy. And the combination of deployment strategies with feature flags gives you the most resilient release process possible.</aside>
-            </section>
-
-            <!-- Slide 28: Lab Callout -->
-            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout">
-                <h2>&#129489;&#8205;&#128187; Lab 11: Deployment Strategies</h2>
-                <h3>Hands-On Exercise</h3>
-                <ul>
-                    <li class="fragment fade-up">Configure a rolling update with custom maxSurge and maxUnavailable</li>
-                    <li class="fragment fade-up">Monitor a rollout and perform a rollback to a specific revision</li>
-                    <li class="fragment fade-up">Implement a blue-green deployment with Service label switching</li>
-                    <li class="fragment fade-up">Deploy a manual canary with two Deployments and observe traffic split</li>
-                    <li class="fragment fade-up">Configure NGINX Ingress canary annotations for weight-based routing</li>
-                    <li class="fragment fade-up">Set up Pod Disruption Budgets and test with node drains</li>
-                    <li class="fragment fade-up">Implement progressDeadlineSeconds and trigger a failed rollout</li>
-                </ul>
-                <div class="highlight-box" style="margin-top: 20px;">
-                    <strong>Duration:</strong> ~45 minutes
-                </div>
-                <aside class="notes">This lab covers the practical implementation of all major strategies discussed. Participants will deploy applications using rolling updates, blue-green, and canary patterns. The rollback exercise is intentionally designed to simulate a production incident. The PDB exercise demonstrates how disruption budgets interact with node maintenance and rolling updates.</aside>
             </section>
 
             <!-- Slide 29: Questions -->

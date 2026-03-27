@@ -947,17 +947,17 @@ spec:
                 <h2>&#128295; Lab 3: Storage and StatefulSets</h2>
                 <h3>Hands-on: Provision, persist, and manage stateful workloads</h3>
                 <ul>
-                    <li>Create StorageClasses for gp3 and EFS</li>
-                    <li>Deploy a PVC and verify dynamic provisioning</li>
-                    <li>Deploy a PostgreSQL StatefulSet with volumeClaimTemplates</li>
-                    <li>Verify stable network identities and per-replica storage</li>
-                    <li>Test pod failure and volume reattachment</li>
-                    <li>Expand a PVC and observe online resize</li>
+                    <li>Explore the existing gp2 StorageClass and create a PVC</li>
+                    <li>Deploy a pod with the PVC and verify dynamic provisioning</li>
+                    <li>Deploy an nginx StatefulSet with volumeClaimTemplates</li>
+                    <li>Verify stable network identities, DNS, and per-replica storage</li>
+                    <li>Test pod deletion and volume reattachment</li>
+                    <li>Scale the StatefulSet and expand a PVC</li>
                 </ul>
                 <div class="highlight-box">
                     <strong>Duration:</strong> ~45 minutes
                 </div>
-                <aside class="notes">This lab covers the full storage lifecycle. Participants will create StorageClasses, provision PVCs, deploy a StatefulSet, and test failure scenarios. The key validation is seeing that data persists across pod restarts and that the volume follows the pod identity, not the node. Budget extra time for the StatefulSet exercises as they involve waiting for ordered pod creation.</aside>
+                <aside class="notes">This lab covers the full storage lifecycle. Participants will explore the existing gp2 StorageClass, provision PVCs, deploy an nginx StatefulSet, and test failure scenarios. The key validation is seeing that data persists across pod restarts and that the volume follows the pod identity, not the node. Budget extra time for the StatefulSet exercises as they involve waiting for ordered pod creation.</aside>
             </section>
 
             <!-- Slide 35: Key Takeaways -->

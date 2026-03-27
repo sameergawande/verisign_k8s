@@ -901,14 +901,14 @@ metadata: { name: disallow-latest-tag }
 spec:
   validationFailureAction: Enforce
   rules:
-    - name: require-image-tag
-      match: { resources: { kinds: ["Pod"] } }
-      validate:
-        message: "Must use a specific tag"
-        pattern:
-          spec:
-            containers:
-              - image: "!*:latest"</code></pre>
+  - name: require-image-tag
+    match: { resources: { kinds: ["Pod"] } }
+    validate:
+      message: "Must use a specific tag"
+      pattern:
+        spec:
+          containers:
+          - image: "!*:latest"</code></pre>
                     </div>
                 </div>
                 <aside class="notes">Policy as code completes the security story. These tools act as admission controllers, intercepting API requests before resources are created. Gatekeeper uses Rego, which is powerful but has a learning curve. Kyverno uses native YAML, making it more accessible. Common policies include requiring labels, disallowing privileged containers, enforcing resource limits, and blocking the latest tag. In a GitOps workflow, these policies ensure that even if something wrong gets into Git, the cluster rejects it.</aside>
@@ -1103,7 +1103,23 @@ argocd app rollback frontend 3</code></pre>
                 </ul>
             </section>
 
-            <!-- Slide 32: Key Takeaways -->
+            <!-- Slide 32: Lab Callout -->
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout" style="text-align: center;">
+                <h2>&#128736;&#65039; Lab 13: CI/CD Integration</h2>
+                <h3>Estimated Time: ~45 minutes</h3>
+                <div class="highlight-box" style="display: inline-block; text-align: left; margin-top: 20px;">
+                    <ul>
+                        <li>Build, tag, and push a container image to ECR</li>
+                        <li>Deploy an application manually with kubectl and envsubst</li>
+                        <li>Create an ArgoCD Application and observe sync behavior</li>
+                        <li>Trigger a pipeline with a code change and redeploy</li>
+                        <li>Create a FluxCD HelmRelease and test drift reconciliation</li>
+                    </ul>
+                </div>
+                <aside class="notes">This lab walks through the full CI/CD lifecycle. Participants will build and push a container image to ECR, deploy manually with kubectl, create an ArgoCD Application using the pre-installed ArgoCD, trigger a pipeline with a code change, and create a FluxCD HelmRelease to observe drift reconciliation.</aside>
+            </section>
+
+            <!-- Slide 33: Key Takeaways -->
             <section>
                 <h2>&#127919; Key Takeaways</h2>
                 <div class="highlight-box success">
@@ -1114,26 +1130,6 @@ argocd app rollback frontend 3</code></pre>
                         <li>Use OIDC for CI authentication and pin action versions by SHA to prevent supply chain attacks</li>
                     </ol>
                 </div>
-            </section>
-
-            <!-- Slide 33: Lab Callout -->
-            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout" style="text-align: center;">
-                <h2>&#128736;&#65039; Lab 13: CI/CD Integration</h2>
-                <h3>Estimated Time: ~45 minutes</h3>
-                <div class="highlight-box" style="display: inline-block; text-align: left; margin-top: 20px;">
-                    <ul>
-                        <li>Set up a GitOps repository structure with Kustomize overlays</li>
-                        <li>Install and configure ArgoCD in the cluster</li>
-                        <li>Create an ArgoCD Application with automated sync</li>
-                        <li>Trigger a deployment by updating the GitOps repo</li>
-                        <li>Observe drift detection and self-healing in action</li>
-                        <li>Perform a rollback using <code>git revert</code></li>
-                        <li>Integrate image scanning with Trivy</li>
-                        <li>Explore FluxCD resources and create a HelmRelease</li>
-                        <li>Test FluxCD drift detection and reconciliation</li>
-                    </ul>
-                </div>
-                <aside class="notes">This lab brings together the concepts from the module. Participants will set up a GitOps workflow from scratch - creating the repo structure, installing ArgoCD, deploying an application, and observing the reconciliation loop. The drift detection exercise is particularly impactful - they'll manually change something with kubectl and watch ArgoCD revert it. The FluxCD section has students explore Flux resources, create a HelmRelease, and observe drift detection. The rollback exercise reinforces the Git-centric operational model.</aside>
             </section>
 
             <!-- Slide 32: Questions -->

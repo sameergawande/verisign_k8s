@@ -890,20 +890,14 @@ metadata:
                     <div>
                         <h4>2. IAM Trust Policy</h4>
                         <pre><code class="language-json">{
-  "Version": "2012-10-17",
   "Statement": [{
     "Effect": "Allow",
     "Principal": { "Federated":
-      "arn:aws:iam::111122223333:
-       oidc-provider/oidc.eks..."},
-    "Action":
-      "sts:AssumeRoleWithWebIdentity",
+      "arn:aws:iam::111122223333:oidc-provider/oidc.eks..." },
+    "Action": "sts:AssumeRoleWithWebIdentity",
     "Condition": { "StringEquals": {
-      "...OIDC_ID:aud":
-        "sts.amazonaws.com",
-      "...OIDC_ID:sub":
-        "system:serviceaccount:
-         my-namespace:my-app-sa"
+      "OIDC_ID:aud": "sts.amazonaws.com",
+      "OIDC_ID:sub": "system:serviceaccount:my-namespace:my-app-sa"
     }}
   }]
 }</code></pre>

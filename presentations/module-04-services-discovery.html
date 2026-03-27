@@ -916,12 +916,11 @@ kubectl logs -n kube-system -l k8s-app=kube-proxy --tail=50</code></pre>
                 <h3>Hands-On Exercise</h3>
                 <ul>
                     <li class="fragment fade-up">Create ClusterIP, NodePort, and LoadBalancer Services</li>
-                    <li class="fragment fade-up">Verify endpoints and label matching behavior</li>
-                    <li class="fragment fade-up">Test DNS-based service discovery with CoreDNS</li>
-                    <li class="fragment fade-up">Deploy a headless Service for a StatefulSet</li>
-                    <li class="fragment fade-up">Configure ExternalTrafficPolicy and observe source IP behavior</li>
+                    <li class="fragment fade-up">Test DNS-based service discovery and examine DNS records</li>
+                    <li class="fragment fade-up">Explore Endpoints and EndpointSlices as pods scale</li>
+                    <li class="fragment fade-up">Deploy a headless Service and compare DNS responses</li>
+                    <li class="fragment fade-up">Configure a multi-port Service for HTTP and HTTPS</li>
                     <li class="fragment fade-up">Explore AWS NLB integration with IP-mode targets</li>
-                    <li class="fragment fade-up">Debug common Service connectivity issues</li>
                 </ul>
                 <div class="highlight-box" style="margin-top: 20px;">
                     <strong>Duration:</strong> ~45 minutes

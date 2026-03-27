@@ -19,33 +19,24 @@
 - Completion of Labs 1-5 with `kubectl` access
 - Ingress controller installed (NGINX or AWS ALB)
 
-> 💡 **Note:** Steps 8-9 (Gateway API) require the Gateway API CRDs to be installed. If unavailable, those steps can be read through as reference.
+> Steps 8-9 (Gateway API) require the Gateway API CRDs. If unavailable, read through as reference.
 
 ### Duration
 
-> ⏱ **Estimated Time:** 60 minutes
+Approximately 60 minutes
 
 ---
 
 ## Environment Setup
 
-Set your student identifier (use your first name or assigned number):
-
 ```bash
-# Set your unique student name
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
 ```
 
-> ⚠️ **Important:** This shared cluster is used by all 22 students. Your `$STUDENT_NAME` ensures your resources don't conflict with others.
-
 ---
 
-## Step 1: Verify Ingress Controller Is Running
-
-Before creating Ingress resources, verify that an Ingress controller is deployed in the cluster.
-
-### Check for the Ingress Controller
+## Step 1: Verify Ingress Controller and Create Namespace
 
 ```bash
 # Check for NGINX Ingress Controller
@@ -55,45 +46,21 @@ kubectl get pods -n ingress-nginx
 kubectl get pods -n kube-system \
   -l app.kubernetes.io/name=aws-load-balancer-controller
 
-# Check IngressClasses available
 kubectl get ingressclass
 ```
 
-> ✅ **Expected Output (NGINX):**
-> ```
-> NAME                                        READY   STATUS
-> ingress-nginx-controller-5d4f4f7b8-xxxxx   1/1     Running
->
-> NAME    CONTROLLER                     PARAMETERS   AGE
-> nginx   k8s.io/ingress-nginx           <none>       10d
-> ```
-
-> ⚠️ **Troubleshooting:** If no Ingress controller is found, notify the instructor. Ingress resources will not function without a controller. The IngressClass determines which controller processes your Ingress resources.
-
-### Create Lab Namespace
+> ⚠️ If no Ingress controller is found, notify the instructor.
 
 ```bash
-# Create the lab namespace
 kubectl create namespace lab06-$STUDENT_NAME
 
 # Verify the Ingress controller service has an external IP/hostname
 kubectl get svc -n ingress-nginx
-# Or for AWS ALB Controller, the external address appears on the Ingress itself
 ```
-
-> ✅ **Expected Output:**
-> ```
-> NAME                              TYPE           CLUSTER-IP     EXTERNAL-IP
-> ingress-nginx-controller          LoadBalancer   10.100.x.x    ab1c2d3e4...elb.amazonaws.com
-> ```
-
-> 💡 **Key Point:** The EXTERNAL-IP (or hostname on AWS) is where all Ingress traffic enters the cluster. The Ingress controller then routes requests to the correct backend Service based on host and path rules.
 
 ---
 
 ## Step 2: Deploy Two Sample Applications
-
-Deploy two versions of a sample application. These represent different microservices or application versions that will be routed to via Ingress using host-based and path-based rules.
 
 ### Deploy app-v1
 
@@ -157,26 +124,18 @@ spec:
     - { port: 80, targetPort: 8080 }
 ```
 
-### Apply and Verify
-
 ```bash
 kubectl apply -f app-v1.yaml
 kubectl apply -f app-v2.yaml
-
-# Verify all pods are running
 kubectl get pods -n lab06-$STUDENT_NAME -l app=web
 kubectl get svc -n lab06-$STUDENT_NAME
 ```
 
-> ✅ **Checkpoint:** You should see 4 pods (2 for v1, 2 for v2) in Running/Ready state and 2 ClusterIP services.
+> ✅ **Checkpoint:** 4 pods (2 for v1, 2 for v2) Running and 2 ClusterIP services.
 
 ---
 
-## Step 3: Create a Basic Ingress (Host-Based Routing)
-
-Host-based routing directs traffic based on the HTTP Host header. This is the most common Ingress pattern, allowing multiple applications to share a single load balancer IP by using different domain names.
-
-### Create Host-Based Ingress
+## Step 3: Create a Host-Based Ingress
 
 ```yaml
 # Save as ingress-host.yaml
@@ -213,69 +172,30 @@ spec:
 ```
 
 ```bash
-kubectl apply -f ingress-host.yaml && kubectl get ingress -n lab06-$STUDENT_NAME
+kubectl apply -f ingress-host.yaml
 ```
-
-### Verify the Ingress
-
-```bash
-# Check Ingress details
-kubectl describe ingress app-ingress-host -n lab06-$STUDENT_NAME
-```
-
-> ✅ **Expected Output:**
-> ```
-> Name:             app-ingress-host
-> Namespace:        lab06-$STUDENT_NAME
-> Rules:
->   Host           Path  Backends
->   ----           ----  --------
->   v1-$STUDENT_NAME.lab.local   /     app-v1-svc:80 (10.0.x.x:8080,10.0.x.x:8080)
->   v2-$STUDENT_NAME.lab.local   /     app-v2-svc:80 (10.0.x.x:8080,10.0.x.x:8080)
-> ```
-
-> 💡 **Note:** The Backends column shows the pod IP addresses. If it shows `<error: endpoints ... not found>`, the service selector does not match any pods.
 
 ---
 
 ## Step 4: Test Host-Based Routing
 
-Use the Ingress controller's address with Host headers to test routing:
-
 ```bash
-# Get the Ingress controller external address
 INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
     -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
 echo "Ingress address: $INGRESS_IP"
 
-# Test routing to v1
 curl -s -H "Host: v1-$STUDENT_NAME.lab.local" http://$INGRESS_IP
-
-# Test routing to v2
 curl -s -H "Host: v2-$STUDENT_NAME.lab.local" http://$INGRESS_IP
-
-# Test with an unknown host (should get 404)
 curl -s -H "Host: unknown.lab.local" http://$INGRESS_IP
 ```
 
-> ✅ **Expected Output:**
-> ```
-> $ curl -H "Host: v1-$STUDENT_NAME.lab.local" http://$INGRESS_IP
-> Hello from App V1
->
-> $ curl -H "Host: v2-$STUDENT_NAME.lab.local" http://$INGRESS_IP
-> Hello from App V2
-> ```
+> ✅ **Checkpoint:** v1 host returns `Hello from App V1`, v2 host returns `Hello from App V2`, unknown host returns 404.
 
-> ⚠️ **AWS Note:** On EKS, use the hostname instead of IP. If using NLB, the `jsonpath` field may be `.ip` instead of `.hostname`. Allow 2-3 minutes for DNS propagation after the load balancer is created.
+> ⚠️ **AWS Note:** On EKS, use the hostname instead of IP. Allow 2-3 minutes for DNS propagation after LB creation.
 
 ---
 
 ## Step 5: Add Path-Based Routing
-
-Path-based routing directs traffic based on the URL path. This allows a single hostname to serve multiple backends based on the request path. It is commonly used for API versioning and microservice routing.
-
-### Create Path-Based Ingress
 
 ```yaml
 # Save as ingress-path.yaml
@@ -317,48 +237,19 @@ spec:
 
 ```bash
 kubectl apply -f ingress-path.yaml
-```
 
-### Test Path-Based Routing
-
-```bash
-# Test path /v1
 curl -s -H "Host: app-$STUDENT_NAME.lab.local" http://$INGRESS_IP/v1
-
-# Test path /v2
 curl -s -H "Host: app-$STUDENT_NAME.lab.local" http://$INGRESS_IP/v2
-
-# Test default path
 curl -s -H "Host: app-$STUDENT_NAME.lab.local" http://$INGRESS_IP/
 ```
 
-> ✅ **Expected Output:**
-> ```
-> $ curl -H "Host: app-$STUDENT_NAME.lab.local" http://$INGRESS_IP/v1
-> Hello from App V1
->
-> $ curl -H "Host: app-$STUDENT_NAME.lab.local" http://$INGRESS_IP/v2
-> Hello from App V2
->
-> $ curl -H "Host: app-$STUDENT_NAME.lab.local" http://$INGRESS_IP/
-> Hello from App V1
-> ```
-
-> 📝 **pathType Values:**
-> - **Prefix:** Matches URL paths where the path element is a prefix (split by `/`)
-> - **Exact:** Matches the URL path exactly, case-sensitive
-> - **ImplementationSpecific:** Matching depends on the IngressClass
+> ✅ **Checkpoint:** `/v1` returns V1, `/v2` returns V2, `/` defaults to V1.
 
 ---
 
 ## Step 6: Configure TLS Termination
 
-TLS termination at the Ingress controller is the standard pattern for HTTPS. The Ingress controller handles TLS decryption, forwarding unencrypted traffic to the backend services within the cluster network.
-
-### Create TLS Secret and Ingress
-
 ```bash
-# Generate a self-signed certificate and create TLS Secret
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout tls-ingress.key -out tls-ingress.crt \
     -subj "/CN=*.lab.local/O=Verisign Lab"
@@ -395,41 +286,18 @@ spec:
                   number: 80
 ```
 
-### Test TLS Termination
-
 ```bash
 kubectl apply -f ingress-tls.yaml
 
-# Test HTTPS (use -k to accept self-signed cert)
 curl -sk -H "Host: secure.lab.local" https://$INGRESS_IP
-
-# Verify the certificate details
-curl -skv -H "Host: secure.lab.local" https://$INGRESS_IP 2>&1 | \
-    grep -E "subject|issuer|expire"
-
-# Test HTTP redirect to HTTPS
 curl -sI -H "Host: secure.lab.local" http://$INGRESS_IP
 ```
 
-> ✅ **Expected Output:**
-> ```
-> Hello from App V1
->
-> * subject: CN=*.lab.local; O=Verisign Lab
->
-> HTTP/1.1 308 Permanent Redirect
-> Location: https://secure.lab.local/
-> ```
-
-> ⚠️ **Note:** The `-k` flag skips certificate verification (required for self-signed certs). Never use `-k` in production scripts. The 308 redirect confirms that HTTP traffic is automatically redirected to HTTPS.
+> ✅ **Checkpoint:** HTTPS returns `Hello from App V1`. HTTP returns a `308 Permanent Redirect` to HTTPS.
 
 ---
 
 ## Step 7: Explore Ingress Annotations
-
-Annotations are the primary mechanism for configuring Ingress controller behavior beyond basic routing. The available annotations depend on the Ingress controller in use.
-
-### Create Advanced Annotations Ingress
 
 ```yaml
 # Save as ingress-annotations.yaml
@@ -439,17 +307,12 @@ metadata:
   name: app-ingress-advanced
   namespace: lab06-$STUDENT_NAME
   annotations:
-    # URL rewriting with regex capture
     nginx.ingress.kubernetes.io/rewrite-target: /$2
-    # Rate limiting
     nginx.ingress.kubernetes.io/limit-rps: "10"
-    # CORS
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.verisign.com"
-    # Proxy timeouts
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
-    # Custom headers
     nginx.ingress.kubernetes.io/configuration-snippet: |
       more_set_headers "X-Served-By: verisign-eks";
 spec:
@@ -467,20 +330,17 @@ spec:
                   number: 80
 ```
 
-### Test Annotations
-
 ```bash
 kubectl apply -f ingress-annotations.yaml
 
-# Test URL rewriting: /api/anything routes to /anything on the backend
 curl -s -H "Host: api.lab.local" http://$INGRESS_IP/api/
 
-# Check response headers for CORS and custom headers
+# Check CORS and custom headers
 curl -sI -H "Host: api.lab.local" \
     -H "Origin: https://app.verisign.com" \
     http://$INGRESS_IP/api/ 2>&1 | grep -E "cors|X-Served"
 
-# Test rate limiting (rapid requests)
+# Test rate limiting
 for i in $(seq 1 15); do
     curl -s -o /dev/null -w "%{http_code} " \
         -H "Host: api.lab.local" http://$INGRESS_IP/api/
@@ -488,41 +348,20 @@ done
 echo ""
 ```
 
-> ✅ **Expected Output:**
-> ```
-> Access-Control-Allow-Origin: https://app.verisign.com
-> X-Served-By: verisign-eks
->
-> 200 200 200 200 200 200 200 200 200 200 503 503 503 503 503
-> ```
-
-> 💡 **Key Point:** After 10 requests per second (with burst), excess requests receive `503 Service Temporarily Unavailable`. Rate limiting protects backend services from overload.
+> ✅ **Checkpoint:** CORS and custom headers appear. After 10 rapid requests, excess requests return `503`.
 
 ---
 
 ## Step 8: Gateway API -- GatewayClass and Gateway
 
-The Gateway API is the successor to Ingress, offering a more expressive, role-oriented, and portable API for traffic routing. It separates infrastructure concerns (GatewayClass, Gateway) from application routing (HTTPRoute).
-
-### Check Gateway API CRDs
-
 ```bash
-# Verify Gateway API CRDs are installed
 kubectl get crd | grep gateway
-
-# Expected CRDs:
-# gatewayclasses.gateway.networking.k8s.io
-# gateways.gateway.networking.k8s.io
-# httproutes.gateway.networking.k8s.io
 ```
 
-> ⚠️ **If CRDs are not installed:** Install them with:
+> ⚠️ **If CRDs are not installed:**
 > ```bash
 > kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml
 > ```
-> If installation is not permitted, read through steps 8-9 as reference material.
-
-### Deploy GatewayClass and Gateway
 
 ```yaml
 # Save as gateway.yaml
@@ -564,28 +403,9 @@ kubectl apply -f gateway.yaml
 kubectl get gateway -n lab06-$STUDENT_NAME
 ```
 
-### Verify Gateway Status
-
-```bash
-kubectl get gateway lab-gateway -n lab06-$STUDENT_NAME -o yaml | \
-    kubectl neat 2>/dev/null || \
-    kubectl get gateway lab-gateway -n lab06-$STUDENT_NAME -o yaml
-```
-
-> ✅ **Expected Status:** The Gateway should show `Accepted: True` and `Programmed: True` conditions. If the controller is not running, the status will show `Accepted: False` with a reason.
-
-> 📝 **Gateway API Role Separation:**
-> - **Infrastructure Provider** -- Manages GatewayClass, deploys the controller
-> - **Cluster Operator** -- Manages Gateway, configures listeners and TLS
-> - **Application Developer** -- Manages HTTPRoute, attaches to Gateway
-
 ---
 
 ## Step 9: HTTPRoute for Traffic Splitting
-
-HTTPRoute is where application developers define routing rules. A powerful feature of Gateway API is native traffic splitting (weighted routing), which enables canary deployments and A/B testing without additional tooling.
-
-### Create HTTPRoute with Traffic Splitting
 
 ```yaml
 # Save as httproute.yaml
@@ -616,59 +436,34 @@ spec:
 
 ```bash
 kubectl apply -f httproute.yaml
-kubectl get httproute -n lab06-$STUDENT_NAME
-kubectl describe httproute app-route -n lab06-$STUDENT_NAME
-```
 
-### Test Traffic Splitting
-
-```bash
-# Get the Gateway address
 GATEWAY_IP=$(kubectl get gateway lab-gateway -n lab06-$STUDENT_NAME \
     -o jsonpath='{.status.addresses[0].value}')
 
-# Send 20 requests and count the distribution
 for i in $(seq 1 20); do
     curl -s -H "Host: app-$STUDENT_NAME.lab.local" http://$GATEWAY_IP
 done | sort | uniq -c | sort -rn
 ```
 
-> ✅ **Expected Output (approximately):**
-> ```
->   16 Hello from App V1
->    4 Hello from App V2
-> ```
+> ✅ **Checkpoint:** Expect roughly 80/20 distribution between V1 and V2.
 
-> 💡 **Key Point:** Traffic splitting is probabilistic. With 20 requests, expect roughly 80/20 distribution. In production canary deployments, start with 5% to the new version and gradually increase as confidence grows.
-
-> ⚠️ **Note:** If the Gateway controller is not running or CRDs are missing, this test will not work. Use the Ingress-based routing from earlier steps as the fallback.
+> ⚠️ If the Gateway controller is not running, use Ingress-based routing from earlier steps as fallback.
 
 ---
 
 ## Step 10: Configure Egress Controls with NetworkPolicy
 
-While Ingress controls inbound traffic routing, egress NetworkPolicies control outbound traffic from pods. This is critical for security: restricting which external services pods can communicate with reduces the blast radius of a compromise.
-
-### Test Default Egress (No Restrictions)
-
 ```bash
-# Deploy a test pod
 kubectl run egress-test --image=busybox:1.36 \
     -n lab06-$STUDENT_NAME --restart=Never \
     --command -- sleep 3600
 
-# Test outbound connectivity (DNS and HTTP)
-kubectl exec egress-test -n lab06-$STUDENT_NAME -- \
-    nslookup kubernetes.default.svc.cluster.local
-
+# Test outbound connectivity
 kubectl exec egress-test -n lab06-$STUDENT_NAME -- \
     wget -qO- --timeout=5 http://app-v1-svc.lab06-$STUDENT_NAME.svc.cluster.local
-
 kubectl exec egress-test -n lab06-$STUDENT_NAME -- \
     wget -qO- --timeout=5 http://example.com
 ```
-
-> ✅ **Expected Output:** All three requests succeed. By default, pods have unrestricted egress to both cluster-internal and external destinations.
 
 ### Apply Egress NetworkPolicy
 
@@ -686,7 +481,7 @@ spec:
   policyTypes:
     - Egress
   egress:
-    - to:  # Allow DNS
+    - to:
         - namespaceSelector: {}
           podSelector:
             matchLabels:
@@ -696,7 +491,7 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    - to:  # Allow cluster-internal HTTP
+    - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: lab06-$STUDENT_NAME
@@ -707,14 +502,6 @@ spec:
 
 ```bash
 kubectl apply -f egress-policy.yaml
-```
-
-### Verify Egress Restrictions
-
-```bash
-# DNS should still work
-kubectl exec egress-test -n lab06-$STUDENT_NAME -- \
-    nslookup kubernetes.default.svc.cluster.local
 
 # Internal service access should work
 kubectl exec egress-test -n lab06-$STUDENT_NAME -- \
@@ -725,67 +512,27 @@ kubectl exec egress-test -n lab06-$STUDENT_NAME -- \
     wget -qO- --timeout=5 http://example.com
 ```
 
-> ✅ **Expected Output:**
-> ```
-> DNS:       Server: 10.100.0.10  Address: 10.100.0.10:53  Name: kubernetes...
-> Internal:  Hello from App V1
-> External:  wget: download timed out
-> ```
+> ✅ **Checkpoint:** Internal returns `Hello from App V1`. External times out.
 
-> ⚠️ **CNI Requirement:** NetworkPolicy enforcement requires a compatible CNI plugin (Calico, Cilium). If using the default AWS VPC CNI without a policy engine, NetworkPolicies are accepted but not enforced. Verify with your cluster administrator.
+> ⚠️ NetworkPolicy enforcement requires a compatible CNI (Calico, Cilium). Default AWS VPC CNI without a policy engine will accept but not enforce policies.
 
 ---
 
 ## Step 11: Clean Up
 
 ```bash
-# Delete the GatewayClass (cluster-scoped, not deleted with namespace)
 kubectl delete gatewayclass lab-gateway-class-$STUDENT_NAME --ignore-not-found
-
-# Delete the entire namespace
 kubectl delete namespace lab06-$STUDENT_NAME
 
-# Verify cleanup
-kubectl get namespace lab06-$STUDENT_NAME
-kubectl get gatewayclass lab-gateway-class-$STUDENT_NAME
-
-# Clean up local files
 rm -f app-v1.yaml app-v2.yaml ingress-host.yaml ingress-path.yaml \
     ingress-tls.yaml ingress-annotations.yaml gateway.yaml httproute.yaml \
     egress-policy.yaml tls-ingress.key tls-ingress.crt
 ```
 
-> ✅ **Expected Output:** Both the namespace and GatewayClass are deleted. All Ingress, Gateway, HTTPRoute, NetworkPolicy, and Service resources are removed.
-
 ---
 
-## Summary and Key Takeaways
+## Summary
 
-### Ingress
-
-- Host-based and path-based routing using Ingress resources
-- TLS termination with self-signed certificates and SSL redirect
-- Controller-specific annotations for rewrite, rate limiting, CORS, and custom headers
-
-### Gateway API
-
-- Role-based separation: GatewayClass (infra), Gateway (operator), HTTPRoute (developer)
-- Native traffic splitting via weighted `backendRefs` for canary deployments
-- Portable spec across controller implementations
-
-### Egress Controls
-
-- NetworkPolicy egress rules restrict outbound traffic from pods
-- Always include a DNS exception (port 53 to kube-dns) when restricting egress
-- Namespace-scoped restrictions require a NetworkPolicy-capable CNI (Calico, Cilium)
-
-### Ingress vs Gateway API Comparison
-
-| Feature | Ingress | Gateway API |
-|---|---|---|
-| API maturity | Stable (v1 since 1.19) | GA core (v1 since 1.29) |
-| Role separation | Single resource | GatewayClass / Gateway / Route |
-| Traffic splitting | Annotation-dependent | Native (weight field) |
-| Header matching | Annotation-dependent | Native (matches block) |
-| Portability | Annotations not portable | Spec is portable |
-| Protocol support | HTTP/HTTPS only | HTTP, gRPC, TCP, TLS, UDP |
+- **Ingress:** Host-based and path-based routing, TLS termination with SSL redirect, controller-specific annotations for rewrite/rate-limiting/CORS
+- **Gateway API:** Role-based separation (GatewayClass/Gateway/HTTPRoute), native traffic splitting via weighted `backendRefs`
+- **Egress Controls:** NetworkPolicy egress rules restrict outbound traffic; always include a DNS exception (port 53) when restricting egress

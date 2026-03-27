@@ -709,25 +709,7 @@ kubectl apply --dry-run=server \
                 <aside class="notes">Two sides of network policies: the technical fundamentals of writing correct YAML, and the operational strategy of deploying them safely. Both matter equally. A perfect policy that breaks DNS is useless, and a well-deployed policy with the wrong selectors is a false sense of security.</aside>
             </section>
 
-            <!-- Slide 31: Key Takeaways -->
-            <section>
-                <h2>&#127919; Key Takeaways</h2>
-                <div class="key-point fragment fade-up">
-                    <strong>1. Default deny is non-negotiable.</strong> Apply default-deny ingress and egress to every namespace. No exceptions for production workloads.
-                </div>
-                <div class="key-point fragment fade-up">
-                    <strong>2. Always allow DNS.</strong> Every egress policy must include UDP/TCP port 53. Forgetting this is the most common cause of policy-related outages.
-                </div>
-                <div class="key-point fragment fade-up">
-                    <strong>3. Know your CNI.</strong> Standard NetworkPolicy is L3/L4 only. For L7 filtering, DNS-based rules, or global policies, use Calico or Cilium extensions.
-                </div>
-                <div class="key-point fragment fade-up">
-                    <strong>4. Observe before enforcing.</strong> Enable flow logging, map real traffic, then write policies. Never guess at communication patterns.
-                </div>
-                <aside class="notes">Four takeaways to remember. Default deny is the foundation. DNS is the most common pitfall. Your CNI determines what's enforceable. And observing before enforcing prevents outages. These principles will serve you well as you implement network policies on the Verisign platform.</aside>
-            </section>
-
-            <!-- Slide 32: Lab Callout -->
+            <!-- Slide 31: Lab Callout -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout">
                 <h2>&#129489;&#8205;&#128187; Lab 8: Network Policies</h2>
                 <h3>Hands-On Exercise</h3>
@@ -744,6 +726,24 @@ kubectl apply --dry-run=server \
                     <strong>Duration:</strong> ~45 minutes
                 </div>
                 <aside class="notes">This lab walks through the full lifecycle: deploy an app, observe default behavior, lock it down, and debug issues. The intentional DNS breakage exercise is designed to build muscle memory for the most common real-world problem. By the end, participants will have a working set of policies for a three-tier application.</aside>
+            </section>
+
+            <!-- Slide 32: Key Takeaways -->
+            <section>
+                <h2>&#127919; Key Takeaways</h2>
+                <div class="key-point fragment fade-up">
+                    <strong>1. Default deny is non-negotiable.</strong> Apply default-deny ingress and egress to every namespace. No exceptions for production workloads.
+                </div>
+                <div class="key-point fragment fade-up">
+                    <strong>2. Always allow DNS.</strong> Every egress policy must include UDP/TCP port 53. Forgetting this is the most common cause of policy-related outages.
+                </div>
+                <div class="key-point fragment fade-up">
+                    <strong>3. Know your CNI.</strong> Standard NetworkPolicy is L3/L4 only. For L7 filtering, DNS-based rules, or global policies, use Calico or Cilium extensions.
+                </div>
+                <div class="key-point fragment fade-up">
+                    <strong>4. Observe before enforcing.</strong> Enable flow logging, map real traffic, then write policies. Never guess at communication patterns.
+                </div>
+                <aside class="notes">Four takeaways to remember. Default deny is the foundation. DNS is the most common pitfall. Your CNI determines what's enforceable. And observing before enforcing prevents outages. These principles will serve you well as you implement network policies on the Verisign platform.</aside>
             </section>
 
             <!-- Slide 33: Questions -->

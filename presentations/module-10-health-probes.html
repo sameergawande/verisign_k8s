@@ -761,16 +761,12 @@ spec:
 kind: Deployment
 metadata: { name: production-app }
 spec:
-  replicas: 3
   template:
     spec:
       terminationGracePeriodSeconds: 45
       containers:
       - name: app
         image: myapp:2.0
-        resources:
-          requests: { cpu: "250m", memory: "256Mi" }
-          limits: { cpu: "1000m", memory: "512Mi" }
         startupProbe:
           httpGet: { path: /healthz, port: 8080 }
           failureThreshold: 20
@@ -782,50 +778,38 @@ spec:
         readinessProbe:
           httpGet: { path: /ready, port: 8080 }
           periodSeconds: 5
-          failureThreshold: 3
-        lifecycle:
-          preStop:
-            exec:
-              command: ["/bin/sh", "-c", "sleep 10"]</code></pre>
+          failureThreshold: 3</code></pre>
                 <aside class="notes">Here's a complete, production-ready pod spec that combines everything we've covered. Three probes for comprehensive health checking, resource limits, a termination grace period, and a preStop hook for clean shutdown. This template is a solid starting point for any production deployment — adjust the timing parameters based on your application's characteristics.</aside>
             </section>
 
-            <!-- Slide 27: Quick Reference — Probe Selection -->
+            <!-- Slide 27: Quick Reference -->
             <section>
-                <h2>&#128221; Quick Reference: Probe Selection</h2>
-                <table>
-                    <thead>
-                        <tr><th>Scenario</th><th>Probe Type</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>App hangs/deadlocks</td><td>Liveness</td></tr>
-                        <tr><td>Warming cache on startup</td><td>Readiness</td></tr>
-                        <tr><td>Slow JVM/ML model load</td><td>Startup</td></tr>
-                        <tr><td>Dependency unavailable</td><td>Readiness</td></tr>
-                        <tr><td>Memory leak detected</td><td>Liveness</td></tr>
-                        <tr><td>Rolling update safety</td><td>Readiness</td></tr>
-                    </tbody>
-                </table>
-                <aside class="notes">Match your failure scenario to the right probe type. Liveness for internal failures that a restart would fix, readiness for temporary conditions, and startup for slow initialization.</aside>
-            </section>
-
-            <!-- Slide 27b: Quick Reference — Protocol Selection -->
-            <section>
-                <h2>&#128221; Quick Reference: Protocol Selection</h2>
-                <table>
-                    <thead>
-                        <tr><th>Workload</th><th>Protocol</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>Web apps / REST APIs</td><td>HTTP</td></tr>
-                        <tr><td>gRPC microservices</td><td>gRPC</td></tr>
-                        <tr><td>Databases / Caches</td><td>TCP</td></tr>
-                        <tr><td>Custom validation</td><td>Exec</td></tr>
-                        <tr><td>Legacy apps</td><td>Exec / TCP</td></tr>
-                        <tr><td>Multi-check logic</td><td>Exec</td></tr>
-                    </tbody>
-                </table>
-                <aside class="notes">Pick the probe protocol based on your workload type. Most modern web services use HTTP probes, but don't overlook exec probes for complex health validation logic.</aside>
+                <h2>&#128221; Quick Reference</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Probe Type by Scenario</h4>
+                        <table>
+                            <tbody>
+                                <tr><td>App hangs/deadlocks</td><td>Liveness</td></tr>
+                                <tr><td>Cache warming / dependency down</td><td>Readiness</td></tr>
+                                <tr><td>Slow JVM/ML model load</td><td>Startup</td></tr>
+                                <tr><td>Memory leak detected</td><td>Liveness</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h4>Protocol by Workload</h4>
+                        <table>
+                            <tbody>
+                                <tr><td>Web apps / REST APIs</td><td>HTTP</td></tr>
+                                <tr><td>gRPC microservices</td><td>gRPC</td></tr>
+                                <tr><td>Databases / Caches</td><td>TCP</td></tr>
+                                <tr><td>Custom / legacy</td><td>Exec</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <aside class="notes">Match your failure scenario to the right probe type and protocol. Liveness for internal failures a restart would fix, readiness for temporary conditions, startup for slow initialization.</aside>
             </section>
 
             <!-- Section Divider: Debugging Your Application -->
@@ -928,12 +912,12 @@ kubectl get events --sort-by=.lastTimestamp -n &lt;namespace&gt;</code></pre>
                 <h2>&#129489;&#8205;&#128187; Lab 10: Health Checks and Probes</h2>
                 <h3>Estimated Time: ~40 minutes</h3>
                 <ul>
-                    <li>Configure liveness, readiness, and startup probes for a multi-container deployment</li>
+                    <li>Configure HTTP, TCP, and exec liveness probes</li>
+                    <li>Implement readiness probes and observe endpoint management</li>
+                    <li>Deploy startup probes for slow-starting applications</li>
                     <li>Simulate application failures and observe probe-driven recovery</li>
-                    <li>Debug failing probes using events, logs, and manual testing</li>
+                    <li>Tune probe parameters and analyze detection timing</li>
                     <li>Implement graceful shutdown with preStop hooks</li>
-                    <li>Create Pod Disruption Budgets for safe cluster operations</li>
-                    <li>Practice systematic debugging with <code>describe</code>, <code>logs</code>, <code>exec</code>, and <code>top</code></li>
                 </ul>
                 <div class="highlight-box">
                     <strong>Lab Guide:</strong> Follow the step-by-step instructions in <code>labs/lab-10-health-probes/</code>

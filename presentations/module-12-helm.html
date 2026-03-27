@@ -813,7 +813,24 @@ helm show chart oci://registry.example.com/charts/mychart \
                 </ul>
             </section>
 
-            <!-- Slide 31: Key Takeaways -->
+            <!-- Slide 31: Lab Callout -->
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout" style="text-align: center;">
+                <h2>&#128736;&#65039; Lab 12: Helm and Templating</h2>
+                <h3>Estimated Time: ~45 minutes</h3>
+                <div class="highlight-box" style="display: inline-block; text-align: left; margin-top: 20px;">
+                    <ul>
+                        <li>Install and explore a chart from the Bitnami repository</li>
+                        <li>Upgrade a release and rollback to a previous revision</li>
+                        <li>Create a custom Helm chart using <code>helm create</code></li>
+                        <li>Add custom templates with Go templating and values</li>
+                        <li>Validate with <code>helm lint</code>, <code>helm template</code>, and dry-run</li>
+                        <li>Package and install the custom chart</li>
+                    </ul>
+                </div>
+                <aside class="notes">This lab covers the full chart development lifecycle. Participants will create a chart from the scaffolded template, customize templates with Go templating, manage releases through install/upgrade/rollback cycles, add a dependency, and validate everything with lint and template commands. Encourage them to experiment with --dry-run before applying changes.</aside>
+            </section>
+
+            <!-- Slide 32: Key Takeaways -->
             <section>
                 <h2>&#127919; Key Takeaways</h2>
                 <div class="highlight-box success">
@@ -824,24 +841,6 @@ helm show chart oci://registry.example.com/charts/mychart \
                         <li>Add a values.schema.json for validation to catch configuration errors before deployment</li>
                     </ol>
                 </div>
-            </section>
-
-            <!-- Slide 32: Lab Callout -->
-            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout" style="text-align: center;">
-                <h2>&#128736;&#65039; Lab 12: Helm and Templating</h2>
-                <h3>Estimated Time: ~45 minutes</h3>
-                <div class="highlight-box" style="display: inline-block; text-align: left; margin-top: 20px;">
-                    <ul>
-                        <li>Create a Helm chart from scratch using <code>helm create</code></li>
-                        <li>Implement Go templates with values, conditionals, and loops</li>
-                        <li>Define named templates in <code>_helpers.tpl</code></li>
-                        <li>Install, upgrade, and rollback a release</li>
-                        <li>Add a subchart dependency and configure it</li>
-                        <li>Write and run a Helm test</li>
-                        <li>Validate with <code>helm lint</code> and <code>helm template</code></li>
-                    </ul>
-                </div>
-                <aside class="notes">This lab covers the full chart development lifecycle. Participants will create a chart from the scaffolded template, customize templates with Go templating, manage releases through install/upgrade/rollback cycles, add a dependency, and validate everything with lint and template commands. Encourage them to experiment with --dry-run before applying changes.</aside>
             </section>
 
             <!-- Slide 31: Questions -->
