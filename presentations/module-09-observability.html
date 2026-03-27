@@ -347,7 +347,7 @@ after 30s for user api-svc</code></pre>
                 </div>
                 <div class="highlight-box fragment fade-up">
                     <strong>CloudWatch Logs Insights query:</strong>
-                    <pre style="margin: 10px 0 0 0;"><code class="sql">fields @timestamp, @message, kubernetes.pod_name
+                    <pre style="margin: 10px 0 0 0;"><code class="language-sql">fields @timestamp, @message, kubernetes.pod_name
 | filter @message like /error/i
 | sort @timestamp desc
 | limit 50</code></pre>
@@ -362,7 +362,7 @@ after 30s for user api-svc</code></pre>
                     <h4>Fluent Bit &rarr; Splunk HEC Pipeline</h4>
                     <p>Verisign's EKS clusters ship logs to Splunk using Fluent Bit's native <code>splunk</code> output plugin via the HTTP Event Collector (HEC)</p>
                 </div>
-                <pre class="fragment fade-up"><code class="ini"># fluent-bit OUTPUT section
+                <pre class="fragment fade-up"><code class="language-ini"># fluent-bit OUTPUT section
 [OUTPUT]
     Name           splunk
     Match          kube.*

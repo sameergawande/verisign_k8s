@@ -302,9 +302,6 @@
                     <div class="step"></div>
                     <div class="step"></div>
                     <div class="step"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
                 </div>
                 <aside class="notes">
                     Welcome to Lab 1. This is the foundational lab where students get comfortable navigating a Kubernetes cluster using kubectl. Everyone should have cluster access configured before starting. Walk around and verify connectivity before proceeding.
@@ -318,7 +315,8 @@
                     <div class="card">
                         <h4>Objectives</h4>
                         <ul>
-                            <li class="fragment">Verify cluster connectivity and authentication</li>
+                            <li class="fragment">Install and configure kubectl</li>
+                            <li class="fragment">Connect to the shared EKS cluster</li>
                             <li class="fragment">Navigate cluster nodes, namespaces, and workloads</li>
                             <li class="fragment">Deploy, inspect, scale, and access an application</li>
                             <li class="fragment">Use essential kubectl commands confidently</li>
@@ -327,36 +325,83 @@
                     <div class="card">
                         <h4>Prerequisites</h4>
                         <ul>
-                            <li>kubectl installed and configured</li>
-                            <li>Access to a Kubernetes cluster (EKS)</li>
-                            <li>Terminal / shell access</li>
+                            <li>Terminal / shell access (macOS, Linux, or WSL)</li>
+                            <li>AWS CLI v2 installed</li>
+                            <li>AWS credentials provided by the instructor</li>
                         </ul>
                         <div class="highlight-box warning" style="margin-top: 15px;">
-                            <strong>&#x23F1; Duration:</strong> ~30 minutes
+                            <strong>&#x23F1; Duration:</strong> ~45 minutes
                         </div>
                     </div>
                 </div>
                 <aside class="notes">
-                    Review the objectives and confirm everyone has the prerequisites. If anyone lacks cluster access, help them configure kubeconfig before moving on.
+                    Review the objectives and confirm everyone has a terminal and AWS credentials. The first steps walk through kubectl installation and EKS connectivity — do not skip these, as every subsequent lab depends on them.
+                </aside>
+            </section>
+
+            <!-- ========== STEP 1: Install kubectl ========== -->
+            <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
+                <h2>Step 1</h2>
+                <h3>Install kubectl</h3>
+                <div class="module-progress">
+                    <div class="step active"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step"></div>
+                </div>
+                <aside class="notes">
+                    kubectl is the primary CLI for interacting with Kubernetes. Students need a version within one minor release of the cluster version. Walk around to help anyone who has issues with their platform-specific install.
                 </aside>
             </section>
 
             <section>
-                <h2>&#9881;&#65039; Environment Setup</h2>
-                <p>Set your student identifier (use your first name or assigned number):</p>
-                <pre><code class="language-bash"># Set your unique student name
-export STUDENT_NAME=&lt;your-name&gt;
-echo "Student: $STUDENT_NAME"</code></pre>
-                <div class="highlight-box warning">
-                    <strong>Important:</strong> This shared cluster is used by all 22 students. Your <code>STUDENT_NAME</code> ensures your resources don't conflict with others.
+                <h2>&#x1F4E6; Install kubectl</h2>
+                <p>Install the Kubernetes CLI for your operating system:</p>
+                <div class="two-columns">
+                    <div>
+                        <h4>macOS</h4>
+                        <pre><code class="language-bash"># Using Homebrew
+brew install kubectl
+
+# Or download directly
+curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/darwin/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/</code></pre>
+                    </div>
+                    <div>
+                        <h4>Linux / WSL</h4>
+                        <pre><code class="language-bash"># Download latest stable
+curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/</code></pre>
+                    </div>
                 </div>
+                <div class="fragment">
+                    <p>Verify the installation:</p>
+                    <pre><code class="language-bash">kubectl version --client
+# Expected: Client Version: v1.xx.x</code></pre>
+                </div>
+                <div class="highlight-box success fragment">
+                    <strong>&#x2705; Checkpoint:</strong> <code>kubectl version --client</code> should display a version number (v1.28+). If you already have kubectl installed, you can skip the install step.
+                </div>
+                <aside class="notes">
+                    If students already have kubectl installed, they can skip to the version check. The version should be within one minor version of the cluster server version. On Apple Silicon Macs, replace amd64 with arm64 in the download URL.
+                </aside>
             </section>
 
-            <!-- ========== STEP 1: Verify Cluster Connectivity ========== -->
+            <!-- ========== STEP 2: Configure AWS CLI & Connect to EKS ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 1</h2>
-                <h3>Verify Cluster Connectivity</h3>
+                <h2>Step 2</h2>
+                <h3>Connect to the Shared EKS Cluster</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
                     <div class="step active"></div>
                     <div class="step"></div>
                     <div class="step"></div>
@@ -369,39 +414,88 @@ echo "Student: $STUDENT_NAME"</code></pre>
                     <div class="step"></div>
                 </div>
                 <aside class="notes">
-                    This is the most important step. If connectivity fails here, nothing else will work. Help students troubleshoot kubeconfig issues.
+                    This is the most critical step. Students must configure AWS credentials and generate a kubeconfig that authenticates to the shared EKS cluster. If connectivity fails here, nothing else will work.
                 </aside>
             </section>
 
             <section>
-                <h2>&#x1F50C; Verify Cluster Connectivity</h2>
-                <p>Confirm your kubectl is configured and can reach the cluster:</p>
-                <pre><code class="language-bash" data-trim>
-# Check cluster endpoint information
+                <h2>&#x1F511; Configure AWS Credentials</h2>
+                <p>Set up your AWS CLI credentials (provided by the instructor):</p>
+                <pre><code class="language-bash"># Configure the AWS CLI with your provided credentials
+aws configure
+# AWS Access Key ID:     &lt;provided by instructor&gt;
+# AWS Secret Access Key: &lt;provided by instructor&gt;
+# Default region name:   us-east-1
+# Default output format: json</code></pre>
+                <div class="fragment">
+                    <p>Verify your AWS identity:</p>
+                    <pre><code class="language-bash"># Confirm your credentials are working
+aws sts get-caller-identity</code></pre>
+                </div>
+                <div class="highlight-box success fragment">
+                    <strong>&#x2705; Expected Output:</strong> You should see your <code>UserId</code>, <code>Account</code>, and <code>Arn</code>. If you get an error, double-check the access key and secret key with the instructor.
+                </div>
+                <aside class="notes">
+                    Distribute AWS credentials to each student. Each student has a unique IAM user that maps to their Kubernetes RBAC permissions. Verify everyone gets a successful response from sts get-caller-identity before proceeding.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x2601;&#xFE0F; Generate kubeconfig for EKS</h2>
+                <p>Use the AWS CLI to configure kubectl access to the shared EKS cluster:</p>
+                <pre><code class="language-bash"># Update your kubeconfig with the shared EKS cluster
+aws eks update-kubeconfig \
+  --name verisign-k8s-lab \
+  --region us-east-1
+
+# Verify the context was added
+kubectl config current-context</code></pre>
+                <div class="highlight-box success fragment">
+                    <strong>&#x2705; Expected Output:</strong> The context should display something like <code>arn:aws:eks:us-east-1:&lt;account-id&gt;:cluster/verisign-k8s-lab</code>. This confirms kubectl is now configured to talk to the EKS cluster.
+                </div>
+                <div class="highlight-box warning fragment">
+                    <strong>How it works:</strong> <code>aws eks update-kubeconfig</code> writes a kubeconfig entry to <code>~/.kube/config</code> that uses the AWS CLI as an authentication plugin. Every kubectl command authenticates via your IAM credentials.
+                </div>
+                <aside class="notes">
+                    The cluster name and region must match exactly. If students get AccessDenied, their IAM user may not have eks:DescribeCluster permission — verify with the instructor. The kubeconfig uses the aws eks get-token command under the hood to generate short-lived tokens for each kubectl request.
+                </aside>
+            </section>
+
+            <section>
+                <h2>&#x1F4CB; Set Up Your Student Environment</h2>
+                <p>Set your student identifier and verify full connectivity:</p>
+                <pre><code class="language-bash"># Set your unique student name (use your first name or assigned number)
+export STUDENT_NAME=&lt;your-name&gt;
+echo "Student: $STUDENT_NAME"
+
+# Verify cluster connectivity
 kubectl cluster-info
 
 # Verify client and server versions
 kubectl version
 
 # Confirm current context
-kubectl config current-context
-                </code></pre>
+kubectl config current-context</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Important:</strong> This shared cluster is used by all 22 students. Your <code>STUDENT_NAME</code> ensures your resources don't conflict with others. Set this variable at the start of every lab session.
+                </div>
                 <div class="highlight-box success fragment">
-                    <strong>&#x2705; Expected Output:</strong> You should see the Kubernetes control plane address and the CoreDNS service address. The <code>kubectl version</code> command should show both Client and Server versions.
+                    <strong>&#x2705; Checkpoint:</strong> You should see the Kubernetes control plane address and the CoreDNS service address. The <code>kubectl version</code> command should show both Client and Server versions.
                 </div>
                 <div class="highlight-box danger fragment">
-                    <strong>&#x26A0; Troubleshooting:</strong> If you see "Unable to connect to the server", verify your kubeconfig is set correctly: <code>export KUBECONFIG=~/.kube/config</code> and ensure your AWS credentials are valid.
+                    <strong>&#x26A0; Troubleshooting:</strong> If you see "Unable to connect to the server", verify your AWS credentials with <code>aws sts get-caller-identity</code> and re-run the <code>aws eks update-kubeconfig</code> command.
                 </div>
                 <aside class="notes">
-                    If students get connection errors, common causes are: expired AWS credentials, wrong context selected, or VPN not connected. Have them run aws sts get-caller-identity to verify AWS auth.
+                    This is the final connectivity checkpoint. Every student should see cluster-info output before proceeding. If anyone gets connection errors, common causes are: expired AWS credentials, wrong region, VPN not connected, or the kubeconfig command was not run. Walk around and verify.
                 </aside>
             </section>
 
-            <!-- ========== STEP 2: Explore Cluster Nodes ========== -->
+            <!-- ========== STEP 3: Explore Cluster Nodes ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 2</h2>
+                <h2>Step 3</h2>
                 <h3>Explore Cluster Nodes</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step active"></div>
                     <div class="step"></div>
@@ -461,11 +555,12 @@ kubectl describe node &lt;NODE_NAME&gt; | grep -A 5 "Taints:"
                 </aside>
             </section>
 
-            <!-- ========== STEP 3: Explore Namespaces ========== -->
+            <!-- ========== STEP 4: Explore Namespaces ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 3</h2>
+                <h2>Step 4</h2>
                 <h3>Explore Namespaces</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step active"></div>
@@ -513,11 +608,12 @@ kubectl get services -n kube-system
                 </aside>
             </section>
 
-            <!-- ========== STEP 4: Explore Running Workloads ========== -->
+            <!-- ========== STEP 5: Explore Running Workloads ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 4</h2>
+                <h2>Step 5</h2>
                 <h3>Explore Running Workloads</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -561,11 +657,12 @@ kubectl get all -A
                 </aside>
             </section>
 
-            <!-- ========== STEP 5: Deploy Your First Application ========== -->
+            <!-- ========== STEP 6: Deploy Your First Application ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 5</h2>
+                <h2>Step 6</h2>
                 <h3>Deploy Your First Application</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -616,11 +713,12 @@ kubectl get all -n lab01-$STUDENT_NAME
                 </aside>
             </section>
 
-            <!-- ========== STEP 6: Examine Pod Details ========== -->
+            <!-- ========== STEP 7: Examine Pod Details ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 6</h2>
+                <h2>Step 7</h2>
                 <h3>Examine Pod Details</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -690,11 +788,12 @@ exit
                 </aside>
             </section>
 
-            <!-- ========== STEP 7: Scale the Deployment ========== -->
+            <!-- ========== STEP 8: Scale the Deployment ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 7</h2>
+                <h2>Step 8</h2>
                 <h3>Scale the Deployment</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -745,11 +844,12 @@ kubectl get pods -n lab01-$STUDENT_NAME -w
                 </aside>
             </section>
 
-            <!-- ========== STEP 8: Access the Application ========== -->
+            <!-- ========== STEP 9: Access the Application ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 8</h2>
+                <h2>Step 9</h2>
                 <h3>Access the Application</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -794,11 +894,12 @@ curl -I http://localhost:8080
                 </aside>
             </section>
 
-            <!-- ========== STEP 9: Explore Resource Usage ========== -->
+            <!-- ========== STEP 10: Explore Resource Usage ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 9</h2>
+                <h2>Step 10</h2>
                 <h3>Explore Resource Usage</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -843,11 +944,12 @@ kubectl get pods -n kube-system | grep metrics-server
                 </aside>
             </section>
 
-            <!-- ========== STEP 10: Clean Up Resources ========== -->
+            <!-- ========== STEP 11: Clean Up Resources ========== -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)" class="section-divider">
-                <h2>Step 10</h2>
+                <h2>Step 11</h2>
                 <h3>Clean Up Resources</h3>
                 <div class="module-progress">
+                    <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
                     <div class="step completed"></div>
@@ -890,7 +992,7 @@ kubectl get namespaces
 
             <!-- ========== Summary ========== -->
             <section>
-                <h2>&#x1F4DD; Summary &mdash; Key kubectl Commands</h2>
+                <h2>&#x1F4DD; Summary &mdash; Key Commands</h2>
                 <table>
                     <thead>
                         <tr>
@@ -899,6 +1001,10 @@ kubectl get namespaces
                         </tr>
                     </thead>
                     <tbody>
+                        <tr>
+                            <td><code>aws eks update-kubeconfig</code></td>
+                            <td>Generate kubeconfig for EKS cluster</td>
+                        </tr>
                         <tr>
                             <td><code>kubectl cluster-info</code></td>
                             <td>Verify cluster connectivity</td>
@@ -950,6 +1056,7 @@ kubectl get namespaces
             <section>
                 <h2>&#x1F3AF; Key Takeaways</h2>
                 <ul class="takeaway-list">
+                    <li class="fragment">&#x2705; <code>aws eks update-kubeconfig</code> connects kubectl to EKS using IAM authentication</li>
                     <li class="fragment">&#x2705; kubectl is your primary interface for interacting with Kubernetes clusters</li>
                     <li class="fragment">&#x2705; Namespaces provide logical isolation &mdash; always work in a dedicated namespace</li>
                     <li class="fragment">&#x2705; <code>describe</code>, <code>logs</code>, and <code>exec</code> are your core troubleshooting triad</li>
@@ -969,9 +1076,6 @@ kubectl get namespaces
                 <p class="small-text" style="color: #cbd5e0;">Up Next: Lab 2 &mdash; Configuring Autoscaling</p>
                 <div class="module-progress">
                     <div class="step completed"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
-                    <div class="step"></div>
                     <div class="step"></div>
                     <div class="step"></div>
                     <div class="step"></div>

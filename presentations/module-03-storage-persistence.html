@@ -942,24 +942,7 @@ spec:
                 <aside class="notes">These are the most common storage issues you'll encounter on EKS. The number one issue is PVC Pending — always start with kubectl describe pvc to see the events. AZ mismatch is the second most common, which is why WaitForFirstConsumer is essential. Force-detaching an EBS volume should be a last resort — it can cause data corruption if the volume was being written to.</aside>
             </section>
 
-            <!-- Slide 34: Summary -->
-            <section>
-                <h2>&#128218; Module 3 — Key Takeaways</h2>
-                <div class="concept-box">
-                    <ul>
-                        <li class="fragment fade-up"><strong>Kubernetes storage is ephemeral by default</strong> — persistence requires explicit configuration via PVs and PVCs</li>
-                        <li class="fragment fade-up"><strong>PVC is the developer interface</strong> — declare what you need, let the platform provision it</li>
-                        <li class="fragment fade-up"><strong>StorageClasses enable self-service</strong> — dynamic provisioning eliminates manual volume management</li>
-                        <li class="fragment fade-up"><strong>EBS = single-writer, EFS = shared storage</strong> — choose based on access pattern</li>
-                        <li class="fragment fade-up"><strong>StatefulSets provide stable identity</strong> — ordered operations, persistent names, per-replica storage</li>
-                        <li class="fragment fade-up"><strong>Use operators for production databases</strong> — they encode operational expertise as code</li>
-                        <li class="fragment fade-up"><strong>Always set Retain reclaim policy</strong> — protect against accidental data loss</li>
-                    </ul>
-                </div>
-                <aside class="notes">These seven points capture the essential knowledge for managing data on Kubernetes. The most important mental model is the separation between the developer interface (PVC) and the platform implementation (PV, StorageClass, CSI driver). Developers declare intent, and the platform fulfills it. This same pattern repeats throughout Kubernetes.</aside>
-            </section>
-
-            <!-- Slide 35: Lab Callout -->
+            <!-- Slide 34: Lab Callout -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout">
                 <h2>&#128295; Lab 3: Storage and StatefulSets</h2>
                 <h3>Hands-on: Provision, persist, and manage stateful workloads</h3>
@@ -975,6 +958,23 @@ spec:
                     <strong>Duration:</strong> ~45 minutes
                 </div>
                 <aside class="notes">This lab covers the full storage lifecycle. Participants will create StorageClasses, provision PVCs, deploy a StatefulSet, and test failure scenarios. The key validation is seeing that data persists across pod restarts and that the volume follows the pod identity, not the node. Budget extra time for the StatefulSet exercises as they involve waiting for ordered pod creation.</aside>
+            </section>
+
+            <!-- Slide 35: Key Takeaways -->
+            <section>
+                <h2>&#128218; Module 3 — Key Takeaways</h2>
+                <div class="concept-box">
+                    <ul>
+                        <li class="fragment fade-up"><strong>Kubernetes storage is ephemeral by default</strong> — persistence requires explicit configuration via PVs and PVCs</li>
+                        <li class="fragment fade-up"><strong>PVC is the developer interface</strong> — declare what you need, let the platform provision it</li>
+                        <li class="fragment fade-up"><strong>StorageClasses enable self-service</strong> — dynamic provisioning eliminates manual volume management</li>
+                        <li class="fragment fade-up"><strong>EBS = single-writer, EFS = shared storage</strong> — choose based on access pattern</li>
+                        <li class="fragment fade-up"><strong>StatefulSets provide stable identity</strong> — ordered operations, persistent names, per-replica storage</li>
+                        <li class="fragment fade-up"><strong>Use operators for production databases</strong> — they encode operational expertise as code</li>
+                        <li class="fragment fade-up"><strong>Always set Retain reclaim policy</strong> — protect against accidental data loss</li>
+                    </ul>
+                </div>
+                <aside class="notes">These seven points capture the essential knowledge for managing data on Kubernetes. The most important mental model is the separation between the developer interface (PVC) and the platform implementation (PV, StorageClass, CSI driver). Developers declare intent, and the platform fulfills it. This same pattern repeats throughout Kubernetes.</aside>
             </section>
 
             <!-- Slide 36: Questions -->

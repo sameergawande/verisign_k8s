@@ -1129,9 +1129,11 @@ argocd app rollback frontend 3</code></pre>
                         <li>Observe drift detection and self-healing in action</li>
                         <li>Perform a rollback using <code>git revert</code></li>
                         <li>Integrate image scanning with Trivy</li>
+                        <li>Explore FluxCD resources and create a HelmRelease</li>
+                        <li>Test FluxCD drift detection and reconciliation</li>
                     </ul>
                 </div>
-                <aside class="notes">This lab brings together the concepts from the module. Participants will set up a GitOps workflow from scratch - creating the repo structure, installing ArgoCD, deploying an application, and observing the reconciliation loop. The drift detection exercise is particularly impactful - they'll manually change something with kubectl and watch ArgoCD revert it. The rollback exercise reinforces the Git-centric operational model.</aside>
+                <aside class="notes">This lab brings together the concepts from the module. Participants will set up a GitOps workflow from scratch - creating the repo structure, installing ArgoCD, deploying an application, and observing the reconciliation loop. The drift detection exercise is particularly impactful - they'll manually change something with kubectl and watch ArgoCD revert it. The FluxCD section has students explore Flux resources, create a HelmRelease, and observe drift detection. The rollback exercise reinforces the Git-centric operational model.</aside>
             </section>
 
             <!-- Slide 32: Questions -->

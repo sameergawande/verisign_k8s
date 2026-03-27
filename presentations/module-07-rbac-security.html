@@ -827,24 +827,6 @@ containers:
                 <aside class="notes">EKS-specific security goes beyond generic Kubernetes security. The aws-auth ConfigMap is a common source of misconfiguration — audit it regularly. Envelope encryption ensures etcd secrets are encrypted with a KMS key you control. EKS access entries are the newer replacement for aws-auth that provide better integration with IAM and support condition keys.</aside>
             </section>
 
-            <!-- Slide 29: Lab Callout -->
-            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout">
-                <h2>&#128295; Lab 7: RBAC and Security</h2>
-                <h3>Hands-on: Securing your cluster workloads</h3>
-                <ul>
-                    <li>Create Roles and RoleBindings for namespace-scoped access</li>
-                    <li>Test permissions with <code>kubectl auth can-i --as</code></li>
-                    <li>Create dedicated ServiceAccounts for applications</li>
-                    <li>Apply security contexts to pods and containers</li>
-                    <li>Configure Pod Security Admission on a namespace</li>
-                    <li>Verify that non-compliant pods are rejected</li>
-                </ul>
-                <div class="highlight-box">
-                    <strong>Duration:</strong> ~45 minutes
-                </div>
-                <aside class="notes">This lab covers the full RBAC workflow: creating roles, binding them, and testing with impersonation. Students will also apply security contexts and see Pod Security Admission in action. Common issues: forgetting to specify the namespace in RoleBindings, and using the wrong apiGroup in subjects. Circulate and help with RBAC debugging — kubectl auth can-i is the key diagnostic tool.</aside>
-            </section>
-
             <!-- Section: IRSA — IAM Roles for Service Accounts -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128273; IRSA: IAM Roles for Service Accounts</h2>
@@ -960,6 +942,25 @@ metadata:
                     <strong>EKS Pod Identity:</strong> AWS's newer alternative (GA 2023) simplifies IRSA by removing trust-policy management. IRSA remains the standard for existing clusters.
                 </div>
                 <aside class="notes">Think of IRSA as the AWS extension of the RBAC least-privilege principle we covered earlier. Inside the cluster, RBAC controls what a ServiceAccount can do with the Kubernetes API. Outside the cluster, IRSA controls what that same ServiceAccount can do with AWS APIs. Together they form a complete identity and access management story for EKS workloads.</aside>
+            </section>
+
+            <!-- Slide 34: Lab Callout -->
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout">
+                <h2>&#128295; Lab 7: RBAC and Security</h2>
+                <h3>Hands-on: Securing your cluster workloads</h3>
+                <ul>
+                    <li>Create Roles and RoleBindings for namespace-scoped access</li>
+                    <li>Test permissions with <code>kubectl auth can-i --as</code></li>
+                    <li>Create dedicated ServiceAccounts for applications</li>
+                    <li>Apply security contexts to pods and containers</li>
+                    <li>Configure Pod Security Admission on a namespace</li>
+                    <li>Verify that non-compliant pods are rejected</li>
+                    <li>Annotate a ServiceAccount for IRSA and verify scoped AWS credentials</li>
+                </ul>
+                <div class="highlight-box">
+                    <strong>Duration:</strong> ~45 minutes
+                </div>
+                <aside class="notes">This lab covers the full RBAC workflow: creating roles, binding them, and testing with impersonation. Students will also apply security contexts and see Pod Security Admission in action, plus configure IRSA for AWS access. Common issues: forgetting to specify the namespace in RoleBindings, and using the wrong apiGroup in subjects. Circulate and help with RBAC debugging — kubectl auth can-i is the key diagnostic tool.</aside>
             </section>
 
             <!-- Module Summary -->

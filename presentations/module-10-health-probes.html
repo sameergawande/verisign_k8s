@@ -828,23 +828,6 @@ spec:
                 <aside class="notes">Pick the probe protocol based on your workload type. Most modern web services use HTTP probes, but don't overlook exec probes for complex health validation logic.</aside>
             </section>
 
-            <!-- Slide 28: Lab Callout -->
-            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout" style="text-align: center;">
-                <h2>&#129489;&#8205;&#128187; Lab 10: Health Checks and Probes</h2>
-                <h3>Estimated Time: ~40 minutes</h3>
-                <ul>
-                    <li>Configure liveness, readiness, and startup probes for a multi-container deployment</li>
-                    <li>Simulate application failures and observe probe-driven recovery</li>
-                    <li>Debug failing probes using events, logs, and manual testing</li>
-                    <li>Implement graceful shutdown with preStop hooks</li>
-                    <li>Create Pod Disruption Budgets for safe cluster operations</li>
-                </ul>
-                <div class="highlight-box">
-                    <strong>Lab Guide:</strong> Follow the step-by-step instructions in <code>labs/lab-10-health-probes/</code>
-                </div>
-                <aside class="notes">Time for hands-on practice. In this lab you'll configure all three probe types on a web application, deliberately break the application to watch Kubernetes self-heal, debug probe failures using the techniques we covered, and set up PDBs. Take your time with the debugging section — understanding probe events is a critical operational skill.</aside>
-            </section>
-
             <!-- Section Divider: Debugging Your Application -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128269; Debugging Your Application</h2>
@@ -938,6 +921,24 @@ kubectl get events --sort-by=.lastTimestamp -n &lt;namespace&gt;</code></pre>
                     </tbody>
                 </table>
                 <aside class="notes">This decision tree gives you a fast path from symptom to diagnosis. The exit code in CrashLoopBackOff is particularly telling — 137 means OOMKilled by the kernel, 1 is a generic application error, and 143 is SIGTERM which usually means a failed liveness probe. For EKS-specific issues, also check that your node IAM role has the right ECR permissions and that your VPC networking allows pod-to-service communication.</aside>
+            </section>
+
+            <!-- Slide 28: Lab Callout -->
+            <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="lab-callout" style="text-align: center;">
+                <h2>&#129489;&#8205;&#128187; Lab 10: Health Checks and Probes</h2>
+                <h3>Estimated Time: ~40 minutes</h3>
+                <ul>
+                    <li>Configure liveness, readiness, and startup probes for a multi-container deployment</li>
+                    <li>Simulate application failures and observe probe-driven recovery</li>
+                    <li>Debug failing probes using events, logs, and manual testing</li>
+                    <li>Implement graceful shutdown with preStop hooks</li>
+                    <li>Create Pod Disruption Budgets for safe cluster operations</li>
+                    <li>Practice systematic debugging with <code>describe</code>, <code>logs</code>, <code>exec</code>, and <code>top</code></li>
+                </ul>
+                <div class="highlight-box">
+                    <strong>Lab Guide:</strong> Follow the step-by-step instructions in <code>labs/lab-10-health-probes/</code>
+                </div>
+                <aside class="notes">Time for hands-on practice. In this lab you'll configure all three probe types on a web application, deliberately break the application to watch Kubernetes self-heal, debug probe failures using the techniques we covered, and set up PDBs. Take your time with the debugging section — understanding probe events is a critical operational skill.</aside>
             </section>
 
             <!-- Slide 29: Module Summary -->
