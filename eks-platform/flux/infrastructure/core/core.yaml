@@ -1,19 +1,6 @@
 # ─── Metrics Server ─────────────────────────────────────────────────────────
-apiVersion: helm.toolkit.fluxcd.io/v2
-kind: HelmRelease
-metadata:
-  name: metrics-server
-  namespace: flux-system
-spec:
-  interval: 30m
-  targetNamespace: kube-system
-  chart:
-    spec:
-      chart: metrics-server
-      sourceRef:
-        kind: HelmRepository
-        name: metrics-server
-      version: ">=3.12.0"
+# Managed by Terraform (not Flux) so it is available immediately after
+# cluster setup. See terraform/main.tf helm_release.metrics_server.
 ---
 # ─── Cert-Manager ──────────────────────────────────────────────────────────
 apiVersion: helm.toolkit.fluxcd.io/v2

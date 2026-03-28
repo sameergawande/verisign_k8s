@@ -123,6 +123,20 @@ module "irsa" {
   enable_dns                = var.enable_dns
 }
 
+# ─── Metrics Server ─────────────────────────────────────────────────────────
+# Installed via Terraform (not Flux) so kubectl top works immediately
+# after cluster setup, before Flux finishes reconciling.
+
+resource "helm_release" "metrics_server" {
+  name             = "metrics-server"
+  repository       = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart            = "metrics-server"
+  namespace        = "kube-system"
+  version          = "3.12.2"
+
+  depends_on = [module.eks]
+}
+
 module "vault" {
   source = "./modules/vault"
 

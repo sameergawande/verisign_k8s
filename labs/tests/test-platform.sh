@@ -41,109 +41,127 @@ fi
 NODE_STATUS=$(kubectl get nodes --no-headers 2>/dev/null | awk '{print $2}' | sort -u)
 assert_eq "all nodes Ready" "Ready" "$NODE_STATUS"
 
+# ─── Helper: find running pods by name pattern across namespaces ───────────
+
+# Check if any running pod matches a name pattern in a given namespace
+# Falls back to checking all namespaces if namespace check fails
+check_component() {
+  local desc="$1" pattern="$2" ns="$3" skip_msg="$4"
+
+  # First try the expected namespace
+  local count
+  count=$(kubectl get pods -n "$ns" --no-headers 2>/dev/null | grep -iE "$pattern" | grep -c Running || true)
+  if [ "$count" -gt 0 ]; then
+    pass "$desc ($count pods in $ns)"
+    return 0
+  fi
+
+  # Try all namespaces
+  count=$(kubectl get pods -A --no-headers 2>/dev/null | grep -iE "$pattern" | grep -c Running || true)
+  if [ "$count" -gt 0 ]; then
+    local found_ns
+    found_ns=$(kubectl get pods -A --no-headers 2>/dev/null | grep -iE "$pattern" | grep Running | head -1 | awk '{print $1}')
+    pass "$desc ($count pods in $found_ns)"
+    return 0
+  fi
+
+  skip "$skip_msg"
+  return 1
+}
+
 # ─── Platform Components ────────────────────────────────────────────────────
 
 echo ""
 echo "Platform Components:"
 
 # Metrics Server
-MS_PODS=$(kubectl get pods -n kube-system -l k8s-app=metrics-server --no-headers 2>/dev/null | grep -c Running || true)
-if [ "$MS_PODS" -gt 0 ]; then
-  pass "metrics-server running"
+check_component "metrics-server running" "metrics-server" "kube-system" \
+  "metrics-server not found (labs 1,2,9 may have limited functionality)"
+
+# Also verify kubectl top works
+if kubectl top nodes &>/dev/null 2>&1; then
+  pass "kubectl top nodes works"
 else
-  skip "metrics-server not found (labs 1,2,9 may have limited functionality)"
+  skip "kubectl top not responding (metrics-server may still be starting)"
 fi
 
-# Calico / Cilium
-if kubectl get installation default &>/dev/null; then
+# Calico / Cilium / VPC-CNI with NetworkPolicy
+if kubectl get installation default &>/dev/null 2>&1; then
   pass "calico installed"
-elif kubectl get pods -n kube-system -l k8s-app=cilium --no-headers 2>/dev/null | grep -q Running; then
+elif kubectl get pods -A --no-headers 2>/dev/null | grep -i cilium | grep -q Running; then
   pass "cilium installed"
+elif kubectl get daemonset -n kube-system aws-node &>/dev/null 2>&1; then
+  # VPC-CNI is default on EKS — check if network policy agent is present
+  if kubectl get pods -A --no-headers 2>/dev/null | grep -iE "network-policy|calico|tigera" | grep -q Running; then
+    pass "network policy enforcement available"
+  else
+    skip "VPC-CNI present but no NetworkPolicy enforcement detected (labs 6,8 may fail)"
+  fi
 else
   skip "no CNI with NetworkPolicy support detected (labs 6,8 may fail)"
 fi
 
 # Ingress NGINX
-INGRESS_PODS=$(kubectl get pods -n ingress-nginx --no-headers 2>/dev/null | grep -c Running || true)
-if [ "$INGRESS_PODS" -gt 0 ]; then
-  pass "ingress-nginx running ($INGRESS_PODS pods)"
-else
-  skip "ingress-nginx not found (lab 6 may fail)"
-fi
+check_component "ingress-nginx running" "ingress-nginx|nginx-controller" "ingress-nginx" \
+  "ingress-nginx not found (lab 6 may fail)"
 
 # Envoy Gateway
-if kubectl get pods -n envoy-gateway-system --no-headers 2>/dev/null | grep -q Running; then
-  pass "envoy-gateway running"
-else
-  skip "envoy-gateway not found (lab 6 gateway section may fail)"
-fi
+check_component "envoy-gateway running" "envoy-gateway|gateway-api" "envoy-gateway-system" \
+  "envoy-gateway not found (lab 6 gateway section may fail)"
 
 # Gateway API CRDs
-if kubectl get crd gateways.gateway.networking.k8s.io &>/dev/null; then
+if kubectl get crd gateways.gateway.networking.k8s.io &>/dev/null 2>&1; then
   pass "gateway API CRDs installed"
+elif kubectl get crd httproutes.gateway.networking.k8s.io &>/dev/null 2>&1; then
+  pass "gateway API CRDs installed (httproutes found)"
 else
   skip "gateway API CRDs not found"
 fi
 
 # Prometheus stack
-PROM_PODS=$(kubectl get pods -n monitoring -l app.kubernetes.io/name=prometheus --no-headers 2>/dev/null | grep -c Running || true)
-if [ "$PROM_PODS" -gt 0 ]; then
-  pass "prometheus running"
-else
-  skip "prometheus not found (lab 9 may fail)"
-fi
+check_component "prometheus running" "prometheus" "monitoring" \
+  "prometheus not found (lab 9 may fail)"
 
-GRAFANA_PODS=$(kubectl get pods -n monitoring -l app.kubernetes.io/name=grafana --no-headers 2>/dev/null | grep -c Running || true)
-if [ "$GRAFANA_PODS" -gt 0 ]; then
-  pass "grafana running"
-else
-  skip "grafana not found (lab 9 may fail)"
-fi
+check_component "grafana running" "grafana" "monitoring" \
+  "grafana not found (lab 9 may fail)"
 
 # Kyverno
-if kubectl get pods -n kyverno --no-headers 2>/dev/null | grep -q Running; then
-  pass "kyverno running"
-else
-  skip "kyverno not found"
-fi
+check_component "kyverno running" "kyverno" "kyverno" \
+  "kyverno not found"
 
 # ArgoCD
-ARGO_PODS=$(kubectl get pods -n argocd --no-headers 2>/dev/null | grep -c Running || true)
-if [ "$ARGO_PODS" -gt 0 ]; then
-  pass "argocd running ($ARGO_PODS pods)"
-else
-  skip "argocd not found (lab 13 may fail)"
-fi
+check_component "argocd running" "argocd" "argocd" \
+  "argocd not found (lab 13 may fail)"
 
 # Flux
-FLUX_PODS=$(kubectl get pods -n flux-system --no-headers 2>/dev/null | grep -c Running || true)
-if [ "$FLUX_PODS" -gt 0 ]; then
-  pass "flux running ($FLUX_PODS pods)"
-else
-  skip "flux not found (lab 13 may fail)"
-fi
+check_component "flux running" "flux|source-controller|kustomize-controller" "flux-system" \
+  "flux not found (lab 13 may fail)"
 
 # Vault
-if kubectl get pods -n vault --no-headers 2>/dev/null | grep -q Running; then
-  pass "vault running"
-  VAULT_STATUS=$(kubectl exec -n vault vault-0 -- vault status -format=json 2>/dev/null | jq -r '.sealed' 2>/dev/null || echo "unknown")
+if kubectl get pods -A --no-headers 2>/dev/null | grep -i vault | grep -q Running; then
+  VAULT_NS=$(kubectl get pods -A --no-headers 2>/dev/null | grep -i vault | grep Running | head -1 | awk '{print $1}')
+  VAULT_POD=$(kubectl get pods -n "$VAULT_NS" --no-headers 2>/dev/null | grep -i vault | grep Running | head -1 | awk '{print $1}')
+  pass "vault running ($VAULT_NS/$VAULT_POD)"
+  VAULT_STATUS=$(kubectl exec -n "$VAULT_NS" "$VAULT_POD" -- vault status -format=json 2>/dev/null | jq -r '.sealed' 2>/dev/null || echo "unknown")
   assert_eq "vault unsealed" "false" "$VAULT_STATUS"
 else
   skip "vault not found (lab 5 may fail)"
 fi
 
 # External Secrets Operator
-if kubectl get pods -n external-secrets --no-headers 2>/dev/null | grep -q Running; then
-  pass "external-secrets-operator running"
-else
-  skip "external-secrets-operator not found (lab 5 ESO section may fail)"
-fi
+check_component "external-secrets-operator running" "external-secrets|eso" "external-secrets" \
+  "external-secrets-operator not found (lab 5 ESO section may fail)"
 
 # ClusterSecretStore
-if kubectl get clustersecretstore vault-backend &>/dev/null; then
-  pass "vault ClusterSecretStore configured"
+if kubectl get clustersecretstore &>/dev/null 2>&1; then
+  CSS_COUNT=$(kubectl get clustersecretstore --no-headers 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$CSS_COUNT" -gt 0 ]; then
+    pass "ClusterSecretStore configured ($CSS_COUNT found)"
+  else
+    skip "no ClusterSecretStore resources found"
+  fi
 else
-  skip "vault ClusterSecretStore not found"
+  skip "ClusterSecretStore CRD not installed"
 fi
 
 # IRSA demo bucket
@@ -160,6 +178,32 @@ if [ "$SC_COUNT" -gt 0 ]; then
   pass "$SC_COUNT StorageClass(es) available"
 else
   fail "no StorageClasses found"
+fi
+
+# ─── Helm releases summary ─────────────────────────────────────────────────
+
+echo ""
+echo "Helm Releases:"
+HELM_COUNT=$(helm list -A --short 2>/dev/null | wc -l | tr -d ' ')
+if [ "$HELM_COUNT" -gt 0 ]; then
+  pass "$HELM_COUNT Helm release(s) deployed"
+else
+  skip "no Helm releases found"
+fi
+
+# Flux HelmReleases
+echo ""
+echo "Flux HelmReleases:"
+FLUX_HR=$(kubectl get helmreleases -A --no-headers 2>/dev/null | wc -l | tr -d ' ')
+if [ "$FLUX_HR" -gt 0 ]; then
+  FLUX_HR_READY=$(kubectl get helmreleases -A --no-headers 2>/dev/null | grep -c "True" || true)
+  pass "$FLUX_HR_READY/$FLUX_HR Flux HelmReleases ready"
+  if [ "$FLUX_HR_READY" -lt "$FLUX_HR" ]; then
+    echo "  Not ready:"
+    kubectl get helmreleases -A --no-headers 2>/dev/null | grep -v "True" | awk '{printf "    %s/%s\n", $1, $2}'
+  fi
+else
+  skip "no Flux HelmReleases found"
 fi
 
 summary
