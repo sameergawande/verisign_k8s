@@ -72,6 +72,17 @@ if kubectl get pods -n ingress-nginx --no-headers 2>/dev/null | grep -q Running;
   fi
 fi
 
+# ─── IngressClass verification ────────────────────────────────────────────
+
+echo ""
+echo "IngressClass:"
+
+if kubectl get ingressclass nginx &>/dev/null; then
+  pass "IngressClass nginx exists"
+else
+  skip "IngressClass nginx not found"
+fi
+
 # ─── Step 3: Host-based Ingress ──────────────────────────────────────────
 
 echo ""
@@ -216,7 +227,7 @@ if [ "$INGRESS_AVAILABLE" = "true" ]; then
 
   ANN_REWRITE=$(kubectl get ingress app-ingress-advanced -n "$NS" \
     -o jsonpath='{.metadata.annotations.nginx\.ingress\.kubernetes\.io/rewrite-target}' 2>/dev/null)
-  assert_eq "rewrite-target annotation = /\$2" '/\$2' "$ANN_REWRITE"
+  assert_eq "rewrite-target annotation = /\$2" '/$2' "$ANN_REWRITE"
 
   ANN_RPS=$(kubectl get ingress app-ingress-advanced -n "$NS" \
     -o jsonpath='{.metadata.annotations.nginx\.ingress\.kubernetes\.io/limit-rps}' 2>/dev/null)
@@ -261,6 +272,24 @@ if [ "$INGRESS_AVAILABLE" = "true" ]; then
     fi
   else
     skip "CORS curl returned empty"
+  fi
+
+  # Functional rate-limit test
+  echo ""
+  echo "Rate Limit Functional Test:"
+
+  COUNT_503=0
+  for i in $(seq 1 15); do
+    RL_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
+      -H "Host: api-$STUDENT_NAME.lab.local" "http://$INGRESS_IP/api/" 2>/dev/null)
+    if [ "$RL_CODE" = "503" ]; then
+      COUNT_503=$((COUNT_503 + 1))
+    fi
+  done
+  if [ "$COUNT_503" -gt 0 ]; then
+    pass "rate limiting active ($COUNT_503/15 requests returned 503)"
+  else
+    skip "no 503s from 15 rapid requests (controller may not enforce rate limiting)"
   fi
 
 else
@@ -433,7 +462,7 @@ for rule in data['spec']['egress']:
 assert_eq "egress policy allows DNS port 53" "53" "$DNS_PORT"
 
 # Functional egress enforcement test
-# Internal should still work (DNS + same namespace port 8080)
+# Internal should still work (DNS + same namespace port 80)
 POST_INTERNAL=$(kubectl exec egress-test -n "$NS" -- \
   wget -qO- --timeout=10 "http://app-v1-svc.$NS.svc.cluster.local" 2>&1)
 if echo "$POST_INTERNAL" | grep -q "App V1"; then

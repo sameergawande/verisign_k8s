@@ -109,6 +109,30 @@ EP_COUNT_3=$(kubectl get endpoints backend-svc -n "$NS" -o jsonpath='{.subsets[0
 assert_eq "endpoints grow to 3 after scale-up" "3" "$EP_COUNT_3"
 
 ###############################################################################
+# Step 2c: EndpointSlices verification
+###############################################################################
+
+echo ""
+echo "EndpointSlices:"
+
+ES_OUTPUT=$(kubectl get endpointslices -n "$NS" -l kubernetes.io/service-name=backend-svc --no-headers 2>/dev/null)
+ES_COUNT=$(echo "$ES_OUTPUT" | grep -c . 2>/dev/null || echo "0")
+if [ "$ES_COUNT" -ge 1 ]; then
+  pass "backend-svc has at least 1 EndpointSlice ($ES_COUNT found)"
+else
+  fail "backend-svc has no EndpointSlices"
+fi
+
+ES_ENDPOINTS=$(kubectl get endpointslices -n "$NS" -l kubernetes.io/service-name=backend-svc \
+  -o jsonpath='{.items[0].endpoints}' 2>/dev/null)
+ES_EP_COUNT=$(echo "$ES_ENDPOINTS" | jq 'length' 2>/dev/null || echo "0")
+if [ "$ES_EP_COUNT" -ge 1 ]; then
+  pass "EndpointSlice has endpoints ($ES_EP_COUNT found)"
+else
+  fail "EndpointSlice has no endpoints"
+fi
+
+###############################################################################
 # Step 3: DNS-based service discovery
 ###############################################################################
 

@@ -34,7 +34,13 @@ SC_BINDING=$(kubectl get storageclass gp2 -o jsonpath='{.volumeBindingMode}' 2>/
 assert_eq "gp2 binding mode is WaitForFirstConsumer" "WaitForFirstConsumer" "$SC_BINDING"
 
 SC_EXPAND=$(kubectl get storageclass gp2 -o jsonpath='{.allowVolumeExpansion}' 2>/dev/null)
-assert_eq "gp2 allows volume expansion" "true" "$SC_EXPAND"
+if [ "$SC_EXPAND" = "true" ]; then
+  pass "gp2 allows volume expansion"
+  GP2_EXPAND=true
+else
+  skip "gp2 does not allow volume expansion (default EKS)"
+  GP2_EXPAND=false
+fi
 
 ###############################################################################
 # Step 2: PersistentVolumeClaim
@@ -147,7 +153,7 @@ POD2=$(kubectl get pod web-2 -n "$NS" -o jsonpath='{.metadata.name}' 2>/dev/null
 assert_eq "stable pod name web-2" "web-2" "$POD2"
 
 # Each pod has its own PVC
-PVC_COUNT=$(kubectl get pvc -n "$NS" -l app=web --no-headers 2>/dev/null | wc -l | tr -d ' ')
+PVC_COUNT=$(kubectl get pvc -n "$NS" --no-headers 2>/dev/null | grep -c "web-data-web" || true)
 assert_eq "StatefulSet created 3 PVCs" "3" "$PVC_COUNT"
 
 PVC0=$(kubectl get pvc web-data-web-0 -n "$NS" -o jsonpath='{.metadata.name}' 2>/dev/null)
@@ -225,7 +231,7 @@ kubectl rollout status statefulset/web -n "$NS" --timeout=180s &>/dev/null
 READY_5=$(kubectl get statefulset web -n "$NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
 assert_eq "scale up: 5 ready replicas" "5" "$READY_5"
 
-PVC_COUNT_5=$(kubectl get pvc -n "$NS" -l app=web --no-headers 2>/dev/null | wc -l | tr -d ' ')
+PVC_COUNT_5=$(kubectl get pvc -n "$NS" --no-headers 2>/dev/null | grep -c "web-data-web" || true)
 assert_eq "scale up: 5 PVCs created" "5" "$PVC_COUNT_5"
 
 # Verify new pods have predictable names
@@ -244,7 +250,7 @@ READY_2=$(kubectl get statefulset web -n "$NS" -o jsonpath='{.status.readyReplic
 assert_eq "scale down: 2 ready replicas" "2" "$READY_2"
 
 # PVCs are retained after scale-down
-PVC_COUNT_AFTER=$(kubectl get pvc -n "$NS" -l app=web --no-headers 2>/dev/null | wc -l | tr -d ' ')
+PVC_COUNT_AFTER=$(kubectl get pvc -n "$NS" --no-headers 2>/dev/null | grep -c "web-data-web" || true)
 assert_eq "PVCs retained after scale-down (still 5)" "5" "$PVC_COUNT_AFTER"
 
 # Only web-0 and web-1 should be running
@@ -258,29 +264,33 @@ assert_eq "only 2 pods running after scale-down" "2" "$POD_RUNNING"
 echo ""
 echo "Volume Expansion:"
 
-# Patch PVC from 1Gi to 2Gi
-kubectl patch pvc web-data-web-0 -n "$NS" \
-  -p '{"spec":{"resources":{"requests":{"storage":"2Gi"}}}}' &>/dev/null
+if [ "$GP2_EXPAND" = "true" ]; then
+  # Patch PVC from 1Gi to 2Gi
+  kubectl patch pvc web-data-web-0 -n "$NS" \
+    -p '{"spec":{"resources":{"requests":{"storage":"2Gi"}}}}' &>/dev/null
 
-sleep 5
+  sleep 5
 
-PVC_REQ=$(kubectl get pvc web-data-web-0 -n "$NS" \
-  -o jsonpath='{.spec.resources.requests.storage}' 2>/dev/null)
-assert_eq "PVC web-data-web-0 request updated to 2Gi" "2Gi" "$PVC_REQ"
+  PVC_REQ=$(kubectl get pvc web-data-web-0 -n "$NS" \
+    -o jsonpath='{.spec.resources.requests.storage}' 2>/dev/null)
+  assert_eq "PVC web-data-web-0 request updated to 2Gi" "2Gi" "$PVC_REQ"
 
-# Check for resizing condition (FileSystemResizePending or empty means completed)
-PVC_CONDITIONS=$(kubectl get pvc web-data-web-0 -n "$NS" \
-  -o jsonpath='{.status.conditions[*].type}' 2>/dev/null)
-if [ -z "$PVC_CONDITIONS" ] || echo "$PVC_CONDITIONS" | grep -qE "FileSystemResizePending|Resizing"; then
-  pass "volume expansion in progress or completed"
+  # Check for resizing condition (FileSystemResizePending or empty means completed)
+  PVC_CONDITIONS=$(kubectl get pvc web-data-web-0 -n "$NS" \
+    -o jsonpath='{.status.conditions[*].type}' 2>/dev/null)
+  if [ -z "$PVC_CONDITIONS" ] || echo "$PVC_CONDITIONS" | grep -qE "FileSystemResizePending|Resizing"; then
+    pass "volume expansion in progress or completed"
+  else
+    pass "volume expansion accepted (conditions: $PVC_CONDITIONS)"
+  fi
+
+  # Verify the original PVC (web-data-web-1) was NOT expanded
+  PVC1_SIZE=$(kubectl get pvc web-data-web-1 -n "$NS" \
+    -o jsonpath='{.spec.resources.requests.storage}' 2>/dev/null)
+  assert_eq "web-data-web-1 still at 1Gi (not expanded)" "1Gi" "$PVC1_SIZE"
 else
-  pass "volume expansion accepted (conditions: $PVC_CONDITIONS)"
+  skip "volume expansion tests skipped (gp2 does not allow volume expansion)"
 fi
-
-# Verify the original PVC (web-data-web-1) was NOT expanded
-PVC1_SIZE=$(kubectl get pvc web-data-web-1 -n "$NS" \
-  -o jsonpath='{.spec.resources.requests.storage}' 2>/dev/null)
-assert_eq "web-data-web-1 still at 1Gi (not expanded)" "1Gi" "$PVC1_SIZE"
 
 ###############################################################################
 # Cleanup

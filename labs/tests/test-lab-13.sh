@@ -22,6 +22,8 @@ echo "Step 2 — Container Build:"
 TMPDIR=$(mktemp -d)
 cd "$TMPDIR"
 git init &>/dev/null
+git config user.email "lab-test@example.com"
+git config user.name "Lab Test"
 
 cat > index.html <<'HEREDOC'
 <html><body>
@@ -71,8 +73,10 @@ if [ -n "$AWS_ACCOUNT_ID" ]; then
     docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>&1 || true)
   if echo "$ECR_LOGIN" | grep -q "Login Succeeded"; then
     pass "ECR login succeeded"
+    ECR_LOGGED_IN=true
   else
     skip "ECR login failed (docker may not be running)"
+    ECR_LOGGED_IN=false
   fi
 
   # Create ECR repository (conditional)
@@ -84,8 +88,21 @@ if [ -n "$AWS_ACCOUNT_ID" ]; then
     skip "ECR repository creation failed"
   fi
 
+  # Tag and push image to ECR (conditional on docker + ECR login)
+  if command -v docker &>/dev/null && docker info &>/dev/null 2>&1 && [ "$ECR_LOGGED_IN" = "true" ]; then
+    docker tag my-app:$GIT_SHA $ECR_REGISTRY/cicd-lab-app-$STUDENT_NAME:$GIT_SHA &>/dev/null 2>&1
+    PUSH_RESULT=$(docker push $ECR_REGISTRY/cicd-lab-app-$STUDENT_NAME:$GIT_SHA 2>&1 || true)
+    if echo "$PUSH_RESULT" | grep -qi "pushed\|digest\|latest"; then
+      pass "image pushed to ECR: cicd-lab-app-$STUDENT_NAME:$GIT_SHA"
+    else
+      fail "ECR push failed: $PUSH_RESULT"
+    fi
+  else
+    skip "ECR push skipped (docker not available or ECR login failed)"
+  fi
+
   # Clean up ECR repo immediately (test only)
-  aws ecr delete-repository --repository-name "$ECR_REPO" \
+  aws ecr delete-repository --repository-name cicd-lab-app-$STUDENT_NAME \
     --region us-east-2 --force &>/dev/null 2>&1 || true
 else
   skip "AWS account not accessible"
@@ -129,7 +146,7 @@ echo ""
 echo "Step 7 — Pipeline Code Change:"
 
 # Simulate v2 deployment by updating the image (triggers rolling update)
-kubectl set image deployment/cicd-demo nginx-1-25-alpine=nginx:1.25-alpine -n "$NS_CICD" &>/dev/null 2>&1 || true
+kubectl set image deployment/cicd-demo nginx=nginx:1.26-alpine -n "$NS_CICD" &>/dev/null 2>&1 || true
 kubectl annotate deployment cicd-demo -n "$NS_CICD" "git-commit=v2-sha" --overwrite &>/dev/null
 
 UPDATED_ANNOTATION=$(kubectl get deployment cicd-demo -n "$NS_CICD" \
@@ -192,6 +209,28 @@ if kubectl get pods -n argocd --no-headers 2>/dev/null | grep -q Running; then
     fi
   fi
 
+  # ArgoCD app history and rollback
+  if command -v argocd &>/dev/null; then
+    HISTORY_RESULT=$(argocd app history "cicd-demo-$STUDENT_NAME" 2>&1 || true)
+    if echo "$HISTORY_RESULT" | grep -qi "ID\|revision\|cicd-demo"; then
+      pass "argocd app history returned results"
+    else
+      skip "argocd app history returned no results (expected with dummy repo)"
+    fi
+
+    # Attempt rollback if sync was performed
+    if echo "$SYNC_RESULT" | grep -qi "healthy\|synced\|succeeded"; then
+      ROLLBACK_RESULT=$(argocd app rollback "cicd-demo-$STUDENT_NAME" 1 2>&1 || true)
+      if echo "$ROLLBACK_RESULT" | grep -qi "rollback\|healthy\|synced\|succeeded"; then
+        pass "argocd app rollback succeeded"
+      else
+        skip "argocd app rollback did not succeed (expected with dummy repo)"
+      fi
+    else
+      skip "argocd rollback skipped (sync was not successful)"
+    fi
+  fi
+
   # Clean up ArgoCD application
   kubectl delete application "cicd-demo-$STUDENT_NAME" -n argocd --ignore-not-found &>/dev/null
 else
@@ -225,6 +264,14 @@ if kubectl get pods -n flux-system --no-headers 2>/dev/null | grep -q Running; t
     pass "flux get sources helm works"
   else
     skip "no flux helm sources configured"
+  fi
+
+  # Verify flux kustomizations
+  KUSTOMIZATION_OUTPUT=$(flux get kustomizations 2>&1 || true)
+  if echo "$KUSTOMIZATION_OUTPUT" | grep -q "flux-system"; then
+    pass "flux kustomizations contains flux-system"
+  else
+    skip "flux kustomizations did not contain flux-system"
   fi
 
   # Step 10: Create namespace and apply HelmRepository

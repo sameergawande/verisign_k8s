@@ -31,6 +31,20 @@ assert_eq "no-probes-app has no liveness probe" "" "$NOPROBE_LIVE"
 NOPROBE_READY=$(kubectl get deployment no-probes-app -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].readinessProbe}' 2>/dev/null)
 assert_eq "no-probes-app has no readiness probe" "" "$NOPROBE_READY"
 
+# ─── Behavioral: no-probes failure stays undetected ──────────────────────
+
+echo ""
+echo "Behavioral: no-probes pod keeps running after internal failure"
+NOPROBE_POD=$(kubectl get pod -l app=no-probes-app -n "$NS" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+# Break nginx by removing default config
+kubectl exec "$NOPROBE_POD" -n "$NS" -- rm /etc/nginx/conf.d/default.conf &>/dev/null || true
+kubectl exec "$NOPROBE_POD" -n "$NS" -- nginx -s reload &>/dev/null || true
+sleep 10
+NOPROBE_PHASE=$(kubectl get pod "$NOPROBE_POD" -n "$NS" -o jsonpath='{.status.phase}' 2>/dev/null)
+assert_eq "no-probes pod still Running after failure" "Running" "$NOPROBE_PHASE"
+NOPROBE_RESTARTS=$(kubectl get pod "$NOPROBE_POD" -n "$NS" -o jsonpath='{.status.containerStatuses[0].restartCount}' 2>/dev/null)
+assert_eq "no-probes pod not restarted despite failure" "0" "$NOPROBE_RESTARTS"
+
 # ─── Step 2: Liveness probe ──────────────────────────────────────────────
 
 echo ""
@@ -52,6 +66,30 @@ assert_eq "liveness periodSeconds is 10" "10" "$LIVENESS_PERIOD"
 
 LIVENESS_REPLICAS=$(kubectl get deployment liveness-http -n "$NS" -o jsonpath='{.spec.replicas}' 2>/dev/null)
 assert_eq "liveness-http has 2 replicas" "2" "$LIVENESS_REPLICAS"
+
+# ─── Behavioral: liveness probe triggers restart ─────────────────────────
+
+echo ""
+echo "Behavioral: liveness probe triggers restart after failure"
+LIVE_POD=$(kubectl get pod -l app=liveness-http -n "$NS" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+LIVE_RESTARTS_BEFORE=$(kubectl get pod "$LIVE_POD" -n "$NS" -o jsonpath='{.status.containerStatuses[0].restartCount}' 2>/dev/null)
+# Remove the index.html so GET / returns 403/404, failing liveness
+kubectl exec "$LIVE_POD" -n "$NS" -- rm /usr/share/nginx/html/index.html &>/dev/null || true
+# Poll up to 60s for restart count to increment
+LIVE_RESTARTED=false
+for i in $(seq 1 12); do
+  sleep 5
+  LIVE_RESTARTS_NOW=$(kubectl get pod "$LIVE_POD" -n "$NS" -o jsonpath='{.status.containerStatuses[0].restartCount}' 2>/dev/null)
+  if [ "$LIVE_RESTARTS_NOW" -gt "$LIVE_RESTARTS_BEFORE" ] 2>/dev/null; then
+    LIVE_RESTARTED=true
+    break
+  fi
+done
+if [ "$LIVE_RESTARTED" = "true" ]; then
+  pass "liveness probe triggered restart"
+else
+  fail "liveness probe triggered restart (no restart within 60s)"
+fi
 
 # ─── Step 3: Readiness probe ─────────────────────────────────────────────
 
@@ -88,6 +126,63 @@ assert_eq "readiness-svc selector is readiness-app" "readiness-app" "$SVC_SELECT
 
 READINESS_REPLICAS=$(kubectl get deployment readiness-app -n "$NS" -o jsonpath='{.spec.replicas}' 2>/dev/null)
 assert_eq "readiness-app has 3 replicas" "3" "$READINESS_REPLICAS"
+
+# ─── Behavioral: readiness failure removes pod from endpoints ────────────
+
+echo ""
+echo "Behavioral: readiness failure/recovery cycle"
+READY_POD=$(kubectl get pod -l app=readiness-app -n "$NS" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+READY_POD_IP=$(kubectl get pod "$READY_POD" -n "$NS" -o jsonpath='{.status.podIP}' 2>/dev/null)
+
+# Ensure the /ready file exists so the pod is currently ready
+kubectl exec "$READY_POD" -n "$NS" -- sh -c 'mkdir -p /usr/share/nginx/html && touch /usr/share/nginx/html/ready' &>/dev/null || true
+sleep 12  # wait for successThreshold (2 checks x 5s period)
+
+# Verify pod IP appears in endpoints before we break it
+EP_BEFORE=$(kubectl get endpoints readiness-svc -n "$NS" -o jsonpath='{.subsets[0].addresses}' 2>/dev/null)
+assert_contains "pod IP in endpoints before failure" "$EP_BEFORE" "$READY_POD_IP"
+
+# Remove the /ready file to fail the readiness probe
+kubectl exec "$READY_POD" -n "$NS" -- rm /usr/share/nginx/html/ready &>/dev/null || true
+
+# Poll up to 20s: pod should be removed from endpoints
+READY_REMOVED=false
+for i in $(seq 1 4); do
+  sleep 5
+  EP_DURING=$(kubectl get endpoints readiness-svc -n "$NS" -o jsonpath='{.subsets[0].addresses}' 2>/dev/null)
+  if ! echo "$EP_DURING" | grep -q "$READY_POD_IP"; then
+    READY_REMOVED=true
+    break
+  fi
+done
+if [ "$READY_REMOVED" = "true" ]; then
+  pass "readiness failure removed pod from endpoints"
+else
+  fail "readiness failure removed pod from endpoints (still present after 20s)"
+fi
+
+# Verify pod was NOT restarted (readiness failure should not restart)
+READY_RESTARTS=$(kubectl get pod "$READY_POD" -n "$NS" -o jsonpath='{.status.containerStatuses[0].restartCount}' 2>/dev/null)
+assert_eq "readiness failure did not restart pod" "0" "$READY_RESTARTS"
+
+# Restore the /ready file
+kubectl exec "$READY_POD" -n "$NS" -- touch /usr/share/nginx/html/ready &>/dev/null || true
+
+# Poll up to 20s: pod should reappear in endpoints
+READY_RECOVERED=false
+for i in $(seq 1 4); do
+  sleep 5
+  EP_AFTER=$(kubectl get endpoints readiness-svc -n "$NS" -o jsonpath='{.subsets[0].addresses}' 2>/dev/null)
+  if echo "$EP_AFTER" | grep -q "$READY_POD_IP"; then
+    READY_RECOVERED=true
+    break
+  fi
+done
+if [ "$READY_RECOVERED" = "true" ]; then
+  pass "readiness recovery restored pod to endpoints"
+else
+  fail "readiness recovery restored pod to endpoints (not found after 20s)"
+fi
 
 # ─── Step 4: Startup probe ───────────────────────────────────────────────
 
@@ -203,6 +298,29 @@ assert_eq "exec probe periodSeconds is 5" "5" "$EXEC_PERIOD"
 EXEC_POD=$(kubectl get pod -l app=exec-probe-app -n "$NS" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
 assert_cmd "health file /tmp/healthy exists" kubectl exec "$EXEC_POD" -n "$NS" -- cat /tmp/healthy
 
+# ─── Behavioral: exec probe triggers restart on health file removal ──────
+
+echo ""
+echo "Behavioral: exec probe triggers restart when /tmp/healthy removed"
+EXEC_RESTARTS_BEFORE=$(kubectl get pod "$EXEC_POD" -n "$NS" -o jsonpath='{.status.containerStatuses[0].restartCount}' 2>/dev/null)
+# Remove the health file so cat /tmp/healthy fails
+kubectl exec "$EXEC_POD" -n "$NS" -- rm /tmp/healthy &>/dev/null || true
+# Poll up to 60s for restart count to increment
+EXEC_RESTARTED=false
+for i in $(seq 1 12); do
+  sleep 5
+  EXEC_RESTARTS_NOW=$(kubectl get pod "$EXEC_POD" -n "$NS" -o jsonpath='{.status.containerStatuses[0].restartCount}' 2>/dev/null)
+  if [ "$EXEC_RESTARTS_NOW" -gt "$EXEC_RESTARTS_BEFORE" ] 2>/dev/null; then
+    EXEC_RESTARTED=true
+    break
+  fi
+done
+if [ "$EXEC_RESTARTED" = "true" ]; then
+  pass "exec probe triggered restart after /tmp/healthy removal"
+else
+  fail "exec probe triggered restart after /tmp/healthy removal (no restart within 60s)"
+fi
+
 # ─── Step 8: Graceful shutdown ────────────────────────────────────────────
 
 echo ""
@@ -226,6 +344,32 @@ assert_eq "graceful-app has liveness probe on /" "/" "$GRACEFUL_LIVE"
 
 GRACEFUL_READY=$(kubectl get deployment graceful-app -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.httpGet.path}' 2>/dev/null)
 assert_eq "graceful-app has readiness probe on /" "/" "$GRACEFUL_READY"
+
+# ─── Behavioral: graceful shutdown takes time (preStop hook) ─────────────
+
+echo ""
+echo "Behavioral: graceful shutdown preStop hook delays termination"
+GRACEFUL_POD=$(kubectl get pod -l app=graceful-app -n "$NS" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+# Delete pod without waiting
+DELETE_START=$(date +%s)
+kubectl delete pod "$GRACEFUL_POD" -n "$NS" --wait=false &>/dev/null
+# Wait a few seconds and check the pod is still terminating (preStop sleeps 10s)
+sleep 5
+GRACEFUL_STATUS=$(kubectl get pod "$GRACEFUL_POD" -n "$NS" -o jsonpath='{.metadata.deletionTimestamp}' 2>/dev/null)
+if [ -n "$GRACEFUL_STATUS" ]; then
+  pass "graceful pod still terminating after 5s (preStop hook running)"
+else
+  # Pod already gone after 5s or not found — check if it was replaced quickly
+  skip "graceful pod terminated quickly (preStop may not have delayed)"
+fi
+# Wait for replacement pod to come up
+sleep 20
+GRACEFUL_RUNNING=$(kubectl get pods -l app=graceful-app -n "$NS" --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l | tr -d ' ')
+if [ "$GRACEFUL_RUNNING" -ge 1 ]; then
+  pass "graceful-app replacement pod is Running"
+else
+  fail "graceful-app replacement pod is Running (none found)"
+fi
 
 # ─── Cleanup ──────────────────────────────────────────────────────────────
 

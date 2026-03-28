@@ -78,9 +78,14 @@ V2_RESPONSE=$(kubectl run curl-v2-test --image=curlimages/curl --rm -i --restart
 assert_contains "v2 serves Application v2 page" "$V2_RESPONSE" "Application v2"
 
 # Check old ReplicaSet is scaled to 0
-OLD_RS_REPLICAS=$(kubectl get replicasets -n "$NS" -l app=webapp \
-  -o jsonpath='{.items[?(@.spec.replicas==0)].spec.replicas}' 2>/dev/null)
-assert_eq "old ReplicaSet scaled to 0" "0" "$OLD_RS_REPLICAS"
+# Count ReplicaSets at 0 replicas (may be multiple; just verify at least one exists)
+OLD_RS_COUNT=$(kubectl get replicasets -n "$NS" -l app=webapp \
+  -o jsonpath='{.items[?(@.spec.replicas==0)].metadata.name}' 2>/dev/null | wc -w | tr -d ' ')
+if [ "$OLD_RS_COUNT" -ge 1 ]; then
+  pass "old ReplicaSet scaled to 0 ($OLD_RS_COUNT old RS found)"
+else
+  fail "no old ReplicaSet found at 0 replicas"
+fi
 
 HISTORY=$(kubectl rollout history deployment/webapp -n "$NS" 2>/dev/null)
 assert_contains "rollout history exists" "$HISTORY" "REVISION"
@@ -183,8 +188,10 @@ TRAFFIC_RESULT=$(kubectl run traffic-test --image=curlimages/curl --rm -i --rest
   echo "STABLE=$STABLE CANARY=$CANARY"
 ' 2>/dev/null)
 
-STABLE_HITS=$(echo "$TRAFFIC_RESULT" | grep -oP 'STABLE=\K[0-9]+' || echo "0")
-CANARY_HITS=$(echo "$TRAFFIC_RESULT" | grep -oP 'CANARY=\K[0-9]+' || echo "0")
+STABLE_HITS=$(echo "$TRAFFIC_RESULT" | sed -n 's/.*STABLE=\([0-9]*\).*/\1/p')
+STABLE_HITS="${STABLE_HITS:-0}"
+CANARY_HITS=$(echo "$TRAFFIC_RESULT" | sed -n 's/.*CANARY=\([0-9]*\).*/\1/p')
+CANARY_HITS="${CANARY_HITS:-0}"
 
 if [ "$STABLE_HITS" -gt 0 ] && [ "$CANARY_HITS" -gt 0 ]; then
   pass "traffic split: stable=$STABLE_HITS canary=$CANARY_HITS (both versions received traffic)"

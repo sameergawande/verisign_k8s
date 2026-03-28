@@ -247,10 +247,21 @@ else
 fi
 
 # Verify securityContext fields via pod spec
-POD_JSON=$(kubectl get pod secure-app -n "$NS_RESTRICTED" -o json 2>/dev/null)
-assert_contains "runAsNonRoot is true" "$POD_JSON" '"runAsNonRoot":true'
-assert_contains "readOnlyRootFilesystem is true" "$POD_JSON" '"readOnlyRootFilesystem":true'
-assert_contains "allowPrivilegeEscalation is false" "$POD_JSON" '"allowPrivilegeEscalation":false'
+RUN_AS_NON_ROOT=$(kubectl get pod secure-app -n "$NS_RESTRICTED" \
+  -o jsonpath='{.spec.containers[0].securityContext.runAsNonRoot}' 2>/dev/null)
+if [ -z "$RUN_AS_NON_ROOT" ]; then
+  RUN_AS_NON_ROOT=$(kubectl get pod secure-app -n "$NS_RESTRICTED" \
+    -o jsonpath='{.spec.securityContext.runAsNonRoot}' 2>/dev/null)
+fi
+assert_eq "runAsNonRoot is true" "true" "$RUN_AS_NON_ROOT"
+
+READ_ONLY_FS=$(kubectl get pod secure-app -n "$NS_RESTRICTED" \
+  -o jsonpath='{.spec.containers[0].securityContext.readOnlyRootFilesystem}' 2>/dev/null)
+assert_eq "readOnlyRootFilesystem is true" "true" "$READ_ONLY_FS"
+
+ALLOW_PRIV_ESC=$(kubectl get pod secure-app -n "$NS_RESTRICTED" \
+  -o jsonpath='{.spec.containers[0].securityContext.allowPrivilegeEscalation}' 2>/dev/null)
+assert_eq "allowPrivilegeEscalation is false" "false" "$ALLOW_PRIV_ESC"
 
 ###############################################################################
 # Steps 9-11: IRSA — IAM Roles for Service Accounts
@@ -297,6 +308,15 @@ EOF
         pass "IRSA S3 ls succeeds (read access)"
       else
         skip "IRSA S3 read failed — bucket may not exist"
+      fi
+
+      # Test S3 read specific file content
+      S3_CONTENT=$(kubectl exec "irsa-test-$STUDENT_NAME" -n "$NS_IRSA" -- \
+        aws s3 cp s3://platform-lab-irsa-demo/test-file.txt - 2>&1)
+      if [ $? -eq 0 ] && [ -n "$S3_CONTENT" ]; then
+        pass "IRSA S3 cp reads file content successfully"
+      else
+        skip "IRSA S3 cp test-file.txt failed — file may not exist in bucket"
       fi
 
       # Test S3 write should be denied

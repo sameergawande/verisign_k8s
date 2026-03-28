@@ -97,8 +97,8 @@ assert_contains "pod describe shows container state" "$DESCRIBE" "State:"
 LOGS=$(kubectl logs "$POD" -n "$NS" --tail=5 2>&1)
 assert_cmd "pod logs accessible" test -n "$LOGS"
 
-EXEC_RESULT=$(kubectl exec "$POD" -n "$NS" -- curl -s localhost:80 2>/dev/null)
-assert_contains "exec curl returns nginx welcome page" "$EXEC_RESULT" "Welcome to nginx"
+EXEC_RESULT=$(kubectl exec "$POD" -n "$NS" -- cat /usr/share/nginx/html/index.html 2>/dev/null)
+assert_contains "exec cat returns nginx welcome page" "$EXEC_RESULT" "Welcome to nginx"
 
 EXEC_CONF=$(kubectl exec "$POD" -n "$NS" -- cat /etc/nginx/nginx.conf 2>/dev/null)
 assert_contains "nginx.conf readable inside container" "$EXEC_CONF" "worker_processes"

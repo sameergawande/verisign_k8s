@@ -187,9 +187,10 @@ assert_eq "secret volume mount DB_USERNAME=app_user" "app_user" "$SV_USER"
 SV_PASS=$(kubectl exec secret-vol-demo -n "$NS" -- cat /etc/db-creds/DB_PASSWORD 2>/dev/null)
 assert_eq "secret volume mount DB_PASSWORD" "S3cur3P@ssw0rd!" "$SV_PASS"
 
-# Check 0400 permissions
-SV_PERMS=$(kubectl exec secret-vol-demo -n "$NS" -- ls -la /etc/db-creds/DB_USERNAME 2>/dev/null)
-assert_contains "secret volume permissions are 0400" "$SV_PERMS" "r--------"
+# Check 0400 permissions via volume spec (symlinks show lrwxrwxrwx, so check spec instead)
+SV_MODE=$(kubectl get pod secret-vol-demo -n "$NS" \
+  -o jsonpath='{.spec.volumes[?(@.name=="db-creds")].secret.defaultMode}' 2>/dev/null)
+assert_eq "secret volume defaultMode is 0400 (256)" "256" "$SV_MODE"
 
 SV_LOG=$(kubectl logs secret-vol-demo -n "$NS" 2>/dev/null)
 assert_contains "secret-vol-demo lists /etc/db-creds/" "$SV_LOG" "DB_USERNAME"
@@ -273,8 +274,8 @@ assert_eq "volume mount updated to debug after propagation" "debug" "$UPDATED_FI
 ENV_STILL=$(kubectl exec update-test -n "$NS" -- printenv APP_LOG_LEVEL 2>/dev/null)
 assert_eq "env var APP_LOG_LEVEL still info (no auto-update)" "info" "$ENV_STILL"
 
-# Verify from logs that both are visible
-LOG_OUTPUT=$(kubectl logs update-test -n "$NS" --tail=1 2>/dev/null)
+# Verify from logs that both are visible (grab last few lines to avoid timing race)
+LOG_OUTPUT=$(kubectl logs update-test -n "$NS" --tail=5 2>/dev/null)
 assert_contains "log shows ENV: info (env not updated)" "$LOG_OUTPUT" "ENV: info"
 assert_contains "log shows FILE: debug (volume updated)" "$LOG_OUTPUT" "FILE: debug"
 
@@ -308,16 +309,14 @@ if kubectl get pods -n vault --no-headers 2>/dev/null | grep -q Running; then
   assert_eq "vault secret port=5432" "5432" "$VAULT_PORT"
 
   # Create policy and role
-  kubectl exec -n vault vault-0 -- sh -c "
-    vault policy write lab05-readonly-$STUDENT_NAME - <<POLICY
+  kubectl exec -n vault vault-0 -- sh -c "vault policy write lab05-readonly-$STUDENT_NAME - <<'POLICY'
 path \"secret/data/lab05-$STUDENT_NAME/*\" {
   capabilities = [\"read\", \"list\"]
 }
 path \"secret/metadata/lab05-$STUDENT_NAME/*\" {
   capabilities = [\"read\", \"list\"]
 }
-POLICY
-  " &>/dev/null
+POLICY" &>/dev/null
   if [ $? -eq 0 ]; then
     pass "vault policy created"
   else

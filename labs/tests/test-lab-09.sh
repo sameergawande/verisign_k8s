@@ -13,7 +13,6 @@ echo "=== Lab 9: Observability (ns: $NS) ==="
 echo ""
 
 kubectl create namespace "$NS" &>/dev/null
-kubectl config set-context --current --namespace="$NS" &>/dev/null
 
 # ─── Step 1: Container logs ───────────────────────────────────────────────
 
@@ -62,18 +61,22 @@ JSON_LOGS=$(kubectl logs -l app=json-logger -n "$NS" --tail=5 2>/dev/null)
 assert_contains "json-logger produces output" "$JSON_LOGS" "status"
 
 # Verify logs are valid JSON by piping through jq
-JSON_PARSED=$(kubectl logs -l app=json-logger -n "$NS" --tail=3 2>/dev/null | head -1 | jq '.status' 2>/dev/null)
+# The json-logger printf may split JSON across multiple lines; use jq -s to merge and grab first object
+# Get logs from a single pod to avoid interleaving from multiple replicas
+JSON_POD=$(kubectl get pods -l app=json-logger -n "$NS" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+JSON_LINE=$(kubectl logs "$JSON_POD" -n "$NS" --tail=5 2>/dev/null | grep -m1 '"status"')
+JSON_PARSED=$(echo "$JSON_LINE" | jq '.status' 2>/dev/null)
 if [ "$JSON_PARSED" = "200" ]; then
   pass "json-logger output is valid JSON with status=200"
 else
-  fail "json-logger output not valid JSON (jq returned: $JSON_PARSED)"
+  fail "json-logger output not valid JSON (jq returned: $JSON_PARSED from line: $JSON_LINE)"
 fi
 
 # Filter with jq select
-JSON_SVC=$(kubectl logs -l app=json-logger -n "$NS" --tail=5 2>/dev/null | head -1 | jq -r '.service' 2>/dev/null)
+JSON_SVC=$(echo "$JSON_LINE" | jq -r '.service' 2>/dev/null)
 assert_eq "json-logger service field is order-api" "order-api" "$JSON_SVC"
 
-JSON_LEVEL=$(kubectl logs -l app=json-logger -n "$NS" --tail=5 2>/dev/null | head -1 | jq -r '.level' 2>/dev/null)
+JSON_LEVEL=$(echo "$JSON_LINE" | jq -r '.level' 2>/dev/null)
 assert_eq "json-logger level field is info" "info" "$JSON_LEVEL"
 
 # Verify label selector works
@@ -86,6 +89,22 @@ echo ""
 echo "Metrics Server:"
 if kubectl top nodes &>/dev/null; then
   pass "kubectl top nodes works"
+
+  # Verify metrics-server deployment exists
+  MS_DEPLOY=$(kubectl get deployment metrics-server -n kube-system --no-headers 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$MS_DEPLOY" -ge 1 ]; then
+    pass "metrics-server deployment exists in kube-system"
+  else
+    fail "metrics-server deployment not found in kube-system"
+  fi
+
+  # Verify apiservice registered
+  APISERVICE=$(kubectl get apiservice v1beta1.metrics.k8s.io --no-headers 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$APISERVICE" -ge 1 ]; then
+    pass "apiservice v1beta1.metrics.k8s.io is registered"
+  else
+    fail "apiservice v1beta1.metrics.k8s.io not registered"
+  fi
 
   # Deploy stress-test and verify kubectl top pods
   envsubst < "$LAB_DIR/stress-test.yaml" | kubectl apply -f - &>/dev/null
@@ -111,6 +130,13 @@ if kubectl top nodes &>/dev/null; then
     skip "kubectl top pods --sort-by=cpu not available"
   fi
 
+  TOP_SORT_MEM=$(kubectl top pods -n "$NS" --sort-by=memory 2>/dev/null)
+  if echo "$TOP_SORT_MEM" | grep -q "NAME"; then
+    pass "kubectl top pods --sort-by=memory works"
+  else
+    skip "kubectl top pods --sort-by=memory not available"
+  fi
+
   TOP_CONTAINERS=$(kubectl top pods -n "$NS" --containers 2>/dev/null)
   if echo "$TOP_CONTAINERS" | grep -q "NAME"; then
     pass "kubectl top pods --containers works"
@@ -119,8 +145,11 @@ if kubectl top nodes &>/dev/null; then
   fi
 else
   skip "metrics-server not responding (top nodes)"
+  skip "metrics-server deployment check (metrics-server unavailable)"
+  skip "apiservice check (metrics-server unavailable)"
   skip "stress-test metrics (metrics-server unavailable)"
-  skip "top pods sort (metrics-server unavailable)"
+  skip "top pods sort cpu (metrics-server unavailable)"
+  skip "top pods sort memory (metrics-server unavailable)"
   skip "top pods containers (metrics-server unavailable)"
 fi
 
@@ -173,6 +202,31 @@ assert_contains "events show BackOff for buggy-app" "$EVENTS" "BackOff"
 # Check describe shows terminated state
 DESCRIBE=$(kubectl describe pod -l app=buggy-app -n "$NS" 2>/dev/null)
 assert_contains "describe shows terminated state" "$DESCRIBE" "Terminated"
+
+# ─── Buggy App PromQL Queries ─────────────────────────────────────────────
+
+echo ""
+echo "Buggy App PromQL Queries:"
+if kubectl get pods -n monitoring -l app.kubernetes.io/name=prometheus --no-headers 2>/dev/null | grep -q Running; then
+  kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 18083:9090 &>/dev/null &
+  PF_PID=$!
+  sleep 3
+
+  # Query restart count for buggy-app namespace
+  PROM_RESTART_INC=$(curl -s "http://localhost:18083/api/v1/query" \
+    --data-urlencode "query=increase(kube_pod_container_status_restarts_total{namespace=\"$NS\"}[30m])" 2>/dev/null)
+  assert_contains "PromQL buggy-app restart increase query returns success" "$PROM_RESTART_INC" "success"
+
+  # Query OOMKilled reason for buggy-app namespace
+  PROM_OOMKILLED=$(curl -s "http://localhost:18083/api/v1/query" \
+    --data-urlencode "query=kube_pod_container_status_last_terminated_reason{namespace=\"$NS\",reason=\"OOMKilled\"}" 2>/dev/null)
+  assert_contains "PromQL buggy-app OOMKilled query returns success" "$PROM_OOMKILLED" "success"
+
+  kill $PF_PID &>/dev/null
+else
+  skip "PromQL buggy-app restart query (prometheus unavailable)"
+  skip "PromQL buggy-app OOMKilled query (prometheus unavailable)"
+fi
 
 # ─── Step 4-5: Prometheus ─────────────────────────────────────────────────
 
@@ -268,6 +322,17 @@ else
   skip "grafana dashboard titles (grafana unavailable)"
 fi
 
+# ─── CloudWatch Container Insights (optional) ────────────────────────────
+
+echo ""
+echo "CloudWatch Container Insights:"
+CW_DS=$(kubectl get daemonset -n amazon-cloudwatch --no-headers 2>/dev/null | wc -l | tr -d ' ')
+if [ "${CW_DS:-0}" -gt 0 ]; then
+  pass "CloudWatch Container Insights daemonset found in amazon-cloudwatch namespace"
+else
+  skip "CloudWatch Container Insights not installed (optional)"
+fi
+
 # ─── Step 7: PrometheusRule ───────────────────────────────────────────────
 
 echo ""
@@ -333,7 +398,6 @@ fi
 
 # ─── Cleanup ──────────────────────────────────────────────────────────────
 
-kubectl config set-context --current --namespace=default &>/dev/null
 pkill -f "port-forward.*1808" &>/dev/null 2>&1 || true
 cleanup_ns "$NS"
 summary
