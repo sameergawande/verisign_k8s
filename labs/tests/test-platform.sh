@@ -1,7 +1,7 @@
 #!/bin/bash
 ###############################################################################
 # Platform Prerequisites Test
-# Verifies tools, cluster access, and platform components
+# Verifies tools, cluster access, and ALL platform components
 ###############################################################################
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -43,12 +43,10 @@ assert_eq "all nodes Ready" "Ready" "$NODE_STATUS"
 
 # ─── Helper: find running pods by name pattern across namespaces ───────────
 
-# Check if any running pod matches a name pattern in a given namespace
-# Falls back to checking all namespaces if namespace check fails
-check_component() {
-  local desc="$1" pattern="$2" ns="$3" skip_msg="$4"
+# require_component — component MUST be running (fail if not found)
+require_component() {
+  local desc="$1" pattern="$2" ns="$3"
 
-  # First try the expected namespace
   local count
   count=$(kubectl get pods -n "$ns" --no-headers 2>/dev/null | grep -iE "$pattern" | grep -c Running || true)
   if [ "$count" -gt 0 ]; then
@@ -56,7 +54,7 @@ check_component() {
     return 0
   fi
 
-  # Try all namespaces
+  # Try all namespaces as fallback
   count=$(kubectl get pods -A --no-headers 2>/dev/null | grep -iE "$pattern" | grep -c Running || true)
   if [ "$count" -gt 0 ]; then
     local found_ns
@@ -65,112 +63,61 @@ check_component() {
     return 0
   fi
 
-  skip "$skip_msg"
+  fail "$desc — not found"
   return 1
 }
 
-# ─── Platform Components ────────────────────────────────────────────────────
+# ─── Flux Reconciliation ────────────────────────────────────────────────────
 
 echo ""
-echo "Platform Components:"
+echo "Flux GitOps:"
 
-# Metrics Server
-check_component "metrics-server running" "metrics-server" "kube-system" \
-  "metrics-server not found (labs 1,2,9 may have limited functionality)"
+require_component "flux controllers running" "flux|source-controller|kustomize-controller" "flux-system"
 
-# Also verify kubectl top works
+# Flux Kustomizations
+FLUX_KS=$(kubectl get kustomizations.kustomize.toolkit.fluxcd.io -A --no-headers 2>/dev/null | wc -l | tr -d ' ')
+if [ "$FLUX_KS" -gt 0 ]; then
+  FLUX_KS_READY=$(kubectl get kustomizations.kustomize.toolkit.fluxcd.io -A --no-headers 2>/dev/null | grep -c "True" || true)
+  if [ "$FLUX_KS_READY" -eq "$FLUX_KS" ]; then
+    pass "all $FLUX_KS Flux Kustomizations reconciled"
+  else
+    fail "$FLUX_KS_READY/$FLUX_KS Flux Kustomizations ready"
+    kubectl get kustomizations.kustomize.toolkit.fluxcd.io -A --no-headers 2>/dev/null | grep -v "True" | awk '{printf "    ✗ %s/%s\n", $1, $2}'
+  fi
+else
+  fail "no Flux Kustomizations found"
+fi
+
+# Flux HelmReleases
+FLUX_HR=$(kubectl get helmreleases.helm.toolkit.fluxcd.io -A --no-headers 2>/dev/null | wc -l | tr -d ' ')
+if [ "$FLUX_HR" -gt 0 ]; then
+  FLUX_HR_READY=$(kubectl get helmreleases.helm.toolkit.fluxcd.io -A --no-headers 2>/dev/null | grep -c "True" || true)
+  if [ "$FLUX_HR_READY" -eq "$FLUX_HR" ]; then
+    pass "all $FLUX_HR Flux HelmReleases ready"
+  else
+    fail "$FLUX_HR_READY/$FLUX_HR Flux HelmReleases ready"
+    kubectl get helmreleases.helm.toolkit.fluxcd.io -A --no-headers 2>/dev/null | grep -v "True" | awk '{printf "    ✗ %s/%s\n", $1, $2}'
+  fi
+else
+  fail "no Flux HelmReleases found"
+fi
+
+# ─── Core Infrastructure ────────────────────────────────────────────────────
+
+echo ""
+echo "Core Infrastructure:"
+
+# Metrics Server (Terraform-managed)
+require_component "metrics-server running" "metrics-server" "kube-system"
+
 if kubectl top nodes &>/dev/null 2>&1; then
   pass "kubectl top nodes works"
 else
-  skip "kubectl top not responding (metrics-server may still be starting)"
+  fail "kubectl top not responding"
 fi
 
-# Calico / Cilium / VPC-CNI with NetworkPolicy
-if kubectl get installation default &>/dev/null 2>&1; then
-  pass "calico installed"
-elif kubectl get pods -A --no-headers 2>/dev/null | grep -i cilium | grep -q Running; then
-  pass "cilium installed"
-elif kubectl get daemonset -n kube-system aws-node &>/dev/null 2>&1; then
-  # VPC-CNI is default on EKS — check if network policy agent is present
-  if kubectl get pods -A --no-headers 2>/dev/null | grep -iE "network-policy|calico|tigera" | grep -q Running; then
-    pass "network policy enforcement available"
-  else
-    skip "VPC-CNI present but no NetworkPolicy enforcement detected (labs 6,8 may fail)"
-  fi
-else
-  skip "no CNI with NetworkPolicy support detected (labs 6,8 may fail)"
-fi
-
-# Ingress NGINX
-check_component "ingress-nginx running" "ingress-nginx|nginx-controller" "ingress-nginx" \
-  "ingress-nginx not found (lab 6 may fail)"
-
-# Envoy Gateway
-check_component "envoy-gateway running" "envoy-gateway|gateway-api" "envoy-gateway-system" \
-  "envoy-gateway not found (lab 6 gateway section may fail)"
-
-# Gateway API CRDs
-if kubectl get crd gateways.gateway.networking.k8s.io &>/dev/null 2>&1; then
-  pass "gateway API CRDs installed"
-elif kubectl get crd httproutes.gateway.networking.k8s.io &>/dev/null 2>&1; then
-  pass "gateway API CRDs installed (httproutes found)"
-else
-  skip "gateway API CRDs not found"
-fi
-
-# Prometheus stack
-check_component "prometheus running" "prometheus" "monitoring" \
-  "prometheus not found (lab 9 may fail)"
-
-check_component "grafana running" "grafana" "monitoring" \
-  "grafana not found (lab 9 may fail)"
-
-# Kyverno
-check_component "kyverno running" "kyverno" "kyverno" \
-  "kyverno not found"
-
-# ArgoCD
-check_component "argocd running" "argocd" "argocd" \
-  "argocd not found (lab 13 may fail)"
-
-# Flux
-check_component "flux running" "flux|source-controller|kustomize-controller" "flux-system" \
-  "flux not found (lab 13 may fail)"
-
-# Vault
-if kubectl get pods -A --no-headers 2>/dev/null | grep -i vault | grep -q Running; then
-  VAULT_NS=$(kubectl get pods -A --no-headers 2>/dev/null | grep -i vault | grep Running | head -1 | awk '{print $1}')
-  VAULT_POD=$(kubectl get pods -n "$VAULT_NS" --no-headers 2>/dev/null | grep -i vault | grep Running | head -1 | awk '{print $1}')
-  pass "vault running ($VAULT_NS/$VAULT_POD)"
-  VAULT_STATUS=$(kubectl exec -n "$VAULT_NS" "$VAULT_POD" -- vault status -format=json 2>/dev/null | jq -r '.sealed' 2>/dev/null || echo "unknown")
-  assert_eq "vault unsealed" "false" "$VAULT_STATUS"
-else
-  skip "vault not found (lab 5 may fail)"
-fi
-
-# External Secrets Operator
-check_component "external-secrets-operator running" "external-secrets|eso" "external-secrets" \
-  "external-secrets-operator not found (lab 5 ESO section may fail)"
-
-# ClusterSecretStore
-if kubectl get clustersecretstore &>/dev/null 2>&1; then
-  CSS_COUNT=$(kubectl get clustersecretstore --no-headers 2>/dev/null | wc -l | tr -d ' ')
-  if [ "$CSS_COUNT" -gt 0 ]; then
-    pass "ClusterSecretStore configured ($CSS_COUNT found)"
-  else
-    skip "no ClusterSecretStore resources found"
-  fi
-else
-  skip "ClusterSecretStore CRD not installed"
-fi
-
-# IRSA demo bucket
-BUCKET_CHECK=$(aws s3 ls s3://platform-lab-irsa-demo/ 2>&1)
-if echo "$BUCKET_CHECK" | grep -q "test-file.txt"; then
-  pass "IRSA demo S3 bucket accessible"
-else
-  skip "IRSA demo S3 bucket not accessible (lab 7 IRSA section may fail)"
-fi
+# Cert-Manager
+require_component "cert-manager running" "cert-manager" "cert-manager"
 
 # StorageClasses
 SC_COUNT=$(kubectl get storageclasses --no-headers 2>/dev/null | wc -l | tr -d ' ')
@@ -180,7 +127,155 @@ else
   fail "no StorageClasses found"
 fi
 
-# ─── Helm releases summary ─────────────────────────────────────────────────
+# ─── Networking ──────────────────────────────────────────────────────────────
+
+echo ""
+echo "Networking:"
+
+# Calico
+if kubectl get installation default &>/dev/null 2>&1; then
+  pass "calico operator installed"
+  # Check calico pods
+  CALICO_PODS=$(kubectl get pods -A --no-headers 2>/dev/null | grep -iE "calico|tigera" | grep -c Running || true)
+  if [ "$CALICO_PODS" -gt 0 ]; then
+    pass "calico running ($CALICO_PODS pods)"
+  else
+    fail "calico installation exists but no pods running"
+  fi
+elif kubectl get pods -A --no-headers 2>/dev/null | grep -iE "calico|tigera" | grep -q Running; then
+  pass "calico running"
+else
+  fail "calico not found — NetworkPolicy enforcement unavailable"
+fi
+
+# Ingress NGINX
+require_component "ingress-nginx running" "ingress-nginx|nginx-controller" "ingress-nginx"
+
+# Verify ingress controller has an external IP/hostname
+INGRESS_SVC=$(kubectl get svc -n ingress-nginx -o jsonpath='{.items[?(@.spec.type=="LoadBalancer")].status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+if [ -n "$INGRESS_SVC" ]; then
+  pass "ingress-nginx LoadBalancer has hostname"
+elif INGRESS_IP=$(kubectl get svc -n ingress-nginx -o jsonpath='{.items[?(@.spec.type=="LoadBalancer")].status.loadBalancer.ingress[0].ip}' 2>/dev/null) && [ -n "$INGRESS_IP" ]; then
+  pass "ingress-nginx LoadBalancer has IP"
+else
+  skip "ingress-nginx LoadBalancer pending (may still be provisioning)"
+fi
+
+# Envoy Gateway
+require_component "envoy-gateway running" "envoy-gateway" "envoy-gateway-system"
+
+# Gateway API CRDs
+if kubectl get crd gateways.gateway.networking.k8s.io &>/dev/null 2>&1; then
+  pass "Gateway API CRDs installed"
+else
+  fail "Gateway API CRDs not found"
+fi
+
+# GatewayClass
+if kubectl get gatewayclass eg &>/dev/null 2>&1; then
+  pass "GatewayClass 'eg' exists"
+else
+  fail "GatewayClass 'eg' not found"
+fi
+
+# ─── Security ────────────────────────────────────────────────────────────────
+
+echo ""
+echo "Security:"
+
+# Kyverno
+require_component "kyverno running" "kyverno" "kyverno"
+
+# Kyverno policies
+POLICY_COUNT=$(kubectl get clusterpolicy --no-headers 2>/dev/null | wc -l | tr -d ' ')
+if [ "$POLICY_COUNT" -gt 0 ]; then
+  pass "$POLICY_COUNT ClusterPolicy(ies) installed"
+else
+  fail "no Kyverno ClusterPolicies found"
+fi
+
+# External Secrets Operator
+require_component "external-secrets-operator running" "external-secrets" "external-secrets"
+
+# ClusterSecretStore
+if kubectl get clustersecretstore &>/dev/null 2>&1; then
+  CSS_COUNT=$(kubectl get clustersecretstore --no-headers 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$CSS_COUNT" -gt 0 ]; then
+    pass "ClusterSecretStore configured ($CSS_COUNT found)"
+  else
+    fail "ClusterSecretStore CRD exists but none configured"
+  fi
+else
+  fail "ClusterSecretStore CRD not installed"
+fi
+
+# Vault
+if kubectl get pods -A --no-headers 2>/dev/null | grep -i vault | grep -q Running; then
+  VAULT_NS=$(kubectl get pods -A --no-headers 2>/dev/null | grep -i vault | grep Running | head -1 | awk '{print $1}')
+  VAULT_POD=$(kubectl get pods -n "$VAULT_NS" --no-headers 2>/dev/null | grep -i vault | grep Running | head -1 | awk '{print $1}')
+  pass "vault running ($VAULT_NS/$VAULT_POD)"
+  VAULT_STATUS=$(kubectl exec -n "$VAULT_NS" "$VAULT_POD" -- vault status -format=json 2>/dev/null | jq -r '.sealed' 2>/dev/null || echo "unknown")
+  assert_eq "vault unsealed" "false" "$VAULT_STATUS"
+else
+  fail "vault not running"
+fi
+
+# ─── Monitoring ──────────────────────────────────────────────────────────────
+
+echo ""
+echo "Monitoring:"
+
+require_component "prometheus running" "prometheus" "monitoring"
+require_component "grafana running" "grafana" "monitoring"
+require_component "alertmanager running" "alertmanager" "monitoring"
+
+# Blackbox exporter
+require_component "blackbox-exporter running" "blackbox" "monitoring"
+
+# ─── Logging ─────────────────────────────────────────────────────────────────
+
+echo ""
+echo "Logging:"
+
+require_component "logging-operator running" "logging-operator" "logging"
+
+# Splunk
+require_component "splunk running" "splunk" "splunk"
+
+# ─── GitOps ──────────────────────────────────────────────────────────────────
+
+echo ""
+echo "GitOps:"
+
+# ArgoCD
+require_component "argocd running" "argocd" "argocd"
+
+if kubectl get crd applications.argoproj.io &>/dev/null 2>&1; then
+  pass "ArgoCD Application CRD exists"
+else
+  fail "ArgoCD Application CRD not found"
+fi
+
+# ─── AWS Integration ────────────────────────────────────────────────────────
+
+echo ""
+echo "AWS Integration:"
+
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null)
+if [ -n "$AWS_ACCOUNT_ID" ]; then
+  pass "AWS account accessible: $AWS_ACCOUNT_ID"
+else
+  fail "AWS account not accessible"
+fi
+
+BUCKET_CHECK=$(aws s3 ls s3://platform-lab-irsa-demo/ 2>&1)
+if echo "$BUCKET_CHECK" | grep -q "test-file.txt"; then
+  pass "IRSA demo S3 bucket accessible"
+else
+  fail "IRSA demo S3 bucket not accessible"
+fi
+
+# ─── Helm Releases ──────────────────────────────────────────────────────────
 
 echo ""
 echo "Helm Releases:"
@@ -188,22 +283,7 @@ HELM_COUNT=$(helm list -A --short 2>/dev/null | wc -l | tr -d ' ')
 if [ "$HELM_COUNT" -gt 0 ]; then
   pass "$HELM_COUNT Helm release(s) deployed"
 else
-  skip "no Helm releases found"
-fi
-
-# Flux HelmReleases
-echo ""
-echo "Flux HelmReleases:"
-FLUX_HR=$(kubectl get helmreleases -A --no-headers 2>/dev/null | wc -l | tr -d ' ')
-if [ "$FLUX_HR" -gt 0 ]; then
-  FLUX_HR_READY=$(kubectl get helmreleases -A --no-headers 2>/dev/null | grep -c "True" || true)
-  pass "$FLUX_HR_READY/$FLUX_HR Flux HelmReleases ready"
-  if [ "$FLUX_HR_READY" -lt "$FLUX_HR" ]; then
-    echo "  Not ready:"
-    kubectl get helmreleases -A --no-headers 2>/dev/null | grep -v "True" | awk '{printf "    %s/%s\n", $1, $2}'
-  fi
-else
-  skip "no Flux HelmReleases found"
+  fail "no Helm releases found"
 fi
 
 summary
