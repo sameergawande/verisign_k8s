@@ -1,3 +1,5 @@
+**/.DS_Store
+
 # Local .terraform directory (plugins, modules, providers)
 **/.terraform/
 
