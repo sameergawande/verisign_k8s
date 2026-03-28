@@ -59,3 +59,13 @@ output "student_role_arn" {
   description = "IAM role ARN for student access"
   value       = module.eks.student_role_arn
 }
+
+output "student_role_name" {
+  description = "IAM role name — students select this when attaching to Cloud9 EC2 instances"
+  value       = module.eks.student_role_name
+}
+
+output "student_instance_profile" {
+  description = "Instance profile name for Cloud9 EC2 instances"
+  value       = module.eks.student_instance_profile_name
+}

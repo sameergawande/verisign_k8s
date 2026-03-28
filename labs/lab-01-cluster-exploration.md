@@ -42,9 +42,7 @@ You will work in the Cloud9 terminal (bottom panel) for all labs.
 
 ## Step 2: Attach IAM Role for EKS Access
 
-Cloud9 managed credentials cannot access EKS. The instructor has already created an IAM role for the class. Disable managed credentials and attach the role to your instance.
-
-> ⚠️ **If the role does not exist**, create it: IAM Console → Roles → Create role → Trusted entity: **AWS service / EC2** → Policy: **AdministratorAccess** → Name: `k8s-lab-role`
+Cloud9 managed credentials cannot access EKS. The `k8s-lab-role` IAM role was created automatically during cluster setup. Disable managed credentials and attach the role to your instance.
 
 ### Disable Cloud9 Managed Credentials
 

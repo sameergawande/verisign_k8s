@@ -23,6 +23,13 @@ terraform plan
 terraform apply
 ```
 
+Terraform creates:
+- EKS cluster, VPC, managed node group
+- Student IAM role (`k8s-lab-role`) with EC2 trust + AdministratorAccess
+- Instance profile for Cloud9 attachment
+- EKS access entry granting the student role cluster-admin
+- IRSA roles, Vault, Flux bootstrap
+
 ### Connect
 
 ```bash
@@ -71,40 +78,12 @@ kubectl create secret generic splunk-hec-token \
 
 ---
 
-## Step 4: Create Student IAM Role
-
-One role shared by all 22 students:
-
-1. IAM Console → **Roles → Create role**
-2. Trusted entity: **AWS service / EC2** → Next
-3. Policy: **AdministratorAccess** → Next
-4. Role name: `k8s-lab-role` → Create
-
----
-
-## Step 5: Grant the Role EKS Access
-
-Run once:
+## Step 4: Verify Platform Components
 
 ```bash
-aws eks create-access-entry \
-  --cluster-name platform-lab \
-  --principal-arn arn:aws:iam::001613358280:role/k8s-lab-role \
-  --region us-east-2
+terraform output student_role_name        # Should print: k8s-lab-role
+terraform output student_instance_profile # Should print: k8s-lab-role
 
-aws eks associate-access-policy \
-  --cluster-name platform-lab \
-  --principal-arn arn:aws:iam::001613358280:role/k8s-lab-role \
-  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
-  --access-scope type=cluster \
-  --region us-east-2
-```
-
----
-
-## Step 6: Verify Platform Components
-
-```bash
 kubectl top nodes                                    # Metrics Server
 kubectl get installation default                     # Calico
 kubectl get pods -n ingress-nginx                    # NGINX Ingress
@@ -141,16 +120,8 @@ kubectl port-forward svc/vault 8200:8200 -n vault
 ## Teardown (after course)
 
 ```bash
-aws eks delete-access-entry \
-  --cluster-name platform-lab \
-  --principal-arn arn:aws:iam::001613358280:role/k8s-lab-role \
-  --region us-east-2
-
-aws iam detach-role-policy \
-  --role-name k8s-lab-role \
-  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
-aws iam delete-role --role-name k8s-lab-role
-
 cd eks-platform/terraform
 terraform destroy
 ```
+
+> Terraform handles full cleanup including the student IAM role, instance profile, and EKS access entry.

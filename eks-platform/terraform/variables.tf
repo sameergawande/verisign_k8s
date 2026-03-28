@@ -79,6 +79,12 @@ variable "flux_repository_name" {
   default     = "fleet-infra"
 }
 
+variable "student_role_name" {
+  description = "IAM role name for Cloud9 student instances (also used as instance profile name)"
+  type        = string
+  default     = "k8s-lab-role"
+}
+
 variable "splunk_hec_token" {
   description = "Splunk HEC token (generated after Splunk deploys)"
   type        = string

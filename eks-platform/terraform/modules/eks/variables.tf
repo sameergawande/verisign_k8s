@@ -7,6 +7,12 @@ variable "node_desired" { type = number }
 variable "node_min" { type = number }
 variable "node_max" { type = number }
 
+variable "student_role_name" {
+  description = "IAM role name for Cloud9 student instances"
+  type        = string
+  default     = "k8s-lab-role"
+}
+
 output "cluster_name" {
   value = module.eks.cluster_name
 }
@@ -46,4 +52,12 @@ output "storage_classes" {
 
 output "student_role_arn" {
   value = aws_iam_role.student.arn
+}
+
+output "student_role_name" {
+  value = aws_iam_role.student.name
+}
+
+output "student_instance_profile_name" {
+  value = aws_iam_instance_profile.student.name
 }

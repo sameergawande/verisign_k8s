@@ -110,6 +110,7 @@ module "eks" {
   node_desired       = var.node_desired
   node_min           = var.node_min
   node_max           = var.node_max
+  student_role_name  = var.student_role_name
 }
 
 module "irsa" {

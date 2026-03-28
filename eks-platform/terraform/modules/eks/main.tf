@@ -72,10 +72,26 @@ module "eks" {
     }
   }
 
-  # Allow Flux, Vault, and other controllers full access
-  enable_cluster_creator_admin_permissions = true
+  enable_cluster_creator_admin_permissions = false
 
   access_entries = {
+    # Grant the Terraform executor cluster-admin so it can create
+    # StorageClasses, Kubernetes resources, and bootstrap Flux/Vault.
+    terraform_executor = {
+      principal_arn = data.aws_caller_identity.current.arn
+      type          = "STANDARD"
+
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+
+    # Student role — attached to Cloud9 EC2 instances via instance profile.
     student = {
       principal_arn     = aws_iam_role.student.arn
       kubernetes_groups = ["students"]
@@ -191,6 +207,8 @@ resource "aws_kms_alias" "ebs" {
 # io2-encrypted:           WaitForFirstConsumer, Retain, high IOPS
 
 resource "kubernetes_storage_class" "gp3_encrypted_immediate" {
+  depends_on = [module.eks]
+
   metadata {
     name = "gp3-encrypted-immediate"
   }
@@ -209,6 +227,8 @@ resource "kubernetes_storage_class" "gp3_encrypted_immediate" {
 }
 
 resource "kubernetes_storage_class" "gp3_encrypted" {
+  depends_on = [module.eks]
+
   metadata {
     name = "gp3-encrypted"
     annotations = {
@@ -230,6 +250,8 @@ resource "kubernetes_storage_class" "gp3_encrypted" {
 }
 
 resource "kubernetes_storage_class" "gp3_encrypted_retain" {
+  depends_on = [module.eks]
+
   metadata {
     name = "gp3-encrypted-retain"
   }
@@ -248,6 +270,8 @@ resource "kubernetes_storage_class" "gp3_encrypted_retain" {
 }
 
 resource "kubernetes_storage_class" "io2_encrypted" {
+  depends_on = [module.eks]
+
   metadata {
     name = "io2-encrypted"
   }
@@ -269,6 +293,8 @@ resource "kubernetes_storage_class" "io2_encrypted" {
 # Remove the default annotation from the built-in gp2 StorageClass
 # so gp3-encrypted becomes the cluster default
 resource "kubernetes_annotations" "remove_gp2_default" {
+  depends_on = [module.eks]
+
   api_version = "storage.k8s.io/v1"
   kind        = "StorageClass"
   metadata {
@@ -283,52 +309,34 @@ resource "kubernetes_annotations" "remove_gp2_default" {
 
 # ============================================================
 # Student Access Configuration
+# Cloud9 instances assume this role via EC2 instance profile.
+# AdministratorAccess simplifies lab exercises — scope down for
+# production training environments.
 # ============================================================
 
 resource "aws_iam_role" "student" {
-  name = "${var.cluster_name}-student-role"
+  name = var.student_role_name
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+      Principal = { Service = "ec2.amazonaws.com" }
       Action    = "sts:AssumeRole"
     }]
   })
 
   tags = {
-    Purpose = "EKS student access for training"
+    Purpose = "Cloud9 student access for EKS training"
   }
 }
 
-resource "aws_iam_role_policy" "student_eks" {
-  name = "${var.cluster_name}-student-eks-policy"
-  role = aws_iam_role.student.id
+resource "aws_iam_instance_profile" "student" {
+  name = var.student_role_name
+  role = aws_iam_role.student.name
+}
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = ["eks:DescribeCluster", "eks:ListClusters"]
-        Resource = "*"
-      },
-      {
-        Effect   = "Allow"
-        Action   = ["iam:*"]
-        Resource = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/irsa-*"
-      },
-      {
-        Effect   = "Allow"
-        Action   = ["iam:*"]
-        Resource = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/irsa-*"
-      },
-      {
-        Effect   = "Allow"
-        Action   = ["s3:GetObject", "s3:ListBucket"]
-        Resource = ["arn:aws:s3:::${var.cluster_name}-irsa-demo", "arn:aws:s3:::${var.cluster_name}-irsa-demo/*"]
-      }
-    ]
-  })
+resource "aws_iam_role_policy_attachment" "student_admin" {
+  role       = aws_iam_role.student.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
