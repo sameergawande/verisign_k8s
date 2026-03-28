@@ -160,6 +160,7 @@ spec:
 
 ```bash
 envsubst < lab-reader-pod.yaml | kubectl apply -f -
+kubectl wait --for=condition=Ready pod/data-reader -n lab03-$STUDENT_NAME --timeout=120s
 kubectl logs data-reader -n lab03-$STUDENT_NAME
 ```
 

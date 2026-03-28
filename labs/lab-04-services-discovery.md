@@ -96,7 +96,9 @@ spec:
           image: nginx:1.25
           ports:
             - containerPort: 80
-            - containerPort: 443
+              name: http
+            - containerPort: 9113
+              name: metrics
 ```
 
 ```bash
@@ -344,9 +346,9 @@ spec:
     - name: http
       port: 80
       targetPort: 80
-    - name: https
-      port: 443
-      targetPort: 443
+    - name: metrics
+      port: 9113
+      targetPort: 9113
 ```
 
 ```bash
@@ -354,7 +356,7 @@ envsubst < frontend-multiport.yaml | kubectl apply -f -
 kubectl get svc frontend-multiport -n lab04-$STUDENT_NAME
 ```
 
-> ✅ **Checkpoint:** Output shows `80/TCP,443/TCP`. When a Service has multiple ports, each **must** have a `name` field.
+> ✅ **Checkpoint:** Output shows `80/TCP,9113/TCP`. When a Service has multiple ports, each **must** have a `name` field.
 
 ---
 

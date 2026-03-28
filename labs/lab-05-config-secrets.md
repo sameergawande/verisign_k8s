@@ -99,7 +99,7 @@ spec:
 ```
 
 ```bash
-envsubst < pod-envfrom.yaml | kubectl apply -f -
+envsubst '$STUDENT_NAME' < pod-envfrom.yaml | kubectl apply -f -
 kubectl logs env-from-demo -n lab05-$STUDENT_NAME | grep APP_
 ```
 
@@ -124,7 +124,7 @@ spec:
 ```
 
 ```bash
-envsubst < pod-valuefrom.yaml | kubectl apply -f -
+envsubst '$STUDENT_NAME' < pod-valuefrom.yaml | kubectl apply -f -
 kubectl logs value-from-demo -n lab05-$STUDENT_NAME
 ```
 
@@ -170,7 +170,7 @@ spec:
 ```
 
 ```bash
-envsubst < pod-volume-mount.yaml | kubectl apply -f -
+envsubst '$STUDENT_NAME' < pod-volume-mount.yaml | kubectl apply -f -
 kubectl wait --for=condition=Ready pod/volume-mount-demo \
     -n lab05-$STUDENT_NAME --timeout=60s
 
@@ -239,7 +239,7 @@ spec:
 ```
 
 ```bash
-envsubst < pod-secret-env.yaml | kubectl apply -f -
+envsubst '$STUDENT_NAME' < pod-secret-env.yaml | kubectl apply -f -
 kubectl logs secret-env-demo -n lab05-$STUDENT_NAME
 ```
 
@@ -264,7 +264,7 @@ spec:
 ```
 
 ```bash
-envsubst < pod-secret-volume.yaml | kubectl apply -f -
+envsubst '$STUDENT_NAME' < pod-secret-volume.yaml | kubectl apply -f -
 kubectl logs secret-vol-demo -n lab05-$STUDENT_NAME
 kubectl exec secret-vol-demo -n lab05-$STUDENT_NAME -- cat /etc/db-creds/DB_USERNAME
 ```
@@ -289,7 +289,7 @@ immutable: true
 ```
 
 ```bash
-envsubst < immutable-config.yaml | kubectl apply -f -
+envsubst '$STUDENT_NAME' < immutable-config.yaml | kubectl apply -f -
 
 # Try to update it (this will fail)
 kubectl patch configmap immutable-app-config \
@@ -339,7 +339,7 @@ spec:
 ```
 
 ```bash
-envsubst < pod-projected.yaml | kubectl apply -f -
+envsubst '$STUDENT_NAME' < pod-projected.yaml | kubectl apply -f -
 kubectl wait --for=condition=Ready pod/projected-demo \
     -n lab05-$STUDENT_NAME --timeout=60s
 kubectl exec projected-demo -n lab05-$STUDENT_NAME -- ls -la /etc/projected
@@ -378,7 +378,7 @@ spec:
 ```
 
 ```bash
-envsubst < pod-update-test.yaml | kubectl apply -f -
+envsubst '$STUDENT_NAME' < pod-update-test.yaml | kubectl apply -f -
 kubectl wait --for=condition=Ready pod/update-test \
     -n lab05-$STUDENT_NAME --timeout=60s
 kubectl logs update-test -n lab05-$STUDENT_NAME --tail=1

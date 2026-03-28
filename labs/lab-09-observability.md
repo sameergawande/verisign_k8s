@@ -214,7 +214,7 @@ echo "Prometheus UI: http://localhost:9090"
 
 ### Run PromQL Queries
 
-Navigate to the **Graph** tab and run these queries:
+Navigate to the **Graph** tab and run these queries (replace `$STUDENT_NAME` with your actual name in the browser):
 
 ```promql
 # Total CPU usage per node
@@ -384,6 +384,7 @@ kube_pod_container_status_last_terminated_reason{
 
 ```bash
 kubectl delete namespace obs-lab-$STUDENT_NAME
+kubectl delete prometheusrule pod-restart-alert-$STUDENT_NAME -n monitoring --ignore-not-found
 pkill -f "port-forward.*9090" 2>/dev/null
 pkill -f "port-forward.*3000" 2>/dev/null
 ```

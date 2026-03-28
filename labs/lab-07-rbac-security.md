@@ -380,8 +380,8 @@ kubectl exec irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME \
 
 # Test S3 write (should be denied)
 kubectl exec irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME \
-  -- bash -c 'echo "test" | aws s3 cp - \
-    s3://platform-lab-irsa-demo/unauthorized-$STUDENT_NAME.txt'
+  -- bash -c "echo test | aws s3 cp - \
+    s3://platform-lab-irsa-demo/unauthorized-$STUDENT_NAME.txt"
 ```
 
 > ✅ **Checkpoint:** `s3 ls` and `s3 cp` (read) succeed. Write returns **AccessDenied**.

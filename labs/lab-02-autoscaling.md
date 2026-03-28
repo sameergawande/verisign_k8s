@@ -135,6 +135,9 @@ kubectl run load-generator \
 In your **second terminal**, watch the HPA and pods respond:
 
 ```bash
+# Set your student name in the new terminal
+export STUDENT_NAME=<your-name>
+
 # Watch HPA status (updates every 15 seconds)
 kubectl get hpa php-apache -n lab02-$STUDENT_NAME --watch
 

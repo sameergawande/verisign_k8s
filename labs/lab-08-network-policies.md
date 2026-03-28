@@ -51,7 +51,7 @@ spec:
   containers:
   - name: db
     image: nginx:1.25
-    ports: [{ containerPort: 3306 }]
+    ports: [{ containerPort: 80 }]
 ---
 apiVersion: v1
 kind: Service
@@ -60,7 +60,7 @@ metadata:
   namespace: lab08-$STUDENT_NAME
 spec:
   selector: { tier: database }
-  ports: [{ port: 3306, targetPort: 3306 }]
+  ports: [{ port: 80, targetPort: 80 }]
 ```
 
 ### Deploy the Backend and Frontend Tiers
@@ -77,7 +77,7 @@ spec:
   containers:
   - name: api
     image: nginx:1.25
-    ports: [{ containerPort: 8080 }]
+    ports: [{ containerPort: 80 }]
 ---
 apiVersion: v1
 kind: Service
@@ -86,7 +86,7 @@ metadata:
   namespace: lab08-$STUDENT_NAME
 spec:
   selector: { tier: backend }
-  ports: [{ port: 8080, targetPort: 8080 }]
+  ports: [{ port: 80, targetPort: 80 }]
 ```
 
 ```yaml
@@ -130,10 +130,10 @@ Confirm all pods can communicate (all should succeed):
 
 ```bash
 kubectl exec frontend -n lab08-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:8080
+  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80
 
 kubectl exec frontend -n lab08-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://database.lab08-$STUDENT_NAME.svc.cluster.local:3306
+  curl -s --max-time 3 http://database.lab08-$STUDENT_NAME.svc.cluster.local:80
 
 kubectl exec database -n lab08-$STUDENT_NAME -- \
   curl -s --max-time 3 http://frontend.lab08-$STUDENT_NAME.svc.cluster.local:80
@@ -167,11 +167,11 @@ envsubst < deny-all-ingress.yaml | kubectl apply -f -
 ```bash
 # All should FAIL / timeout
 kubectl exec frontend -n lab08-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:8080
+  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80
 echo "Exit code: $?"
 
 kubectl exec backend -n lab08-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://database.lab08-$STUDENT_NAME.svc.cluster.local:3306
+  curl -s --max-time 3 http://database.lab08-$STUDENT_NAME.svc.cluster.local:80
 echo "Exit code: $?"
 
 kubectl exec database -n lab08-$STUDENT_NAME -- \
@@ -205,7 +205,7 @@ spec:
           tier: frontend
     ports:
     - protocol: TCP
-      port: 8080
+      port: 80
 ```
 
 ```bash
@@ -213,11 +213,11 @@ envsubst < allow-frontend-to-backend.yaml | kubectl apply -f -
 
 # Frontend -> Backend (should now SUCCEED)
 kubectl exec frontend -n lab08-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:8080
+  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80
 
 # Database -> Backend (should still FAIL)
 kubectl exec database -n lab08-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:8080
+  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80
 ```
 
 > ✅ **Checkpoint:** Frontend to backend succeeds; database to backend times out.
@@ -246,7 +246,7 @@ spec:
           tier: backend
     ports:
     - protocol: TCP
-      port: 3306
+      port: 80
 ```
 
 ```bash
@@ -254,11 +254,11 @@ envsubst < allow-backend-to-database.yaml | kubectl apply -f -
 
 # Backend -> Database (should now SUCCEED)
 kubectl exec backend -n lab08-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://database.lab08-$STUDENT_NAME.svc.cluster.local:3306
+  curl -s --max-time 3 http://database.lab08-$STUDENT_NAME.svc.cluster.local:80
 
 # Frontend -> Database (should still FAIL)
 kubectl exec frontend -n lab08-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://database.lab08-$STUDENT_NAME.svc.cluster.local:3306
+  curl -s --max-time 3 http://database.lab08-$STUDENT_NAME.svc.cluster.local:80
 ```
 
 > ✅ **Checkpoint:** Backend to database succeeds; frontend to database times out.
@@ -272,19 +272,19 @@ echo "=== ALLOWED PATHS ==="
 echo -n "Frontend -> Backend: "
 kubectl exec frontend -n lab08-$STUDENT_NAME -- curl -s -o /dev/null \
   -w "%{http_code}" --max-time 3 \
-  http://backend:8080 2>/dev/null || echo "BLOCKED"
+  http://backend:80 2>/dev/null || echo "BLOCKED"
 
 echo -n "Backend -> Database: "
 kubectl exec backend -n lab08-$STUDENT_NAME -- curl -s -o /dev/null \
   -w "%{http_code}" --max-time 3 \
-  http://database:3306 2>/dev/null || echo "BLOCKED"
+  http://database:80 2>/dev/null || echo "BLOCKED"
 
 echo ""
 echo "=== BLOCKED PATHS ==="
 echo -n "Frontend -> Database: "
 kubectl exec frontend -n lab08-$STUDENT_NAME -- curl -s -o /dev/null \
   -w "%{http_code}" --max-time 3 \
-  http://database:3306 2>/dev/null || echo "BLOCKED"
+  http://database:80 2>/dev/null || echo "BLOCKED"
 
 echo -n "Database -> Frontend: "
 kubectl exec database -n lab08-$STUDENT_NAME -- curl -s -o /dev/null \
@@ -294,7 +294,7 @@ kubectl exec database -n lab08-$STUDENT_NAME -- curl -s -o /dev/null \
 echo -n "Database -> Backend: "
 kubectl exec database -n lab08-$STUDENT_NAME -- curl -s -o /dev/null \
   -w "%{http_code}" --max-time 3 \
-  http://backend:8080 2>/dev/null || echo "BLOCKED"
+  http://backend:80 2>/dev/null || echo "BLOCKED"
 ```
 
 > ✅ **Checkpoint:** Frontend->Backend: 200, Backend->Database: 200, all others: BLOCKED.
@@ -319,12 +319,12 @@ spec:
 ```bash
 envsubst < deny-all-egress.yaml | kubectl apply -f -
 
-# DNS is now broken
+# DNS is now broken — curl will fail to resolve
 kubectl exec frontend -n lab08-$STUDENT_NAME -- \
-  nslookup backend.lab08-$STUDENT_NAME.svc.cluster.local 2>&1 || echo "DNS FAILED"
+  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80 || echo "BLOCKED"
 ```
 
-### Allow DNS Egress
+### Allow DNS and In-Namespace Egress
 
 ```yaml
 # Save as allow-dns-egress.yaml
@@ -345,19 +345,22 @@ spec:
       port: 53
     - protocol: TCP
       port: 53
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 80
 ```
 
 ```bash
 envsubst < allow-dns-egress.yaml | kubectl apply -f -
 
-# Verify DNS and traffic flow restored
+# Verify DNS resolves and traffic flows again
 kubectl exec frontend -n lab08-$STUDENT_NAME -- \
-  nslookup backend.lab08-$STUDENT_NAME.svc.cluster.local
-kubectl exec frontend -n lab08-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:8080
+  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80
 ```
 
-> ✅ **Checkpoint:** DNS works again and the frontend-to-backend path is restored.
+> ✅ **Checkpoint:** DNS works again and the frontend-to-backend path is restored. The egress policy allows DNS (port 53) and in-namespace traffic (port 80).
 
 ---
 
@@ -367,10 +370,11 @@ kubectl exec frontend -n lab08-$STUDENT_NAME -- \
 kubectl create namespace monitoring-$STUDENT_NAME
 kubectl label namespace monitoring-$STUDENT_NAME purpose=monitoring
 kubectl run monitor --image=nginx:1.25 -n monitoring-$STUDENT_NAME
+kubectl wait --for=condition=Ready pod/monitor -n monitoring-$STUDENT_NAME --timeout=60s
 
 # Monitor cannot reach backend (denied by default)
 kubectl exec monitor -n monitoring-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:8080
+  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80
 ```
 
 Allow monitoring namespace access:
@@ -394,17 +398,13 @@ spec:
     ports:
     - protocol: TCP
       port: 80
-    - protocol: TCP
-      port: 8080
-    - protocol: TCP
-      port: 3306
 ```
 
 ```bash
 envsubst < allow-monitoring-ingress.yaml | kubectl apply -f -
 
 kubectl exec monitor -n monitoring-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:8080
+  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80
 ```
 
 > ✅ **Checkpoint:** Monitoring pod can now reach application pods.

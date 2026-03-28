@@ -89,7 +89,7 @@ git add . && git commit -m "Initial application"
 Build and tag with the git SHA:
 
 ```bash
-GIT_SHA=$(git rev-parse --short HEAD)
+export GIT_SHA=$(git rev-parse --short HEAD)
 echo "Building with SHA: $GIT_SHA"
 
 sed -i.bak "s/__BUILD_SHA__/$GIT_SHA/g" index.html
@@ -124,6 +124,10 @@ docker push $ECR_REGISTRY/$ECR_REPO:$GIT_SHA
 ---
 
 ## Step 4: Deploy with kubectl
+
+```bash
+mkdir -p ~/cicd-lab/k8s
+```
 
 Save as `k8s/deployment.yaml`:
 
@@ -160,7 +164,6 @@ spec:
 
 ```bash
 kubectl create namespace cicd-lab-$STUDENT_NAME
-mkdir -p ~/cicd-lab/k8s
 
 envsubst < k8s/deployment.yaml | kubectl apply -f -
 kubectl rollout status deployment/cicd-demo -n cicd-lab-$STUDENT_NAME
@@ -181,6 +184,8 @@ kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never \
 kubectl get pods -n argocd
 argocd version
 ```
+
+> ⚠️ **Replace `your-org`** with your GitHub organization or username. If you don't have a Git repo for this exercise, the ArgoCD sync will show a connection error — this is expected. The goal is to understand the Application manifest structure.
 
 Save as `argocd-app.yaml`:
 
@@ -225,7 +230,8 @@ Make a code change, rebuild, and update the manifest:
 
 ```bash
 cd ~/cicd-lab
-sed -i 's/CI\/CD Demo Application/CI\/CD Demo v2/' index.html
+sed -i.bak 's/CI\/CD Demo Application/CI\/CD Demo v2/' index.html
+rm -f *.bak
 git add . && git commit -m "Update application to v2"
 
 NEW_SHA=$(git rev-parse --short HEAD)
@@ -234,10 +240,11 @@ docker build -t my-app:$NEW_SHA .
 docker tag my-app:$NEW_SHA $ECR_REGISTRY/$ECR_REPO:$NEW_SHA
 docker push $ECR_REGISTRY/$ECR_REPO:$NEW_SHA
 
-sed -i "s|image: .*|image: \
+sed -i.bak "s|image: .*|image: \
 ${ECR_REGISTRY}/${ECR_REPO}:${NEW_SHA}|" \
   k8s/deployment.yaml
-sed -i "s|git-commit: .*|git-commit: \"${NEW_SHA}\"|" k8s/deployment.yaml
+sed -i.bak "s|git-commit: .*|git-commit: \"${NEW_SHA}\"|" k8s/deployment.yaml
+rm -f k8s/*.bak
 git add k8s/deployment.yaml
 git commit -m "Deploy image $NEW_SHA"
 
@@ -258,8 +265,9 @@ kubectl run curl-test2 --image=curlimages/curl --rm -it --restart=Never \
 
 ```bash
 git revert HEAD --no-edit
-git push origin main
 ```
+
+> **Note:** In a real GitOps workflow, you would `git push origin main` to trigger the pipeline. Since we are using a local git repo without a configured remote, the push is not needed here — ArgoCD concepts are demonstrated via the local manifests.
 
 **ArgoCD Rollback (Quick)** -- faster but creates drift until next sync:
 
@@ -332,7 +340,7 @@ spec:
   install:
     remediation: { retries: 3 }
   upgrade:
-    remediation: { retries: 3, remediationStrategy: rollback }
+    remediation: { retries: 3, strategy: rollback }
 ```
 
 Apply and verify:

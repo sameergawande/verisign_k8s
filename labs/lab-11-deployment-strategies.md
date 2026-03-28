@@ -349,8 +349,12 @@ Test with a dry-run drain:
 ```bash
 kubectl get pods -n deploy-lab-$STUDENT_NAME -l app=webapp -o wide
 
+# Get a node name from the output above, then dry-run drain
+NODE_NAME=$(kubectl get pods -n deploy-lab-$STUDENT_NAME -l app=webapp \
+  -o jsonpath='{.items[0].spec.nodeName}')
+
 # Dry-run only -- NEVER drain without --dry-run in a shared cluster
-kubectl drain <NODE_NAME> --ignore-daemonsets \
+kubectl drain $NODE_NAME --ignore-daemonsets \
   --delete-emptydir-data --dry-run=client
 ```
 

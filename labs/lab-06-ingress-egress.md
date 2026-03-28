@@ -338,7 +338,7 @@ curl -s -H "Host: api-$STUDENT_NAME.lab.local" http://$INGRESS_IP/api/
 # Check CORS and custom headers
 curl -sI -H "Host: api-$STUDENT_NAME.lab.local" \
     -H "Origin: https://app.verisign.com" \
-    http://$INGRESS_IP/api/ 2>&1 | grep -E "cors|X-Served"
+    http://$INGRESS_IP/api/ 2>&1 | grep -iE "access-control|X-Served"
 
 # Test rate limiting
 for i in $(seq 1 15); do
