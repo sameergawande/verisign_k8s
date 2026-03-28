@@ -29,7 +29,7 @@ envsubst < "$LAB_DIR/liveness-http.yaml" | kubectl apply -f - &>/dev/null
 wait_for_deploy "$NS" liveness-http 60
 
 LIVENESS=$(kubectl get deployment liveness-http -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].livenessProbe.httpGet.path}' 2>/dev/null)
-assert_eq "liveness probe path set" "/healthz" "$LIVENESS"
+assert_eq "liveness probe path set" "/" "$LIVENESS"
 
 # ─── Readiness probe ───────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ envsubst < "$LAB_DIR/slow-start-app.yaml" | kubectl apply -f - &>/dev/null
 sleep 5
 
 STARTUP=$(kubectl get deployment slow-start-app -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].startupProbe.httpGet.path}' 2>/dev/null)
-assert_eq "startup probe path set" "/healthz" "$STARTUP"
+assert_eq "startup probe path set" "/" "$STARTUP"
 
 FAILURE_THRESH=$(kubectl get deployment slow-start-app -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].startupProbe.failureThreshold}' 2>/dev/null)
 assert_eq "startup probe failure threshold 12" "12" "$FAILURE_THRESH"

@@ -3,10 +3,12 @@
 # Lab Test Suite Runner
 #
 # Usage:
-#   bash run-all.sh              # Run all tests
+#   bash run-all.sh              # Setup platform + run all tests
 #   bash run-all.sh platform     # Platform prerequisites only
-#   bash run-all.sh 1 3 5        # Run specific labs
+#   bash run-all.sh 1 3 5        # Run specific labs (no setup)
 #   bash run-all.sh 1-6          # Run a range
+#   bash run-all.sh --no-setup   # Skip platform setup, run all tests
+#   bash run-all.sh setup        # Run setup only (no tests)
 ###############################################################################
 
 set -uo pipefail
@@ -23,25 +25,6 @@ YELLOW='\033[1;33m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-run_test() {
-  local name="$1" script="$2"
-  echo ""
-  echo -e "${BOLD}════════════════════════════════════════${NC}"
-  bash "$script"
-  local exit_code=$?
-
-  # Parse pass/fail/skip from the summary output
-  local result
-  result=$(bash "$script" 2>&1 | tail -6)
-  # Re-run is wasteful; instead capture output once
-  echo ""
-
-  if [ $exit_code -ne 0 ]; then
-    FAILED_LABS="$FAILED_LABS $name"
-  fi
-}
-
-# Better approach: capture output and parse
 run_test_capture() {
   local name="$1" script="$2"
   echo ""
@@ -67,11 +50,35 @@ run_test_capture() {
   fi
 }
 
-# Parse arguments
+# ─── Parse arguments ──────────────────────────────────────────────────────
+
 LABS_TO_RUN=()
+RUN_SETUP=false
+SETUP_ONLY=false
+
 if [ $# -eq 0 ]; then
+  # Default: setup + all tests
+  RUN_SETUP=true
   LABS_TO_RUN=("platform" $(seq 1 13))
+elif [ "$1" = "setup" ]; then
+  SETUP_ONLY=true
+elif [ "$1" = "--no-setup" ]; then
+  shift
+  if [ $# -eq 0 ]; then
+    LABS_TO_RUN=("platform" $(seq 1 13))
+  else
+    for arg in "$@"; do
+      if [[ "$arg" =~ ^([0-9]+)-([0-9]+)$ ]]; then
+        for i in $(seq "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"); do
+          LABS_TO_RUN+=("$i")
+        done
+      else
+        LABS_TO_RUN+=("$arg")
+      fi
+    done
+  fi
 elif [ "$1" = "platform" ]; then
+  RUN_SETUP=true
   LABS_TO_RUN=("platform")
 else
   for arg in "$@"; do
@@ -86,8 +93,37 @@ else
 fi
 
 echo -e "${BOLD}Lab Test Suite${NC}"
-echo "Running: ${LABS_TO_RUN[*]}"
 echo "Started: $(date)"
+
+# ─── Platform Setup ───────────────────────────────────────────────────────
+
+if [ "$RUN_SETUP" = true ] || [ "$SETUP_ONLY" = true ]; then
+  echo ""
+  echo -e "${BOLD}════════════════════════════════════════${NC}"
+  echo -e "${BOLD}  Platform Setup${NC}"
+  echo -e "${BOLD}════════════════════════════════════════${NC}"
+
+  if [ -f "$SCRIPT_DIR/setup-platform.sh" ]; then
+    bash "$SCRIPT_DIR/setup-platform.sh"
+    SETUP_EXIT=$?
+    if [ $SETUP_EXIT -ne 0 ]; then
+      echo -e "${RED}Platform setup did not complete fully. Some tests may fail.${NC}"
+    fi
+  else
+    echo -e "${YELLOW}setup-platform.sh not found — skipping setup${NC}"
+  fi
+
+  if [ "$SETUP_ONLY" = true ]; then
+    echo ""
+    echo "Finished: $(date)"
+    exit ${SETUP_EXIT:-0}
+  fi
+fi
+
+# ─── Run Tests ────────────────────────────────────────────────────────────
+
+echo ""
+echo "Running: ${LABS_TO_RUN[*]}"
 
 # Save and restore context
 ORIG_NS=$(kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null)
@@ -109,7 +145,8 @@ done
 # Restore namespace context
 kubectl config set-context --current --namespace="${ORIG_NS:-default}" &>/dev/null
 
-# Final summary
+# ─── Final Summary ────────────────────────────────────────────────────────
+
 TOTAL=$((TOTAL_PASS + TOTAL_FAIL + TOTAL_SKIP))
 echo ""
 echo -e "${BOLD}══════════════════════════════════════════${NC}"

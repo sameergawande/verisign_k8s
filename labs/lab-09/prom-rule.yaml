@@ -3,7 +3,7 @@ kind: PrometheusRule
 metadata:
   name: pod-restart-alert-$STUDENT_NAME
   namespace: monitoring
-  labels: { release: monitoring }
+  labels: { release: kube-prometheus-stack }
 spec:
   groups:
   - name: pod-restarts

@@ -36,9 +36,9 @@ assert_cmd "configmap from file created" kubectl get configmap nginx-config -n "
 echo ""
 echo "Pod Environment Injection:"
 envsubst < "$LAB_DIR/pod-envfrom.yaml" | kubectl apply -f - &>/dev/null
-wait_for_pod "$NS" env-pod 60
+wait_for_pod "$NS" env-from-demo 60
 
-ENV_VAL=$(kubectl exec env-pod -n "$NS" -- printenv APP_ENV 2>/dev/null)
+ENV_VAL=$(kubectl exec env-from-demo -n "$NS" -- printenv APP_ENV 2>/dev/null)
 assert_eq "envFrom injects APP_ENV" "production" "$ENV_VAL"
 
 # ─── Pod with volume mount ─────────────────────────────────────────────────
@@ -46,26 +46,26 @@ assert_eq "envFrom injects APP_ENV" "production" "$ENV_VAL"
 echo ""
 echo "Volume Mount:"
 envsubst < "$LAB_DIR/pod-volume-mount.yaml" | kubectl apply -f - &>/dev/null
-wait_for_pod "$NS" vol-pod 60
+wait_for_pod "$NS" volume-mount-demo 60
 
-VOL_DATA=$(kubectl exec vol-pod -n "$NS" -- cat /etc/config/APP_ENV 2>/dev/null)
-assert_eq "volume mount exposes APP_ENV" "production" "$VOL_DATA"
+VOL_DATA=$(kubectl exec volume-mount-demo -n "$NS" -- cat /etc/app/app.properties 2>/dev/null)
+assert_contains "volume mount exposes app.properties" "$VOL_DATA" "db.host"
 
 # ─── Secrets ────────────────────────────────────────────────────────────────
 
 echo ""
 echo "Secrets:"
 kubectl create secret generic db-credentials -n "$NS" \
-  --from-literal=username=admin \
-  --from-literal=password='S3cur3P@ss!' &>/dev/null
+  --from-literal=DB_HOST=db.example.com \
+  --from-literal=DB_USERNAME=admin &>/dev/null
 
-SECRET_USER=$(kubectl get secret db-credentials -n "$NS" -o jsonpath='{.data.username}' 2>/dev/null | base64 -d)
-assert_eq "secret username decoded" "admin" "$SECRET_USER"
+SECRET_USER=$(kubectl get secret db-credentials -n "$NS" -o jsonpath='{.data.DB_USERNAME}' 2>/dev/null | base64 -d)
+assert_eq "secret DB_USERNAME decoded" "admin" "$SECRET_USER"
 
 envsubst < "$LAB_DIR/pod-secret-env.yaml" | kubectl apply -f - &>/dev/null
-wait_for_pod "$NS" secret-env-pod 60
+wait_for_pod "$NS" secret-env-demo 60
 
-SEC_ENV=$(kubectl exec secret-env-pod -n "$NS" -- printenv DB_USERNAME 2>/dev/null)
+SEC_ENV=$(kubectl exec secret-env-demo -n "$NS" -- printenv DB_USER 2>/dev/null)
 assert_eq "secret env injected" "admin" "$SEC_ENV"
 
 # ─── Immutable ConfigMap ───────────────────────────────────────────────────
@@ -74,10 +74,10 @@ echo ""
 echo "Immutable ConfigMap:"
 envsubst < "$LAB_DIR/immutable-config.yaml" | kubectl apply -f - &>/dev/null
 
-IMMUTABLE=$(kubectl get configmap immutable-settings -n "$NS" -o jsonpath='{.immutable}' 2>/dev/null)
+IMMUTABLE=$(kubectl get configmap immutable-app-config -n "$NS" -o jsonpath='{.immutable}' 2>/dev/null)
 assert_eq "configmap is immutable" "true" "$IMMUTABLE"
 
-PATCH_RESULT=$(kubectl patch configmap immutable-settings -n "$NS" --type merge -p '{"data":{"VERSION":"2.0"}}' 2>&1)
+PATCH_RESULT=$(kubectl patch configmap immutable-app-config -n "$NS" --type merge -p '{"data":{"VERSION":"2.0"}}' 2>&1)
 assert_contains "immutable configmap rejects update" "$PATCH_RESULT" "immutable"
 
 # ─── Vault integration ─────────────────────────────────────────────────────

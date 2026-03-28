@@ -21,7 +21,7 @@ envsubst < "$LAB_DIR/lab-pvc.yaml" | kubectl apply -f - &>/dev/null
 sleep 3
 
 # PVC may be Pending (WaitForFirstConsumer) until a pod claims it
-PVC_STATUS=$(kubectl get pvc lab-pvc -n "$NS" -o jsonpath='{.status.phase}' 2>/dev/null)
+PVC_STATUS=$(kubectl get pvc lab-data-pvc -n "$NS" -o jsonpath='{.status.phase}' 2>/dev/null)
 if [ "$PVC_STATUS" = "Bound" ] || [ "$PVC_STATUS" = "Pending" ]; then
   pass "PVC created (status: $PVC_STATUS)"
 else
@@ -33,21 +33,21 @@ fi
 echo ""
 echo "Data Persistence:"
 envsubst < "$LAB_DIR/lab-writer-pod.yaml" | kubectl apply -f - &>/dev/null
-wait_for_pod "$NS" lab-writer 90
+wait_for_pod "$NS" data-writer 90
 sleep 5
 
-WRITTEN=$(kubectl exec lab-writer -n "$NS" -- cat /data/hello.txt 2>/dev/null)
-assert_contains "writer pod wrote data" "$WRITTEN" "Hello from Kubernetes storage"
+WRITTEN=$(kubectl exec data-writer -n "$NS" -- cat /data/testfile.txt 2>/dev/null)
+assert_contains "writer pod wrote data" "$WRITTEN" "Written at"
 
 # Delete writer, verify data persists via reader
-kubectl delete pod lab-writer -n "$NS" --timeout=30s &>/dev/null
+kubectl delete pod data-writer -n "$NS" --timeout=30s &>/dev/null
 envsubst < "$LAB_DIR/lab-reader-pod.yaml" | kubectl apply -f - &>/dev/null
-wait_for_pod "$NS" lab-reader 90
+wait_for_pod "$NS" data-reader 90
 
-READ=$(kubectl exec lab-reader -n "$NS" -- cat /data/hello.txt 2>/dev/null)
-assert_contains "data persists after pod deletion" "$READ" "Hello from Kubernetes storage"
+READ=$(kubectl exec data-reader -n "$NS" -- cat /data/testfile.txt 2>/dev/null)
+assert_contains "data persists after pod deletion" "$READ" "Written at"
 
-PVC_STATUS=$(kubectl get pvc lab-pvc -n "$NS" -o jsonpath='{.status.phase}' 2>/dev/null)
+PVC_STATUS=$(kubectl get pvc lab-data-pvc -n "$NS" -o jsonpath='{.status.phase}' 2>/dev/null)
 assert_eq "PVC is Bound" "Bound" "$PVC_STATUS"
 
 # ─── StatefulSet ────────────────────────────────────────────────────────────

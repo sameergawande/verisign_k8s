@@ -56,7 +56,7 @@ if kubectl get pods -n ingress-nginx --no-headers 2>/dev/null | grep -q Running;
 
   envsubst < "$LAB_DIR/ingress-tls.yaml" | kubectl apply -f - &>/dev/null
   sleep 3
-  TLS_ING=$(kubectl get ingress -n "$NS" -o jsonpath='{.items[?(@.metadata.name=="tls-ingress")].spec.tls}' 2>/dev/null)
+  TLS_ING=$(kubectl get ingress -n "$NS" -o jsonpath='{.items[?(@.metadata.name=="app-ingress-tls")].spec.tls}' 2>/dev/null)
   assert_contains "TLS ingress has tls config" "$TLS_ING" "secretName"
 else
   skip "ingress-nginx not running — skipping ingress tests"

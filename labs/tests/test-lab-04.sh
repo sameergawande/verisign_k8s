@@ -17,15 +17,15 @@ kubectl create namespace "$NS" &>/dev/null
 # ─── Deploy backend and frontend ───────────────────────────────────────────
 
 echo "Deployments:"
-envsubst < "$LAB_DIR/backend-deployment.yaml" | kubectl apply -f - &>/dev/null
-envsubst < "$LAB_DIR/frontend-deployment.yaml" | kubectl apply -f - &>/dev/null
-wait_for_deploy "$NS" backend-deploy 90
-wait_for_deploy "$NS" frontend-deploy 90
+envsubst < "$LAB_DIR/backendment.yaml" | kubectl apply -f - &>/dev/null
+envsubst < "$LAB_DIR/frontendment.yaml" | kubectl apply -f - &>/dev/null
+wait_for_deploy "$NS" backend 90
+wait_for_deploy "$NS" frontend 90
 
-BACKEND_READY=$(kubectl get deployment backend-deploy -n "$NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
+BACKEND_READY=$(kubectl get deployment backend -n "$NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
 assert_eq "backend has 3 replicas" "3" "$BACKEND_READY"
 
-FRONTEND_READY=$(kubectl get deployment frontend-deploy -n "$NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
+FRONTEND_READY=$(kubectl get deployment frontend -n "$NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
 assert_eq "frontend has 2 replicas" "2" "$FRONTEND_READY"
 
 # ─── ClusterIP service ─────────────────────────────────────────────────────

@@ -36,10 +36,10 @@ echo ""
 echo "HPA v2:"
 envsubst < "$LAB_DIR/hpa-v2.yaml" | kubectl apply -f - &>/dev/null
 sleep 3
-HPA_V2=$(kubectl get hpa php-apache-hpa-v2 -n "$NS" -o jsonpath='{.spec.metrics}' 2>/dev/null)
+HPA_V2=$(kubectl get hpa php-apache-v2 -n "$NS" -o jsonpath='{.spec.metrics}' 2>/dev/null)
 assert_contains "HPA v2 has metrics defined" "$HPA_V2" "cpu"
 
-BEHAVIOR=$(kubectl get hpa php-apache-hpa-v2 -n "$NS" -o jsonpath='{.spec.behavior.scaleDown.stabilizationWindowSeconds}' 2>/dev/null)
+BEHAVIOR=$(kubectl get hpa php-apache-v2 -n "$NS" -o jsonpath='{.spec.behavior.scaleDown.stabilizationWindowSeconds}' 2>/dev/null)
 assert_eq "HPA v2 scale-down window is 300s" "300" "$BEHAVIOR"
 
 # ─── VPA ─────────────────────────────────────────────────────────────────────

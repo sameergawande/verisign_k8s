@@ -172,3 +172,70 @@ resource "flux_bootstrap_git" "this" {
 
   path = "clusters/${var.cluster_name}"
 }
+
+# ─── Push Infrastructure Definitions to Flux Repo ────────────────────────────
+# After Flux bootstrap, the git repo only has flux-system manifests.
+# This pushes the full infrastructure definitions so Flux can reconcile them.
+
+resource "null_resource" "flux_infrastructure" {
+  depends_on = [flux_bootstrap_git.this]
+
+  triggers = {
+    # Re-run when infrastructure definitions change
+    flux_dir_hash = sha1(join("", [
+      for f in sort(fileset("${path.root}/../flux", "**")) :
+      filesha1("${path.root}/../flux/${f}")
+    ]))
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -e
+
+      TMPDIR=$(mktemp -d)
+      trap "rm -rf $TMPDIR" EXIT
+
+      # Clone the Flux repo
+      git clone "https://x-access-token:${var.github_token}@github.com/${var.github_owner}/${var.flux_repository_name}.git" "$TMPDIR/repo" 2>/dev/null
+
+      # Copy infrastructure definitions
+      rm -rf "$TMPDIR/repo/flux"
+      cp -r "${path.root}/../flux" "$TMPDIR/repo/flux"
+
+      # Create cluster infrastructure reference
+      cp "${path.root}/../flux/infrastructure/kustomizations.yaml" \
+         "$TMPDIR/repo/clusters/${var.cluster_name}/infrastructure.yaml"
+
+      # Ensure the cluster kustomization.yaml includes infrastructure.yaml
+      CLUSTER_KS="$TMPDIR/repo/clusters/${var.cluster_name}/kustomization.yaml"
+      if [ -f "$CLUSTER_KS" ]; then
+        if ! grep -q "infrastructure.yaml" "$CLUSTER_KS"; then
+          echo "  - infrastructure.yaml" >> "$CLUSTER_KS"
+        fi
+      else
+        cat > "$CLUSTER_KS" <<KUSTOMIZE
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - flux-system
+  - infrastructure.yaml
+KUSTOMIZE
+      fi
+
+      cd "$TMPDIR/repo"
+
+      # Configure git
+      git config user.email "terraform@platform-lab"
+      git config user.name "Terraform"
+
+      git add -A
+      if git diff --cached --quiet; then
+        echo "No changes to push"
+      else
+        git commit -m "Add platform infrastructure definitions"
+        git push
+        echo "Infrastructure definitions pushed to Flux repo"
+      fi
+    EOT
+  }
+}
