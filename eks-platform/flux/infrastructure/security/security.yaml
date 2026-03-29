@@ -20,13 +20,6 @@ spec:
     serviceAccount:
       name: external-secrets
 ---
-# ─── ESO ServiceAccount for Vault Auth ─────────────────────────────────────
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: external-secrets-sa
-  namespace: external-secrets
----
 # ─── Kyverno ───────────────────────────────────────────────────────────────
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease

@@ -1,3 +1,12 @@
+# ─── ESO ServiceAccount for Vault Auth ─────────────────────────────────────
+# Must be in this kustomization (not security.yaml) because the external-secrets
+# namespace is created by the ESO HelmRelease which must finish first.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-secrets-sa
+  namespace: external-secrets
+---
 # ─── ClusterSecretStore → Vault ────────────────────────────────────────────
 # Separated from security.yaml so ESO CRDs are installed first
 apiVersion: external-secrets.io/v1beta1
