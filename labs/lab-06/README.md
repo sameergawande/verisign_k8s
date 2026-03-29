@@ -1,5 +1,5 @@
-# Lab 6: Ingress and Gateway API
-### HTTP Routing, TLS Termination, and Egress Controls
+# Lab 6: Ingress Controllers and HTTP Routing
+### Host-Based Routing, Path-Based Routing, TLS Termination, and Annotations
 **Intermediate Kubernetes — Module 6 of 13**
 
 ---
@@ -9,21 +9,22 @@
 ### What You Will Do
 
 - Verify the Ingress controller and deploy sample applications
-- Configure host-based and path-based routing with TLS
-- Explore Ingress annotations (rewrite, rate limiting, CORS)
-- Deploy Gateway API resources with HTTPRoute traffic splitting
-- Configure egress NetworkPolicies to control outbound traffic
+- Configure host-based and path-based routing
+- Set up TLS termination with a self-signed certificate
+- Explore Ingress annotations (rewrite, rate limiting, CORS, custom headers)
+- *Optional:* Create Gateway API resources for weighted traffic splitting
+- *Optional:* Apply an egress NetworkPolicy to restrict outbound traffic
 
 ### Prerequisites
 
 - Completion of Labs 1-5 with `kubectl` access
 - Ingress controller installed (NGINX or AWS ALB)
 
-> Steps 8-9 (Gateway API) require the Gateway API CRDs. If unavailable, read through as reference.
-
 ### Duration
 
-Approximately 60 minutes
+Approximately 30-40 minutes
+
+> **Note:** Steps 8-9 are optional stretch goals for students who finish early.
 
 ---
 
@@ -190,93 +191,58 @@ echo ""
 
 ---
 
-## Step 8: Gateway API -- GatewayClass and Gateway
+---
+
+## Optional Stretch Goals
+
+> These exercises cover additional topics from the presentation. Complete them if you finish the core lab early.
+
+### Step 8: Gateway API (Conditional)
+
+> The Gateway API is the next-generation replacement for Ingress. This step requires the Gateway API CRDs to be installed.
 
 ```bash
-kubectl get crd | grep gateway
+# Check if Gateway API CRDs are available
+kubectl get crd gatewayclasses.gateway.networking.k8s.io
 ```
 
-> ⚠️ **If CRDs are not installed:**
-> ```bash
-> kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml
-> ```
-
-<!-- Creates a GatewayClass and Gateway with HTTP and HTTPS listeners -->
-
-Apply the manifest:
+If available, apply the Gateway and HTTPRoute:
 
 ```bash
 envsubst < gateway.yaml | kubectl apply -f -
-kubectl get gateway -n lab06-$STUDENT_NAME
-```
-
----
-
-## Step 9: HTTPRoute for Traffic Splitting
-
-<!-- Creates an HTTPRoute with 80/20 traffic split between v1 and v2 -->
-
-Apply the manifest:
-
-```bash
 envsubst < httproute.yaml | kubectl apply -f -
 
-GATEWAY_IP=$(kubectl get gateway lab-gateway -n lab06-$STUDENT_NAME \
-    -o jsonpath='{.status.addresses[0].value}')
-
-for i in $(seq 1 20); do
-    curl -s -H "Host: app-$STUDENT_NAME.lab.local" http://$GATEWAY_IP
-done | sort | uniq -c | sort -rn
+# Verify the HTTPRoute with weighted traffic splitting
+kubectl get httproute app-route -n lab06-$STUDENT_NAME -o yaml
 ```
 
-> ✅ **Checkpoint:** Expect roughly 80/20 distribution between V1 and V2.
+> ✅ **Checkpoint:** The HTTPRoute sends 80% of traffic to app-v1-svc and 20% to app-v2-svc.
 
-> ⚠️ If the Gateway controller is not running, use Ingress-based routing from earlier steps as fallback.
+> If Gateway API CRDs are not installed, skip this step.
 
 ---
 
-## Step 10: Configure Egress Controls with NetworkPolicy
+## Step 9: Egress NetworkPolicy
 
-```bash
-kubectl run egress-test --image=busybox:1.36 \
-    -n lab06-$STUDENT_NAME --restart=Never \
-    --command -- sleep 3600
-
-# Test outbound connectivity
-kubectl exec egress-test -n lab06-$STUDENT_NAME -- \
-    wget -qO- --timeout=5 http://app-v1-svc.lab06-$STUDENT_NAME.svc.cluster.local
-kubectl exec egress-test -n lab06-$STUDENT_NAME -- \
-    wget -qO- --timeout=5 http://example.com
-```
-
-### Apply Egress NetworkPolicy
-
-<!-- Creates a NetworkPolicy restricting egress to DNS and in-namespace traffic -->
-
-Apply the manifest:
+Create a NetworkPolicy that restricts outbound traffic:
 
 ```bash
 envsubst < egress-policy.yaml | kubectl apply -f -
 
-# Internal service access should work
-kubectl exec egress-test -n lab06-$STUDENT_NAME -- \
-    wget -qO- --timeout=5 http://app-v1-svc.lab06-$STUDENT_NAME.svc.cluster.local
-
-# External access should be BLOCKED
-kubectl exec egress-test -n lab06-$STUDENT_NAME -- \
-    wget -qO- --timeout=5 http://example.com
+kubectl get networkpolicy restrict-egress -n lab06-$STUDENT_NAME
+kubectl describe networkpolicy restrict-egress -n lab06-$STUDENT_NAME
 ```
 
-> ✅ **Checkpoint:** Internal returns `Hello from App V1`. External times out.
-
-> ⚠️ NetworkPolicy enforcement requires a compatible CNI (Calico, Cilium). Default AWS VPC CNI without a policy engine will accept but not enforce policies.
+> ✅ **Checkpoint:** The policy selects pods with `run=egress-test`, allows DNS (port 53) and HTTPS (port 443) egress only.
 
 ---
 
-## Step 11: Clean Up
+## Step 10: Clean Up
 
 ```bash
-kubectl delete gatewayclass lab-gateway-class-$STUDENT_NAME --ignore-not-found
+# Clean up cluster-scoped GatewayClass (if created)
+kubectl delete gatewayclass lab-gateway-class-$STUDENT_NAME 2>/dev/null
+
 kubectl delete namespace lab06-$STUDENT_NAME
 
 rm -f tls-ingress.key tls-ingress.crt
@@ -286,9 +252,12 @@ rm -f tls-ingress.key tls-ingress.crt
 
 ## Summary
 
-- **Ingress:** Host-based and path-based routing, TLS termination with SSL redirect, controller-specific annotations for rewrite/rate-limiting/CORS
-- **Gateway API:** Role-based separation (GatewayClass/Gateway/HTTPRoute), native traffic splitting via weighted `backendRefs`
-- **Egress Controls:** NetworkPolicy egress rules restrict outbound traffic; always include a DNS exception (port 53) when restricting egress
+- **Host-Based Routing:** Route traffic to different backends based on the `Host` header
+- **Path-Based Routing:** Route traffic to different backends based on the URL path
+- **TLS Termination:** Terminate HTTPS at the Ingress controller with SSL redirect
+- **Annotations:** Controller-specific annotations for rewrite-target, rate limiting, CORS, and custom headers
+- **Gateway API:** Next-generation routing with GatewayClass, Gateway, and HTTPRoute resources
+- **Egress Policy:** Restrict outbound traffic with NetworkPolicy egress rules
 
 ---
 

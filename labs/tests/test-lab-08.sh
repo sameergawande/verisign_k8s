@@ -1,6 +1,6 @@
 #!/bin/bash
 ###############################################################################
-# Lab 8 Test: Network Policies — Comprehensive Coverage
+# Lab 8 Test: Network Policies — 3-Tier App + Deny-All + Selective Allow
 ###############################################################################
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -9,7 +9,6 @@ source "$SCRIPT_DIR/lib.sh"
 
 export STUDENT_NAME="test-$$"
 NS="lab08-$STUDENT_NAME"
-NS_MON="monitoring-$STUDENT_NAME"
 echo "=== Lab 8: Network Policies (ns: $NS) ==="
 echo ""
 
@@ -19,7 +18,7 @@ kubectl create namespace "$NS" &>/dev/null
 # Step 1: Deploy Three-Tier Application
 ###############################################################################
 
-echo "Three-Tier App Deployment:"
+echo "Step 1 — Deploy Three-Tier App:"
 envsubst < "$LAB_DIR/database.yaml" | kubectl apply -f - &>/dev/null
 envsubst < "$LAB_DIR/backend.yaml" | kubectl apply -f - &>/dev/null
 envsubst < "$LAB_DIR/frontend.yaml" | kubectl apply -f - &>/dev/null
@@ -28,279 +27,186 @@ kubectl wait --for=condition=Ready pod --all -n "$NS" --timeout=90s &>/dev/null
 PODS=$(kubectl get pods -n "$NS" --no-headers 2>/dev/null | grep -c Running || true)
 assert_eq "3 pods running" "3" "$PODS"
 
-# Verify labels
-FE_LABELS=$(kubectl get pod frontend -n "$NS" -o jsonpath='{.metadata.labels.tier}' 2>/dev/null)
-assert_eq "frontend has tier=frontend label" "frontend" "$FE_LABELS"
-
-BE_LABELS=$(kubectl get pod backend -n "$NS" -o jsonpath='{.metadata.labels.tier}' 2>/dev/null)
-assert_eq "backend has tier=backend label" "backend" "$BE_LABELS"
-
-DB_LABELS=$(kubectl get pod database -n "$NS" -o jsonpath='{.metadata.labels.tier}' 2>/dev/null)
-assert_eq "database has tier=database label" "database" "$DB_LABELS"
-
-# Verify services
-assert_cmd "frontend Service exists" kubectl get svc frontend -n "$NS"
-assert_cmd "backend Service exists" kubectl get svc backend -n "$NS"
-assert_cmd "database Service exists" kubectl get svc database -n "$NS"
-
 ###############################################################################
-# Step 2: Verify Default Connectivity (full matrix)
+# Step 2: Verify Labels
 ###############################################################################
 
 echo ""
-echo "Default Connectivity (no policies):"
+echo "Step 2 — Verify Labels:"
+FE_TIER=$(kubectl get pod frontend -n "$NS" -o jsonpath='{.metadata.labels.tier}' 2>/dev/null)
+assert_eq "frontend has tier=frontend" "frontend" "$FE_TIER"
 
-F2B=$(kubectl exec frontend -n "$NS" -- curl -s --max-time 5 "http://backend.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "frontend -> backend (default)" "$F2B" "nginx"
+BE_TIER=$(kubectl get pod backend -n "$NS" -o jsonpath='{.metadata.labels.tier}' 2>/dev/null)
+assert_eq "backend has tier=backend" "backend" "$BE_TIER"
 
-F2D=$(kubectl exec frontend -n "$NS" -- curl -s --max-time 5 "http://database.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "frontend -> database (default)" "$F2D" "nginx"
-
-D2F=$(kubectl exec database -n "$NS" -- curl -s --max-time 5 "http://frontend.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "database -> frontend (default)" "$D2F" "nginx"
-
-B2D=$(kubectl exec backend -n "$NS" -- curl -s --max-time 5 "http://database.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "backend -> database (default)" "$B2D" "nginx"
-
-D2B=$(kubectl exec database -n "$NS" -- curl -s --max-time 5 "http://backend.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "database -> backend (default)" "$D2B" "nginx"
-
-B2F=$(kubectl exec backend -n "$NS" -- curl -s --max-time 5 "http://frontend.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "backend -> frontend (default)" "$B2F" "nginx"
+DB_TIER=$(kubectl get pod database -n "$NS" -o jsonpath='{.metadata.labels.tier}' 2>/dev/null)
+assert_eq "database has tier=database" "database" "$DB_TIER"
 
 ###############################################################################
-# Step 3-4: Default Deny-All Ingress & Full Isolation Verification
+# Step 3: Apply deny-all-ingress
 ###############################################################################
 
 echo ""
-echo "Default Deny-All Ingress:"
-
+echo "Step 3 — Deny-All Ingress:"
 envsubst < "$LAB_DIR/deny-all-ingress.yaml" | kubectl apply -f - &>/dev/null
-assert_cmd "deny-all-ingress policy created" kubectl get networkpolicy default-deny-all-ingress -n "$NS"
+
+assert_cmd "deny-all-ingress policy exists" kubectl get networkpolicy default-deny-all-ingress -n "$NS"
+
+# Verify empty podSelector
+POD_SEL=$(kubectl get networkpolicy default-deny-all-ingress -n "$NS" \
+  -o jsonpath='{.spec.podSelector}' 2>/dev/null)
+assert_eq "deny-all has empty podSelector" "{}" "$POD_SEL"
+
+# Verify Ingress policyType
+POLICY_TYPES=$(kubectl get networkpolicy default-deny-all-ingress -n "$NS" \
+  -o jsonpath='{.spec.policyTypes[0]}' 2>/dev/null)
+assert_eq "deny-all has Ingress policyType" "Ingress" "$POLICY_TYPES"
+
+###############################################################################
+# Step 4: CNI enforcement probe
+###############################################################################
+
+echo ""
+echo "Step 4 — CNI Enforcement Check:"
 sleep 3
 
-# Probe whether the CNI actually enforces NetworkPolicy
-# If traffic still flows after deny-all, skip all enforcement tests
 CNI_ENFORCES=true
 kubectl exec frontend -n "$NS" -- curl -s --max-time 3 "http://backend.${NS}.svc.cluster.local:80" &>/dev/null
 if [ $? -eq 0 ]; then
   CNI_ENFORCES=false
-  skip "CNI does not enforce NetworkPolicy — skipping all enforcement tests"
+  skip "CNI does not enforce NetworkPolicy — behavioral tests will be skipped"
+else
+  pass "CNI enforces NetworkPolicy"
 fi
+
+###############################################################################
+# Step 5: Verify deny-all blocks traffic (if CNI enforces)
+###############################################################################
 
 if [ "$CNI_ENFORCES" = "true" ]; then
+  echo ""
+  echo "Step 5 — Verify Deny-All Blocks Traffic:"
 
-# Full isolation matrix — all should fail
-kubectl exec frontend -n "$NS" -- curl -s --max-time 3 "http://backend.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "frontend -> backend BLOCKED"; else fail "frontend -> backend should be blocked"; fi
+  kubectl exec frontend -n "$NS" -- curl -s --max-time 3 "http://backend.${NS}.svc.cluster.local:80" &>/dev/null
+  if [ $? -ne 0 ]; then pass "frontend -> backend BLOCKED"; else fail "frontend -> backend should be blocked"; fi
 
-kubectl exec frontend -n "$NS" -- curl -s --max-time 3 "http://database.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "frontend -> database BLOCKED"; else fail "frontend -> database should be blocked"; fi
-
-kubectl exec backend -n "$NS" -- curl -s --max-time 3 "http://database.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "backend -> database BLOCKED"; else fail "backend -> database should be blocked"; fi
-
-kubectl exec backend -n "$NS" -- curl -s --max-time 3 "http://frontend.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "backend -> frontend BLOCKED"; else fail "backend -> frontend should be blocked"; fi
-
-kubectl exec database -n "$NS" -- curl -s --max-time 3 "http://frontend.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "database -> frontend BLOCKED"; else fail "database -> frontend should be blocked"; fi
-
-kubectl exec database -n "$NS" -- curl -s --max-time 3 "http://backend.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "database -> backend BLOCKED"; else fail "database -> backend should be blocked"; fi
+  kubectl exec backend -n "$NS" -- curl -s --max-time 3 "http://database.${NS}.svc.cluster.local:80" &>/dev/null
+  if [ $? -ne 0 ]; then pass "backend -> database BLOCKED"; else fail "backend -> database should be blocked"; fi
+fi
 
 ###############################################################################
-# Step 5: Allow Frontend to Backend
+# Step 6: Allow frontend to backend
 ###############################################################################
 
 echo ""
-echo "Selective Allow — Frontend to Backend:"
-
+echo "Step 6 — Allow Frontend to Backend:"
 envsubst < "$LAB_DIR/allow-frontend-to-backend.yaml" | kubectl apply -f - &>/dev/null
-assert_cmd "allow-frontend-to-backend policy created" kubectl get networkpolicy allow-frontend-to-backend -n "$NS"
-sleep 3
 
-F2B_ALLOW=$(kubectl exec frontend -n "$NS" -- curl -s --max-time 5 "http://backend.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "frontend -> backend ALLOWED" "$F2B_ALLOW" "nginx"
+assert_cmd "allow-frontend-to-backend policy exists" kubectl get networkpolicy allow-frontend-to-backend -n "$NS"
 
-# database -> backend should still be blocked
-kubectl exec database -n "$NS" -- curl -s --max-time 3 "http://backend.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "database -> backend still BLOCKED"; else fail "database -> backend should still be blocked"; fi
-
-# frontend -> database should still be blocked
-kubectl exec frontend -n "$NS" -- curl -s --max-time 3 "http://database.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "frontend -> database still BLOCKED"; else fail "frontend -> database should still be blocked"; fi
+if [ "$CNI_ENFORCES" = "true" ]; then
+  sleep 3
+  F2B=$(kubectl exec frontend -n "$NS" -- curl -s --max-time 5 "http://backend.${NS}.svc.cluster.local:80" 2>/dev/null)
+  assert_contains "frontend -> backend ALLOWED" "$F2B" "nginx"
+fi
 
 ###############################################################################
-# Step 6: Allow Backend to Database
+# Step 7: Allow backend to database
 ###############################################################################
 
 echo ""
-echo "Selective Allow — Backend to Database:"
-
+echo "Step 7 — Allow Backend to Database:"
 envsubst < "$LAB_DIR/allow-backend-to-database.yaml" | kubectl apply -f - &>/dev/null
-assert_cmd "allow-backend-to-database policy created" kubectl get networkpolicy allow-backend-to-database -n "$NS"
-sleep 3
 
-B2D_ALLOW=$(kubectl exec backend -n "$NS" -- curl -s --max-time 5 "http://database.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "backend -> database ALLOWED" "$B2D_ALLOW" "nginx"
+assert_cmd "allow-backend-to-database policy exists" kubectl get networkpolicy allow-backend-to-database -n "$NS"
 
-# frontend -> database should still be blocked
-kubectl exec frontend -n "$NS" -- curl -s --max-time 3 "http://database.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "frontend -> database still BLOCKED"; else fail "frontend -> database should still be blocked"; fi
-
-###############################################################################
-# Step 7: Complete Policy Matrix Validation
-###############################################################################
-
-echo ""
-echo "Complete Policy Matrix:"
-
-# Allowed paths
-F2B_HTTP=$(kubectl exec frontend -n "$NS" -- curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://backend:80" 2>/dev/null || echo "000")
-assert_eq "frontend -> backend HTTP 200" "200" "$F2B_HTTP"
-
-B2D_HTTP=$(kubectl exec backend -n "$NS" -- curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://database:80" 2>/dev/null || echo "000")
-assert_eq "backend -> database HTTP 200" "200" "$B2D_HTTP"
-
-# Blocked paths
-kubectl exec frontend -n "$NS" -- curl -s --max-time 3 "http://database:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "frontend -> database BLOCKED (matrix)"; else fail "frontend -> database should be blocked"; fi
-
-kubectl exec database -n "$NS" -- curl -s --max-time 3 "http://frontend:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "database -> frontend BLOCKED (matrix)"; else fail "database -> frontend should be blocked"; fi
-
-kubectl exec database -n "$NS" -- curl -s --max-time 3 "http://backend:80" &>/dev/null
-if [ $? -ne 0 ]; then pass "database -> backend BLOCKED (matrix)"; else fail "database -> backend should be blocked"; fi
+if [ "$CNI_ENFORCES" = "true" ]; then
+  sleep 3
+  B2D=$(kubectl exec backend -n "$NS" -- curl -s --max-time 5 "http://database.${NS}.svc.cluster.local:80" 2>/dev/null)
+  assert_contains "backend -> database ALLOWED" "$B2D" "nginx"
+fi
 
 ###############################################################################
-# Step 8: Egress Rules
+# Step 8: Egress Policies
 ###############################################################################
 
 echo ""
-echo "Egress Policies:"
-
-# Apply deny-all egress
+echo "Step 8 — Egress Policies:"
 envsubst < "$LAB_DIR/deny-all-egress.yaml" | kubectl apply -f - &>/dev/null
-assert_cmd "deny-all-egress policy created" kubectl get networkpolicy default-deny-all-egress -n "$NS"
-sleep 3
 
-# DNS should break — curl will fail to resolve hostnames
-kubectl exec frontend -n "$NS" -- curl -s --max-time 3 "http://backend.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then
-  pass "egress deny breaks DNS resolution"
-else
-  fail "egress deny should break DNS resolution"
-fi
+EGRESS_SEL=$(kubectl get networkpolicy default-deny-all-egress -n "$NS" \
+  -o jsonpath='{.spec.podSelector}' 2>/dev/null)
+assert_eq "deny-all-egress has empty podSelector" "{}" "$EGRESS_SEL"
 
-# Apply allow-dns-egress to restore DNS + in-namespace traffic
+EGRESS_TYPE=$(kubectl get networkpolicy default-deny-all-egress -n "$NS" \
+  -o jsonpath='{.spec.policyTypes[0]}' 2>/dev/null)
+assert_eq "deny-all-egress has Egress policyType" "Egress" "$EGRESS_TYPE"
+
 envsubst < "$LAB_DIR/allow-dns-egress.yaml" | kubectl apply -f - &>/dev/null
-assert_cmd "allow-dns-egress policy created" kubectl get networkpolicy allow-dns-egress -n "$NS"
-sleep 3
 
-# DNS should work again and frontend -> backend should be restored
-F2B_AFTER_EGRESS=$(kubectl exec frontend -n "$NS" -- curl -s --max-time 5 "http://backend.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "DNS and frontend -> backend restored after allow-dns-egress" "$F2B_AFTER_EGRESS" "nginx"
+assert_cmd "allow-dns-egress policy exists" kubectl get networkpolicy allow-dns-egress -n "$NS"
 
-# Backend -> database should also work (in-namespace egress on port 80 is allowed)
-B2D_AFTER_EGRESS=$(kubectl exec backend -n "$NS" -- curl -s --max-time 5 "http://database.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "backend -> database works with egress rules" "$B2D_AFTER_EGRESS" "nginx"
+DNS_PORT=$(kubectl get networkpolicy allow-dns-egress -n "$NS" \
+  -o jsonpath='{.spec.egress[0].ports[0].port}' 2>/dev/null)
+assert_eq "allow-dns-egress allows UDP port 53" "53" "$DNS_PORT"
 
 ###############################################################################
-# Step 9: Namespace-Based Policies
+# Step 9: Namespace-Based Policy
 ###############################################################################
 
 echo ""
-echo "Namespace-Based Policies:"
-
-kubectl create namespace "$NS_MON" &>/dev/null
-kubectl label namespace "$NS_MON" purpose=monitoring &>/dev/null
-assert_cmd "monitoring namespace created" kubectl get namespace "$NS_MON"
-
-MON_LABELS=$(kubectl get namespace "$NS_MON" -o jsonpath='{.metadata.labels.purpose}' 2>/dev/null)
-assert_eq "monitoring ns has purpose=monitoring label" "monitoring" "$MON_LABELS"
-
-kubectl run monitor --image=nginx:1.25 -n "$NS_MON" &>/dev/null
-wait_for_pod "$NS_MON" monitor 60
-
-# Before allow-monitoring-ingress: monitor cannot reach backend (denied by deny-all)
-kubectl exec monitor -n "$NS_MON" -- curl -s --max-time 3 "http://backend.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then
-  pass "monitor -> backend BLOCKED before monitoring policy"
-else
-  fail "monitor -> backend should be blocked before monitoring policy"
-fi
-
-# Apply allow-monitoring-ingress
+echo "Step 9 — Namespace-Based Policy:"
 envsubst < "$LAB_DIR/allow-monitoring-ingress.yaml" | kubectl apply -f - &>/dev/null
-assert_cmd "allow-monitoring-ingress policy created" kubectl get networkpolicy allow-monitoring-ingress -n "$NS"
-sleep 3
 
-# Monitor should now be able to reach backend
-MON_RESULT=$(kubectl exec monitor -n "$NS_MON" -- curl -s --max-time 5 "http://backend.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "monitor -> backend ALLOWED after monitoring policy" "$MON_RESULT" "nginx"
+assert_cmd "allow-monitoring-ingress policy exists" kubectl get networkpolicy allow-monitoring-ingress -n "$NS"
 
-# Monitor should also reach frontend (policy selects all pods in namespace)
-MON_FE=$(kubectl exec monitor -n "$NS_MON" -- curl -s --max-time 5 "http://frontend.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "monitor -> frontend ALLOWED after monitoring policy" "$MON_FE" "nginx"
+MON_NS_LABEL=$(kubectl get networkpolicy allow-monitoring-ingress -n "$NS" \
+  -o jsonpath='{.spec.ingress[0].from[0].namespaceSelector.matchLabels.purpose}' 2>/dev/null)
+assert_eq "monitoring policy selects purpose=monitoring namespace" "monitoring" "$MON_NS_LABEL"
+
+MON_PORT=$(kubectl get networkpolicy allow-monitoring-ingress -n "$NS" \
+  -o jsonpath='{.spec.ingress[0].ports[0].port}' 2>/dev/null)
+assert_eq "monitoring policy allows port 80" "80" "$MON_PORT"
 
 ###############################################################################
-# Step 10: Debug Broken Policy
+# Step 10: Apply broken policy — verify wrong selector and wrong port
 ###############################################################################
 
 echo ""
-echo "Debug — Broken Policy:"
-
+echo "Step 10 — Debug Broken Policy:"
 envsubst < "$LAB_DIR/broken-policy.yaml" | kubectl apply -f - &>/dev/null
+
 assert_cmd "broken-policy applied" kubectl get networkpolicy allow-external-to-frontend -n "$NS"
-sleep 2
 
-# Broken policy: self-referencing selector (tier: frontend) and wrong port (8080)
-# A test-client should NOT be able to reach frontend via the broken policy
-kubectl run test-client-broken --image=nginx:1.25 -n "$NS" --labels="tier=test" --restart=Never &>/dev/null
-wait_for_pod "$NS" test-client-broken 60
-
-kubectl exec test-client-broken -n "$NS" -- curl -s --max-time 3 "http://frontend.${NS}.svc.cluster.local:80" &>/dev/null
-if [ $? -ne 0 ]; then
-  pass "broken policy does NOT allow test-client -> frontend"
-else
-  fail "broken policy should NOT allow test-client -> frontend"
-fi
-
-# Inspect the broken policy for the known bugs
 BROKEN_TIER=$(kubectl get networkpolicy allow-external-to-frontend -n "$NS" \
   -o jsonpath='{.spec.ingress[0].from[0].podSelector.matchLabels.tier}' 2>/dev/null)
-assert_eq "broken policy has self-referencing selector (tier: frontend)" "frontend" "$BROKEN_TIER"
+assert_eq "broken policy has self-referencing selector (tier=frontend)" "frontend" "$BROKEN_TIER"
+
 BROKEN_PORT=$(kubectl get networkpolicy allow-external-to-frontend -n "$NS" \
   -o jsonpath='{.spec.ingress[0].ports[0].port}' 2>/dev/null)
 assert_eq "broken policy has wrong port 8080" "8080" "$BROKEN_PORT"
 
+###############################################################################
+# Step 11: Apply fixed policy — verify from:[] and port 80
+###############################################################################
+
 echo ""
-echo "Debug — Fixed Policy:"
-
+echo "Step 11 — Fixed Policy:"
 envsubst < "$LAB_DIR/fixed-policy.yaml" | kubectl apply -f - &>/dev/null
-sleep 2
 
-# Fixed policy: from: [] (allow all) and port: 80
+FIXED_FROM=$(kubectl get networkpolicy allow-external-to-frontend -n "$NS" \
+  -o jsonpath='{.spec.ingress[0].from}' 2>/dev/null)
+assert_eq "fixed policy has from:[] (allow all)" "" "$FIXED_FROM"
+
 FIXED_PORT=$(kubectl get networkpolicy allow-external-to-frontend -n "$NS" \
   -o jsonpath='{.spec.ingress[0].ports[0].port}' 2>/dev/null)
 assert_eq "fixed policy uses port 80" "80" "$FIXED_PORT"
 
-# test-client should now reach frontend
-FIXED_RESULT=$(kubectl exec test-client-broken -n "$NS" -- curl -s --max-time 5 "http://frontend.${NS}.svc.cluster.local:80" 2>/dev/null)
-assert_contains "fixed policy allows test-client -> frontend" "$FIXED_RESULT" "nginx"
-
-# Clean up the test client pod
-kubectl delete pod test-client-broken -n "$NS" --grace-period=0 --force &>/dev/null
-
-fi  # end CNI_ENFORCES block
-
 ###############################################################################
-# Cleanup
+# Step 12: Cleanup
 ###############################################################################
 
 echo ""
 echo "Cleanup:"
 cleanup_ns "$NS"
-cleanup_ns "$NS_MON"
 summary

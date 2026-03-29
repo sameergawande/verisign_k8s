@@ -325,11 +325,8 @@ spec:
             </section>
 
             <section>
-                <h2>&#9889; Automated TLS with cert-manager</h2>
-                <div class="two-columns">
-                    <div>
-                        <h4>ClusterIssuer</h4>
-                        <pre><code class="language-yaml">apiVersion: cert-manager.io/v1
+                <h2>&#9889; ClusterIssuer for Let's Encrypt</h2>
+                <pre><code class="language-yaml">apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata: { name: letsencrypt-prod }
 spec:
@@ -340,10 +337,12 @@ spec:
     solvers:
     - http01:
         ingress: { class: nginx-external }</code></pre>
-                    </div>
-                    <div>
-                        <h4>Ingress with auto-TLS</h4>
-                        <pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
+                <aside class="notes">cert-manager watches for Ingress resources with its annotation, automatically requests certificates, stores them in the referenced Secret, and handles renewals before expiry.</aside>
+            </section>
+
+            <section>
+                <h2>&#9889; Ingress with Automated TLS</h2>
+                <pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: auto-tls-ingress
@@ -361,9 +360,7 @@ spec:
       - path: /
         pathType: Prefix
         backend: { service: { name: api-service, port: { number: 8080 } } }</code></pre>
-                    </div>
-                </div>
-                <aside class="notes">cert-manager watches for Ingress resources with its annotation, automatically requests certificates, stores them in the referenced Secret, and handles renewals before expiry.</aside>
+                <aside class="notes">The cert-manager.io/cluster-issuer annotation triggers automatic certificate provisioning. The Secret referenced in secretName will be created and managed by cert-manager.</aside>
             </section>
 
             <!-- Gateway API -->

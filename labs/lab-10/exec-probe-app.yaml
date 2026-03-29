@@ -11,8 +11,7 @@ spec:
       containers:
       - name: app
         image: busybox
-        command: ['sh', '-c', 'touch /tmp/healthy; while true; do \
-          sleep 5; done']
+        command: ['sh', '-c', 'touch /tmp/healthy; while true; do sleep 5; done']
         livenessProbe:
           exec: { command: [cat, /tmp/healthy] }
           initialDelaySeconds: 5

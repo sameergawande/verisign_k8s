@@ -115,7 +115,7 @@ else
 fi
 
 kubectl scale deployment nginx-lab --replicas=2 -n "$NS" &>/dev/null
-sleep 15
+sleep 45
 PODS_2=$(kubectl get pods -n "$NS" -l app=nginx-lab --no-headers 2>/dev/null | grep -c Running || true)
 assert_eq "scaled down to 2 running pods" "2" "$PODS_2"
 

@@ -10,7 +10,8 @@
 
 - Build, tag, and push container images to ECR
 - Deploy using kubectl and GitOps tools
-- Observe ArgoCD sync and FluxCD reconciliation
+- Observe ArgoCD sync and rollback
+- *Optional:* Explore FluxCD reconciliation and drift detection
 
 ### Prerequisites
 
@@ -19,7 +20,9 @@
 - ArgoCD CLI (optional)
 - Completed Labs 1-12
 
-> **Duration:** ~45 minutes
+> **Duration:** ~45-55 minutes (core), 70+ with FluxCD
+>
+> **Note:** Steps 9-11 (FluxCD) are optional stretch goals for students who finish early.
 
 ---
 
@@ -259,7 +262,13 @@ argocd app rollback cicd-demo-$STUDENT_NAME 1
 
 ---
 
-## Step 9: Explore FluxCD
+---
+
+## Optional Stretch Goals
+
+> These exercises cover additional topics from the presentation. Complete them if you finish the core lab early.
+
+### Step 9: Explore FluxCD
 
 > ⚠️ Flux is pre-installed on the cluster. Do not run `flux bootstrap` or `flux uninstall`.
 
@@ -276,7 +285,7 @@ flux get kustomizations
 
 ---
 
-## Step 10: Create a FluxCD HelmRelease
+### Step 10: Create a FluxCD HelmRelease
 
 Create your namespace and a HelmRepository source:
 
@@ -304,7 +313,7 @@ kubectl get all -n flux-lab-$STUDENT_NAME \
 
 ---
 
-## Step 11: Test Drift Detection
+### Step 11: Test Drift Detection
 
 ```bash
 # Scale manually to create drift

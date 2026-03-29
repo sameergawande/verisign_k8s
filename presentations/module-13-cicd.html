@@ -781,15 +781,11 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::123456789:role/github-actions
           aws-region: us-east-2
-      - name: Login to ECR
-        uses: aws-actions/amazon-ecr-login@v2
-      - name: Build, scan, and push
+      # ... Login to ECR, build, scan ...
+      - name: Push and update GitOps
         run: |
-          docker build -t $ECR_REGISTRY/myapp:${{ github.sha }} .
-          trivy image --exit-code 1 --severity HIGH,CRITICAL \
-            $ECR_REGISTRY/myapp:${{ github.sha }}
           docker push $ECR_REGISTRY/myapp:${{ github.sha }}
-      # ... Update GitOps repo: kustomize edit set image, git commit & push</code></pre>
+      # ... kustomize edit set image, git commit & push</code></pre>
                 <aside class="notes">This workflow demonstrates the CI portion of a GitOps pipeline. Notice the final step updates the GitOps repository with the new image tag rather than deploying directly to the cluster. OIDC-based authentication with AWS eliminates long-lived credentials. The trivy scan fails the pipeline if critical vulnerabilities are found. ArgoCD or FluxCD then picks up the Git change and deploys it.</aside>
             </section>
 
@@ -959,18 +955,23 @@ spec:
             <!-- Slide 27: Secrets Management in CI/CD -->
             <section>
                 <h2>Secrets Management in CI/CD</h2>
-                <div class="three-columns">
-                    <div class="card">
-                        <h4>Sealed Secrets</h4>
-                        <ul>
-                            <li class="fragment">Encrypt with public key</li>
-                            <li class="fragment">Decrypt only in-cluster</li>
-                            <li class="fragment">Safe to commit to Git</li>
-                        </ul>
-                        <pre><code class="language-bash">kubeseal --format yaml \
+                <div class="card">
+                    <h4>Sealed Secrets</h4>
+                    <ul>
+                        <li class="fragment">Encrypt with public key</li>
+                        <li class="fragment">Decrypt only in-cluster</li>
+                        <li class="fragment">Safe to commit to Git</li>
+                    </ul>
+                    <pre><code class="language-bash">kubeseal --format yaml \
   < secret.yaml \
   > sealed-secret.yaml</code></pre>
-                    </div>
+                </div>
+                <aside class="notes">Tip: Never store plain-text secrets in Git. Even in private repositories, secrets must be encrypted or externally referenced. Sealed Secrets encrypts the entire secret with a cluster-specific key.</aside>
+            </section>
+
+            <section>
+                <h2>Secrets in GitOps Workflows</h2>
+                <div class="two-columns">
                     <div class="card">
                         <h4>External Secrets Operator</h4>
                         <ul>
@@ -995,8 +996,7 @@ spec:
   secrets.enc.yaml</code></pre>
                     </div>
                 </div>
-                <aside class="notes">Tip: Never store plain-text secrets in Git. Even in private repositories, secrets must be encrypted or externally referenced.</aside>
-                <aside class="notes">Secrets are the hardest problem in GitOps. Sealed Secrets encrypts the entire secret with a cluster-specific key. External Secrets Operator syncs from external secret stores like AWS Secrets Manager or Vault, keeping secrets completely out of Git. SOPS encrypts individual values within a YAML file while leaving keys readable. For AWS environments, External Secrets Operator with AWS Secrets Manager is typically the best choice because it supports rotation and centralized management.</aside>
+                <aside class="notes">External Secrets Operator syncs from external secret stores like AWS Secrets Manager or Vault, keeping secrets completely out of Git. SOPS encrypts individual values within a YAML file while leaving keys readable. For AWS environments, External Secrets Operator with AWS Secrets Manager is typically the best choice because it supports rotation and centralized management.</aside>
             </section>
 
             <!-- Slide 28: Rollback Strategies -->

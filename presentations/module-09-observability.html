@@ -739,15 +739,7 @@ route:
   group_interval: 5m
   repeat_interval: 4h
   routes:
-  - match:
-      severity: critical
-    receiver: pagerduty-oncall
-    repeat_interval: 1h
-  - match:
-      severity: warning
-    receiver: slack-platform
-    # ... additional routes for namespace matching
-
+  # ... routing rules per severity ...
 receivers:
 - name: pagerduty-oncall
   pagerduty_configs:

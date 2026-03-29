@@ -240,6 +240,11 @@
                         </tr>
                     </tbody>
                 </table>
+                <aside class="notes">QoS class determines what happens under memory pressure. The kubelet evicts BestEffort first, then Burstable, and Guaranteed last.</aside>
+            </section>
+
+            <section>
+                <h2>&#127919; QoS Classes — Example</h2>
                 <pre class="fragment fade-up"><code class="language-yaml"># Guaranteed QoS — best for production critical workloads
 resources:
   requests:
@@ -248,7 +253,7 @@ resources:
   limits:
     cpu: "500m"      # Same as request
     memory: "512Mi"  # Same as request</code></pre>
-                <aside class="notes">Tip: Production workloads should be Guaranteed or Burstable — never deploy BestEffort to production. QoS class determines what happens under memory pressure. The kubelet evicts BestEffort first, then Burstable, and Guaranteed last.</aside>
+                <aside class="notes">Tip: Production workloads should be Guaranteed or Burstable — never deploy BestEffort to production.</aside>
             </section>
 
             <!-- Section Divider: Metrics Server -->
@@ -569,6 +574,11 @@ $ kubectl get events \
                         </tr>
                     </tbody>
                 </table>
+                <aside class="notes">Start with Off mode to observe VPA's recommendations before letting it make changes. This is especially important in production. Important caveat: do NOT use VPA in Auto mode with HPA on the same CPU/memory metrics — they will conflict.</aside>
+            </section>
+
+            <section>
+                <h2>&#9881;&#65039; VPA Configuration Example</h2>
                 <pre class="fragment fade-up"><code class="language-yaml">apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata: { name: myapp-vpa }
@@ -581,7 +591,7 @@ spec:
     - containerName: myapp
       minAllowed: { cpu: "100m", memory: "128Mi" }
       maxAllowed: { cpu: "2", memory: "4Gi" }</code></pre>
-                <aside class="notes">Start with Off mode to observe VPA's recommendations before letting it make changes. This is especially important in production. The minAllowed and maxAllowed provide guardrails to prevent VPA from setting unreasonable values. Important caveat: do NOT use VPA in Auto mode with HPA on the same CPU/memory metrics — they will conflict. You can combine them if HPA uses custom metrics and VPA manages CPU/memory.</aside>
+                <aside class="notes">The minAllowed and maxAllowed provide guardrails to prevent VPA from setting unreasonable values. You can combine VPA with HPA if HPA uses custom metrics and VPA manages CPU/memory.</aside>
             </section>
 
             <!-- VPA + HPA -->
@@ -715,6 +725,11 @@ spec:
                         </tr>
                     </tbody>
                 </table>
+                <aside class="notes">These Prometheus metrics let you build dashboards that show scaling behavior over time. Comparing current and desired replica counts gives you full visibility into why scaling decisions were made.</aside>
+            </section>
+
+            <section>
+                <h2>&#128202; Prometheus Metrics — PromQL Examples</h2>
                 <pre class="fragment fade-up"><code class="language-promql"># CPU utilization as percentage of request
 sum(rate(container_cpu_usage_seconds_total{
   pod=~"myapp.*"}[5m])) by (pod)
@@ -722,7 +737,7 @@ sum(rate(container_cpu_usage_seconds_total{
 sum(kube_pod_container_resource_requests{
   resource="cpu",pod=~"myapp.*"}) by (pod)
 * 100</code></pre>
-                <aside class="notes">These Prometheus metrics let you build dashboards that show scaling behavior over time. The PromQL query at the bottom calculates CPU utilization as a percentage of requests — which is exactly what HPA computes internally. Comparing this with the HPA's current and desired replica counts gives you full visibility into why scaling decisions were made.</aside>
+                <aside class="notes">The PromQL query calculates CPU utilization as a percentage of requests — which is exactly what HPA computes internally.</aside>
             </section>
 
             <!-- Best Practices -->

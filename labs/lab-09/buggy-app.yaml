@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: { name: buggy-app, namespace: obs-lab-$STUDENT_NAME }
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels: { app: buggy-app }
   template:
@@ -13,3 +13,10 @@ spec:
         image: busybox
         command: ['sh', '-c', 'echo "Starting app..."; sleep \
           $((RANDOM % 10 + 5)); echo "ERROR: Out of memory"; exit 137']
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 50m
+            memory: 32Mi

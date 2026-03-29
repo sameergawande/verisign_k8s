@@ -615,12 +615,7 @@ spec:
   template:
     metadata: { labels: { app: postgres } }
     spec:
-      containers:
-      - name: postgres
-        image: postgres:16
-        ports: [{ containerPort: 5432 }]
-        volumeMounts:
-        - { name: data, mountPath: /var/lib/postgresql/data }
+      # ... container spec, ports, volumeMounts ...
   volumeClaimTemplates:             # Per-replica PVCs
   - metadata: { name: data }
     spec:

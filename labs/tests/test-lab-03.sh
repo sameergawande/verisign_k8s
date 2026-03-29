@@ -244,7 +244,8 @@ assert_eq "scaled pod web-4 exists" "web-4" "$POD4"
 # Scale down to 2
 kubectl scale statefulset web -n "$NS" --replicas=2 &>/dev/null
 # Wait for scale-down
-sleep 15
+sleep 60
+kubectl wait --for=jsonpath='{.status.readyReplicas}'=2 statefulset/web -n "$NS" --timeout=60s &>/dev/null
 
 READY_2=$(kubectl get statefulset web -n "$NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
 assert_eq "scale down: 2 ready replicas" "2" "$READY_2"

@@ -12,14 +12,16 @@
 - Create Roles, RoleBindings, and ServiceAccounts
 - Apply Pod Security Standards and SecurityContexts
 - Test RBAC permission boundaries
-- Annotate ServiceAccounts with IAM roles (IRSA) and verify pod-level AWS access
+- *Optional:* Annotate ServiceAccounts with IAM roles (IRSA) and verify pod-level AWS access
 
 ### Prerequisites
 
 - Completed Labs 1-6
 - kubectl with cluster-admin access on a running EKS cluster
 
-> **Duration:** ~45 minutes
+> **Duration:** ~45-55 minutes (core), 60+ with IRSA
+>
+> **Note:** Steps 9-11 (IRSA) are optional stretch goals. They require AWS-specific setup that may not work for all students.
 
 ---
 
@@ -203,11 +205,15 @@ kubectl exec secure-app -n lab07-restricted-$STUDENT_NAME -- \
 
 ---
 
-## Part 3: IRSA -- IAM Roles for Service Accounts
-
 ---
 
-## Step 9: Create an IRSA-Annotated ServiceAccount
+## Optional Stretch Goals
+
+> These exercises cover additional topics from the presentation. Complete them if you finish the core lab early.
+
+## Part 3: IRSA -- IAM Roles for Service Accounts
+
+### Step 9: Create an IRSA-Annotated ServiceAccount
 
 ```bash
 OIDC_ISSUER=$(aws eks describe-cluster --name platform-lab \
@@ -233,7 +239,7 @@ EOF
 
 ---
 
-## Step 10: Deploy and Test an IRSA Pod
+### Step 10: Deploy and Test an IRSA Pod
 
 <!-- Creates a pod with the IRSA-annotated ServiceAccount to test S3 access -->
 
@@ -261,7 +267,7 @@ kubectl exec irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME \
 
 ---
 
-## Step 11: Inspect the IRSA Credential Chain
+### Step 11: Inspect the IRSA Credential Chain
 
 ```bash
 kubectl exec irsa-test-$STUDENT_NAME -n lab07-irsa-$STUDENT_NAME \

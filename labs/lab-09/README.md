@@ -12,10 +12,13 @@
 - Prometheus metrics and PromQL queries
 - Grafana dashboards for visualization
 - Custom alerting rules
+- *Optional:* Debug a failing application using observability tools
 
 ### Lab Details
 
-- **Duration:** ~45 minutes
+- **Duration:** ~45-55 minutes
+
+> **Note:** Step 9 is an optional stretch goal for students who finish early.
 - **Difficulty:** Intermediate
 - **Prerequisites:** Labs 1-8
 
@@ -272,7 +275,13 @@ kubectl get pods -n amazon-cloudwatch
 
 ---
 
-## Step 9: Debug a Failing Application
+---
+
+## Optional Stretch Goals
+
+> These exercises cover additional topics from the presentation. Complete them if you finish the core lab early.
+
+### Step 9: Debug a Failing Application
 
 <!-- Creates a Deployment that simulates OOM crashes for debugging practice -->
 ```bash

@@ -771,14 +771,8 @@ spec:
           httpGet: { path: /healthz, port: 8080 }
           failureThreshold: 20
           periodSeconds: 5
-        livenessProbe:
-          httpGet: { path: /healthz, port: 8080 }
-          periodSeconds: 10
-          failureThreshold: 3
-        readinessProbe:
-          httpGet: { path: /ready, port: 8080 }
-          periodSeconds: 5
-          failureThreshold: 3</code></pre>
+        # ... livenessProbe, readinessProbe ...
+        # ... resources, securityContext ...</code></pre>
                 <aside class="notes">Here's a complete, production-ready pod spec that combines everything we've covered. Three probes for comprehensive health checking, resource limits, a termination grace period, and a preStop hook for clean shutdown. This template is a solid starting point for any production deployment — adjust the timing parameters based on your application's characteristics.</aside>
             </section>
 

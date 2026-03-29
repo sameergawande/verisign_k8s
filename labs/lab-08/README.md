@@ -9,16 +9,20 @@
 ### Objectives
 
 - Deploy a three-tier application and verify default connectivity
-- Apply a default-deny NetworkPolicy
+- Apply a default-deny ingress NetworkPolicy
 - Create targeted ingress policies per tier
-- Test allowed/blocked paths and egress controls
+- Debug a broken NetworkPolicy
+- *Optional:* Apply egress deny-all and selective allow policies
+- *Optional:* Use namespace selectors for cross-namespace access
 
 ### Prerequisites
 
 - Completed Labs 1-7 with kubectl access
 - CNI with NetworkPolicy support (Calico or Cilium)
 
-> **Duration:** ~45 minutes
+> **Duration:** ~30-40 minutes
+>
+> **Note:** Steps 9-10 are optional stretch goals for students who finish early.
 
 ---
 
@@ -193,69 +197,7 @@ kubectl exec database -n lab08-$STUDENT_NAME -- curl -s -o /dev/null \
 
 ---
 
-## Step 8: Add Egress Rules
-
-<!-- Creates a NetworkPolicy that denies all egress traffic -->
-
-Apply the manifest:
-
-```bash
-envsubst < deny-all-egress.yaml | kubectl apply -f -
-
-# DNS is now broken — curl will fail to resolve
-kubectl exec frontend -n lab08-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80 || echo "BLOCKED"
-```
-
-### Allow DNS and In-Namespace Egress
-
-<!-- Creates a NetworkPolicy allowing DNS (port 53) and in-namespace egress (port 80) -->
-
-Apply the manifest:
-
-```bash
-envsubst < allow-dns-egress.yaml | kubectl apply -f -
-
-# Verify DNS resolves and traffic flows again
-kubectl exec frontend -n lab08-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80
-```
-
-> ✅ **Checkpoint:** DNS works again and the frontend-to-backend path is restored. The egress policy allows DNS (port 53) and in-namespace traffic (port 80).
-
----
-
-## Step 9: Test Namespace-Based Policies
-
-```bash
-kubectl create namespace monitoring-$STUDENT_NAME
-kubectl label namespace monitoring-$STUDENT_NAME purpose=monitoring
-kubectl run monitor --image=nginx:1.25 -n monitoring-$STUDENT_NAME
-kubectl wait --for=condition=Ready pod/monitor -n monitoring-$STUDENT_NAME --timeout=60s
-
-# Monitor cannot reach backend (denied by default)
-kubectl exec monitor -n monitoring-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80
-```
-
-Allow monitoring namespace access:
-
-<!-- Creates a NetworkPolicy allowing ingress from the monitoring namespace -->
-
-Apply the manifest:
-
-```bash
-envsubst < allow-monitoring-ingress.yaml | kubectl apply -f -
-
-kubectl exec monitor -n monitoring-$STUDENT_NAME -- \
-  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80
-```
-
-> ✅ **Checkpoint:** Monitoring pod can now reach application pods.
-
----
-
-## Step 10: Debug a Broken Policy
+## Step 8: Debug a Broken Policy
 
 Apply this intentionally broken policy and find the bugs:
 
@@ -290,11 +232,55 @@ kubectl run test-client --image=nginx:1.25 \
 
 ---
 
+---
+
+## Optional Stretch Goals
+
+> These exercises cover additional topics from the presentation. Complete them if you finish the core lab early.
+
+### Step 9: Egress Policies
+
+Apply a default deny-all egress policy, then selectively allow DNS:
+
+```bash
+# Deny all outbound traffic
+envsubst < deny-all-egress.yaml | kubectl apply -f -
+
+# Verify — outbound requests should now fail
+kubectl exec frontend -n lab08-$STUDENT_NAME -- \
+  curl -s --max-time 3 http://backend.lab08-$STUDENT_NAME.svc.cluster.local:80
+echo "Exit code: $?"
+```
+
+```bash
+# Allow DNS resolution (UDP port 53)
+envsubst < allow-dns-egress.yaml | kubectl apply -f -
+
+kubectl describe networkpolicy allow-dns-egress -n lab08-$STUDENT_NAME
+```
+
+> ✅ **Checkpoint:** The deny-all-egress policy blocks all outbound traffic. The allow-dns-egress policy permits DNS resolution on port 53.
+
+---
+
+### Step 10: Namespace-Based Policy
+
+Allow ingress from a monitoring namespace:
+
+```bash
+envsubst < allow-monitoring-ingress.yaml | kubectl apply -f -
+
+kubectl describe networkpolicy allow-monitoring-ingress -n lab08-$STUDENT_NAME
+```
+
+> ✅ **Checkpoint:** The policy uses a `namespaceSelector` with `purpose: monitoring` to allow ingress on port 80 from pods in monitoring namespaces.
+
+---
+
 ## Step 11: Clean Up
 
 ```bash
 kubectl delete namespace lab08-$STUDENT_NAME
-kubectl delete namespace monitoring-$STUDENT_NAME
 ```
 
 ---
@@ -304,8 +290,9 @@ kubectl delete namespace monitoring-$STUDENT_NAME
 - Kubernetes defaults to allowing all pod-to-pod communication -- NetworkPolicies add restrictions
 - Start with a default deny-all policy, then selectively allow required traffic
 - NetworkPolicies are additive -- multiple policies combine their allowed paths
-- Always allow DNS (UDP/TCP port 53) when implementing egress policies
-- Use `namespaceSelector` with namespace labels for cross-namespace communication
+- Use `podSelector` and labels to precisely control which pods can communicate
+- **Egress policies** control outbound traffic -- always allow DNS (port 53) when restricting egress
+- **Namespace selectors** enable cross-namespace communication rules (e.g., monitoring access)
 
 ---
 

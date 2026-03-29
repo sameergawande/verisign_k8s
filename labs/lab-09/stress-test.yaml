@@ -13,3 +13,10 @@ spec:
         image: busybox
         command: ['sh', '-c', 'while true; do dd if=/dev/urandom
           bs=1024 count=1024 of=/dev/null 2>/dev/null; done']
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi

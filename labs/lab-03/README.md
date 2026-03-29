@@ -11,14 +11,17 @@
 - Explore StorageClasses and provisioners
 - Create PersistentVolumeClaims and mount volumes in pods
 - Deploy and manage StatefulSets with stable identities
-- Scale StatefulSets and expand volumes
+- Scale StatefulSets
+- *Optional:* Expand volumes
 
 ### Prerequisites
 
 - Access to the EKS cluster via `kubectl`
 - Completion of Labs 1 and 2
 
-> **Duration:** ~45 minutes
+> **Duration:** ~40-50 minutes
+>
+> **Note:** Step 9 is an optional stretch goal for students who finish early.
 
 ---
 
@@ -200,7 +203,13 @@ kubectl get pvc -n lab03-$STUDENT_NAME
 
 ---
 
-## Step 9: Test Volume Expansion
+---
+
+## Optional Stretch Goals
+
+> These exercises cover additional topics from the presentation. Complete them if you finish the core lab early.
+
+### Step 9: Test Volume Expansion
 
 ```bash
 kubectl get storageclass gp2 -o jsonpath='{.allowVolumeExpansion}'

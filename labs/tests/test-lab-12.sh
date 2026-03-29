@@ -141,11 +141,9 @@ VALEOF
 
 # Add envFrom to deployment template
 # Insert envFrom block into the container spec
-sed -i.bak '/ports:/i\
-          envFrom:\
-          - configMapRef:\
-              name: {{ include "mychart.fullname" . }}-config' \
-  "$TMPDIR/mychart/templates/deployment.yaml"
+awk '/ports:/{print "          envFrom:"; print "          - configMapRef:"; print "              name: {{ include \"mychart.fullname\" . }}-config"}1' \
+  "$TMPDIR/mychart/templates/deployment.yaml" > "$TMPDIR/mychart/templates/deployment.yaml.tmp" && \
+  mv "$TMPDIR/mychart/templates/deployment.yaml.tmp" "$TMPDIR/mychart/templates/deployment.yaml"
 
 pass "ConfigMap template created"
 pass "appConfig values added to values.yaml"

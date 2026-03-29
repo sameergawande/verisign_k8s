@@ -162,14 +162,7 @@ spec:
   template:
     metadata:
       labels: { app: api-server, version: v2.1.0 }
-    spec:
-      containers:
-      - name: api
-        image: registry.verisign.com/api:2.1.0
-        readinessProbe:
-          httpGet: { path: /healthz, port: 8080 }
-          initialDelaySeconds: 5
-          periodSeconds: 5</code></pre>
+    # ... container spec, readinessProbe ...</code></pre>
                 <aside class="notes">This configuration is conservative: maxUnavailable 0 means we never drop below the desired count, and maxSurge 1 means we create one new pod at a time. The minReadySeconds setting adds a buffer — even after the readiness probe passes, the pod must stay healthy for 10 seconds before the rollout proceeds. This catches pods that crash shortly after startup. revisionHistoryLimit controls how many old ReplicaSets are retained for rollback.</aside>
             </section>
 

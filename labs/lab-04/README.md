@@ -1,5 +1,5 @@
 # Lab 4: Services and Service Discovery
-### ClusterIP, NodePort, LoadBalancer, and DNS-Based Discovery
+### ClusterIP, NodePort, Headless Services, and DNS-Based Discovery
 **Intermediate Kubernetes — Module 4 of 13**
 
 ---
@@ -8,16 +8,16 @@
 
 ### Objectives
 
-- Deploy a multi-tier application
-- Create ClusterIP, NodePort, and LoadBalancer Services
-- Test DNS-based service discovery and examine Endpoints
-- Configure headless Services and multi-port Services
+- Deploy a multi-tier application with backend and frontend Deployments
+- Create ClusterIP and NodePort Services
+- Test DNS-based service discovery and examine Endpoints/EndpointSlices
+- Compare headless vs. ClusterIP Service DNS behavior
 
 ### Prerequisites
 
 - Completion of Labs 1-3 with `kubectl` access
 
-> **Duration:** ~45-60 minutes
+> **Duration:** ~30 minutes
 
 ---
 
@@ -39,7 +39,7 @@ kubectl create namespace lab04-$STUDENT_NAME
 ```
 
 <!-- Creates backend Deployment (3 replicas of httpbin with readiness probe) -->
-<!-- Creates frontend Deployment (2 replicas of nginx with http/https ports) -->
+<!-- Creates frontend Deployment (2 replicas of nginx) -->
 Apply the manifests:
 
 ```bash
@@ -110,49 +110,7 @@ DNS resolution formats:
 
 ---
 
-## Step 5: Create a NodePort Service
-
-<!-- Creates a NodePort Service for frontend pods on port 80 -->
-Apply the manifest:
-
-```bash
-envsubst < frontend-nodeport.yaml | kubectl apply -f -
-kubectl get svc frontend-nodeport -n lab04-$STUDENT_NAME
-NODE_PORT=$(kubectl get svc frontend-nodeport -n lab04-$STUDENT_NAME -o jsonpath='{.spec.ports[0].nodePort}')
-echo "NodePort assigned: $NODE_PORT"
-```
-
-> ⚠️ **Note:** In EKS, node security groups may block NodePort traffic by default. NodePort is primarily for development -- production uses LoadBalancer or Ingress.
-
----
-
-## Step 6: Create a LoadBalancer Service
-
-> ⚠️ **Instructor Demo:** LoadBalancer services create real AWS NLBs (~$16/day each). Observe the instructor's demo or clean up immediately after testing.
-
-<!-- Creates a LoadBalancer Service with AWS NLB annotations for frontend -->
-Apply the manifest:
-
-```bash
-envsubst < frontend-lb.yaml | kubectl apply -f -
-kubectl get svc frontend-lb -n lab04-$STUDENT_NAME -w
-```
-
-Once EXTERNAL-IP appears, test:
-
-```bash
-LB_HOST=$(kubectl get svc frontend-lb -n lab04-$STUDENT_NAME \
-  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-curl -s http://$LB_HOST
-```
-
-> ✅ **Checkpoint:** You should see the nginx default page served through the NLB.
-
-> ⚠️ **Troubleshooting:** If EXTERNAL-IP stays `<pending>` for more than 5 minutes, check: `kubectl get deployment -n kube-system aws-load-balancer-controller`.
-
----
-
-## Step 7: Explore Endpoints and EndpointSlices
+## Step 5: Explore Endpoints and EndpointSlices
 
 ```bash
 kubectl get endpoints backend-svc -n lab04-$STUDENT_NAME
@@ -175,7 +133,23 @@ kubectl scale deployment backend -n lab04-$STUDENT_NAME --replicas=3
 
 ---
 
-## Step 8: Create a Headless Service
+## Step 6: Create a NodePort Service
+
+<!-- Creates a NodePort Service for frontend pods on port 80 -->
+Apply the manifest:
+
+```bash
+envsubst < frontend-nodeport.yaml | kubectl apply -f -
+kubectl get svc frontend-nodeport -n lab04-$STUDENT_NAME
+NODE_PORT=$(kubectl get svc frontend-nodeport -n lab04-$STUDENT_NAME -o jsonpath='{.spec.ports[0].nodePort}')
+echo "NodePort assigned: $NODE_PORT"
+```
+
+> ⚠️ **Note:** In EKS, node security groups may block NodePort traffic by default. NodePort is primarily for development -- production uses LoadBalancer or Ingress.
+
+---
+
+## Step 7: Create a Headless Service
 
 <!-- Creates a headless Service (clusterIP: None) for direct pod IP resolution -->
 Apply the manifest:
@@ -200,31 +174,12 @@ kubectl exec $FRONTEND_POD -n lab04-$STUDENT_NAME -- \
 
 ---
 
-## Step 9: Multi-Port Service
-
-<!-- Creates a ClusterIP Service exposing both port 80 (http) and 8443 (https) -->
-Apply the manifest:
+## Step 8: Clean Up
 
 ```bash
-envsubst < frontend-multiport.yaml | kubectl apply -f -
-kubectl get svc frontend-multiport -n lab04-$STUDENT_NAME
-```
-
-> ✅ **Checkpoint:** Output shows `80/TCP,8443/TCP`. When a Service has multiple ports, each **must** have a `name` field.
-
----
-
-## Step 10: Clean Up
-
-```bash
-# Delete LoadBalancer first to ensure NLB cleanup
-kubectl delete svc frontend-lb -n lab04-$STUDENT_NAME
-sleep 30
 kubectl config set-context --current --namespace=default
 kubectl delete namespace lab04-$STUDENT_NAME
 ```
-
-> ⚠️ Delete the LoadBalancer Service **before** the namespace to prevent orphaned NLBs.
 
 ---
 
@@ -234,7 +189,6 @@ kubectl delete namespace lab04-$STUDENT_NAME
 |-------------|-------|----------|
 | **ClusterIP** | Internal only | Service-to-service communication |
 | **NodePort** | External via node IP | Development and testing |
-| **LoadBalancer** | External via cloud LB | Production external access |
 | **Headless** | Internal, no VIP | StatefulSets, direct pod access |
 
 - DNS is the primary discovery mechanism (short names within namespace, FQDN across namespaces)
@@ -243,4 +197,4 @@ kubectl delete namespace lab04-$STUDENT_NAME
 
 ---
 
-*Lab 4 Complete — Up Next: Lab 5 — ConfigMaps, Secrets, and External Secrets*
+*Lab 4 Complete — Up Next: Lab 5 — ConfigMaps and Secrets*

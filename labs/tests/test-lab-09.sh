@@ -6,6 +6,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LAB_DIR="$(cd "$SCRIPT_DIR/../lab-09" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
+trap 'pkill -f "port-forward.*1808" 2>/dev/null; cleanup_ns "$NS" 2>/dev/null' EXIT
 
 export STUDENT_NAME="test-$$"
 NS="obs-lab-$STUDENT_NAME"
@@ -398,6 +399,4 @@ fi
 
 # ─── Cleanup ──────────────────────────────────────────────────────────────
 
-pkill -f "port-forward.*1808" &>/dev/null 2>&1 || true
-cleanup_ns "$NS"
 summary

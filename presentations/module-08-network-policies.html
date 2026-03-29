@@ -269,14 +269,19 @@ spec:
                         <p style="font-size: 0.8em; margin-top: 10px;">Covers all ports from 8000 to 9000 inclusive.</p>
                     </div>
                 </div>
-                <div class="concept-box fragment fade-up">
+                <aside class="notes">Port controls add the final layer of precision. You can specify individual ports or port ranges since Kubernetes 1.25.</aside>
+            </section>
+
+            <section>
+                <h2>&#128274; Port-Level Controls — Egress Example</h2>
+                <div class="concept-box">
                     <h4>Named Ports</h4>
                     <pre><code class="language-yaml">ports:
   - protocol: TCP
     port: http    # Matches the named port in the target pod spec</code></pre>
                     <p style="font-size: 0.85em;">Named ports reference the <code>containerPort</code> name, decoupling policy from hard-coded numbers.</p>
                 </div>
-                <aside class="notes">Port controls add the final layer of precision. You can specify individual ports, port ranges since Kubernetes 1.25, or named ports. Named ports are a best practice because they decouple the policy from the actual port number — if the application changes its port, only the pod spec needs updating.</aside>
+                <aside class="notes">Named ports are a best practice because they decouple the policy from the actual port number — if the application changes its port, only the pod spec needs updating.</aside>
             </section>
 
             <!-- Slide 12: Section — Policy Patterns -->
@@ -586,27 +591,10 @@ ingress:
 
             <!-- Slide 27: Debugging Tools -->
             <section>
-                <h2>&#128736;&#65039; Debugging Toolkit</h2>
-                <div class="two-columns">
-                    <div class="card">
-                        <h4>Connectivity Testing</h4>
-                        <pre><code class="language-bash"># Test connectivity from a pod
-kubectl run test-conn --rm -it \
-  --image=busybox -- wget -qO- \
-  --timeout=3 http://api-server:8080
-
-# Test DNS resolution
-kubectl run test-dns --rm -it \
-  --image=busybox -- nslookup \
-  api-server.production.svc
-
-# Netcat port test
-kubectl exec -it debug-pod -- \
-  nc -zv postgres-svc 5432</code></pre>
-                    </div>
-                    <div class="card">
-                        <h4>Policy Inspection</h4>
-                        <pre><code class="language-bash"># List policies affecting a pod
+                <h2>&#128736;&#65039; Debugging — kubectl Commands</h2>
+                <div class="card">
+                    <h4>Policy Inspection</h4>
+                    <pre><code class="language-bash"># List policies affecting a pod
 kubectl get networkpolicy -n prod
 
 # Describe policy details
@@ -620,9 +608,29 @@ kubectl get pods -n prod \
 # Validate YAML before apply
 kubectl apply --dry-run=server \
   -f policy.yaml</code></pre>
-                    </div>
                 </div>
-                <aside class="notes">These are your essential debugging commands. Always test connectivity after applying a policy — don't assume it works. The busybox image is your best friend for quick connectivity tests. For persistent debugging, keep a debug pod running in each namespace with network tools installed.</aside>
+                <aside class="notes">These are your essential debugging commands. Always test connectivity after applying a policy — don't assume it works.</aside>
+            </section>
+
+            <section>
+                <h2>&#128736;&#65039; Debugging — Network Testing</h2>
+                <div class="card">
+                    <h4>Connectivity Testing</h4>
+                    <pre><code class="language-bash"># Test connectivity from a pod
+kubectl run test-conn --rm -it \
+  --image=busybox -- wget -qO- \
+  --timeout=3 http://api-server:8080
+
+# Test DNS resolution
+kubectl run test-dns --rm -it \
+  --image=busybox -- nslookup \
+  api-server.production.svc
+
+# Netcat port test
+kubectl exec -it debug-pod -- \
+  nc -zv postgres-svc 5432</code></pre>
+                </div>
+                <aside class="notes">The busybox image is your best friend for quick connectivity tests. For persistent debugging, keep a debug pod running in each namespace with network tools installed.</aside>
             </section>
 
             <!-- Slide 28: Monitoring and Auditing -->
