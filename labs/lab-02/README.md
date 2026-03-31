@@ -28,6 +28,7 @@
 cd ~/environment/verisign_k8s/labs/lab-02
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 > ⚠️ **Important:** This shared cluster is used by all 22 students. Your `$STUDENT_NAME` ensures your resources don't conflict with others.
@@ -96,6 +97,15 @@ kubectl run load-generator \
   -n lab02-$STUDENT_NAME \
   -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://php-apache; done"
 ```
+
+Verify the load generator is running:
+
+```bash
+kubectl get pod load-generator -n lab02-$STUDENT_NAME
+kubectl logs load-generator -n lab02-$STUDENT_NAME --tail=5
+```
+
+> ✅ **Checkpoint:** The pod should be in `Running` state and logs should show the php-apache response (`OK!`).
 
 > ⚠️ **Important:** Open a **second terminal** for the next step. Keep the load generator running.
 

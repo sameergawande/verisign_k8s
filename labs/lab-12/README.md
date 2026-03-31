@@ -15,9 +15,8 @@
 
 ### Prerequisites
 
-- `kubectl` configured, Helm v3 installed
+- Completion of Lab 1 with `kubectl` and cluster access configured. Helm installed.
 - Access to a Kubernetes cluster (EKS)
-- Completed Labs 1-11
 
 > **Duration:** ~45 minutes
 
@@ -29,6 +28,7 @@
 cd ~/environment/verisign_k8s/labs/lab-12
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 > ⚠️ **Important:** Your `$STUDENT_NAME` ensures your resources don't conflict with other students.

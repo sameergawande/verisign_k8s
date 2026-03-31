@@ -23,7 +23,7 @@
 
 > **Note:** Steps 6-8 are optional stretch goals for students who finish early.
 - **Difficulty:** Intermediate
-- **Prerequisites:** Labs 1–9
+- **Prerequisites:** Lab 1 (cluster access configured)
 
 > 💡 **Context:** Probes tie directly into the observability skills from Lab 9 — they generate events and metrics you can monitor.
 
@@ -50,6 +50,7 @@ cd ~/environment/verisign_k8s/labs/lab-10
 # Set your unique student name
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 > ⚠️ **Important:** This shared cluster is used by all 22 students. Your `$STUDENT_NAME` ensures your resources don't conflict with others.

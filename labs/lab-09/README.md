@@ -21,7 +21,7 @@
 
 > **Note:** Step 9 is an optional stretch goal for students who finish early.
 - **Difficulty:** Intermediate
-- **Prerequisites:** Labs 1-8
+- **Prerequisites:** Lab 1 (cluster access configured)
 
 > ⚠️ **Note:** Verify metrics-server is running before you begin.
 
@@ -33,6 +33,7 @@
 cd ~/environment/verisign_k8s/labs/lab-09
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 > ⚠️ **Important:** Your `STUDENT_NAME` ensures your resources don't conflict with other students on this shared cluster.

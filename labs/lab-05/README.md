@@ -16,7 +16,7 @@
 
 ### Prerequisites
 
-- Completion of Labs 1–4 with `kubectl` access  |  **Duration:** ~30-40 minutes
+- Completion of Lab 1 with `kubectl` and cluster access configured  |  **Duration:** ~30-40 minutes
 
 ---
 
@@ -26,6 +26,7 @@
 cd ~/environment/verisign_k8s/labs/lab-05
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 ---

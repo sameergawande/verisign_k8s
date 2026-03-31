@@ -17,7 +17,7 @@
 
 ### Prerequisites
 
-- Completed Labs 1-7 with kubectl access
+- Completion of Lab 1 with `kubectl` and cluster access configured
 - CNI with NetworkPolicy support (Calico or Cilium)
 
 > **Duration:** ~30-40 minutes
@@ -32,6 +32,7 @@
 cd ~/environment/verisign_k8s/labs/lab-08
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 ---

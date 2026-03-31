@@ -17,7 +17,7 @@
 
 - kubectl installed and configured
 - Access to a Kubernetes cluster (EKS)
-- Completed Labs 1--10
+- Completion of Lab 1 with `kubectl` and cluster access configured
 
 > **Duration:** ~45 minutes
 
@@ -29,6 +29,7 @@
 cd ~/environment/verisign_k8s/labs/lab-11
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 > ⚠️ **Important:** Your `$STUDENT_NAME` ensures your resources don't conflict with other students.

@@ -7,6 +7,6 @@ spec:
   serviceAccountName: pod-viewer
   containers:
   - name: kubectl
-    image: bitnami/kubectl:1.28
+    image: bitnami/kubectl:latest
     command: ["sleep", "3600"]
   restartPolicy: Never

@@ -15,7 +15,7 @@
 
 ### Prerequisites
 
-- Completion of Labs 1-3 with `kubectl` access
+- Completion of Lab 1 with `kubectl` and cluster access configured
 
 > **Duration:** ~30 minutes
 
@@ -27,6 +27,7 @@
 cd ~/environment/verisign_k8s/labs/lab-04
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 > ⚠️ **Important:** This shared cluster is used by all 22 students. Your `$STUDENT_NAME` ensures your resources don't conflict with others.
@@ -113,11 +114,21 @@ DNS resolution formats:
 
 ## Step 5: Explore Endpoints and EndpointSlices
 
+**Endpoints** are the original API — a single object listing all pod IPs for a Service. **EndpointSlices** are the newer replacement — they split the list into smaller chunks (max 100 per slice), which scales better for large Services and reduces API traffic when pods change.
+
 ```bash
+# Endpoints: one object with all pod IPs in a flat list
 kubectl get endpoints backend-svc -n lab04-$STUDENT_NAME
+kubectl get endpoints backend-svc -n lab04-$STUDENT_NAME -o yaml | grep -A 2 "addresses:"
+
+# EndpointSlices: sharded by addressType, with conditions per endpoint
 kubectl get endpointslices -n lab04-$STUDENT_NAME \
   -l kubernetes.io/service-name=backend-svc
+kubectl get endpointslices -n lab04-$STUDENT_NAME \
+  -l kubernetes.io/service-name=backend-svc -o yaml | grep -A 5 "endpoints:"
 ```
+
+> **Key difference:** Endpoints lists IPs only. EndpointSlices include per-pod `ready`/`serving`/`terminating` conditions, node name, and zone — giving kube-proxy richer routing information.
 
 Scale the backend and watch Endpoints change:
 
@@ -130,7 +141,7 @@ kubectl scale deployment backend -n lab04-$STUDENT_NAME --replicas=1
 kubectl scale deployment backend -n lab04-$STUDENT_NAME --replicas=3
 ```
 
-> ✅ **Checkpoint:** Endpoints update dynamically as pods scale.
+> ✅ **Checkpoint:** Endpoints update dynamically as pods scale. Both Endpoints and EndpointSlices reflect the same pod IPs, but EndpointSlices show additional metadata per endpoint.
 
 ---
 

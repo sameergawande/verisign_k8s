@@ -17,7 +17,7 @@
 
 ### Prerequisites
 
-- Completion of Labs 1-5 with `kubectl` access
+- Completion of Lab 1 with `kubectl` and cluster access configured
 - Ingress controller installed (NGINX or AWS ALB)
 
 ### Duration
@@ -34,6 +34,7 @@ Approximately 30-40 minutes
 cd ~/environment/verisign_k8s/labs/lab-06
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 ---
@@ -105,7 +106,7 @@ envsubst < ingress-host.yaml | kubectl apply -f -
 ## Step 4: Test Host-Based Routing
 
 ```bash
-INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
+INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-ingress-nginx-controller \
     -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
 echo "Ingress address: $INGRESS_IP"
 
@@ -168,9 +169,13 @@ curl -sI -H "Host: secure-$STUDENT_NAME.lab.local" http://$INGRESS_IP
 
 <!-- Creates an Ingress with rewrite, rate limiting, CORS, and custom headers -->
 
-Apply the manifest:
+Create the custom headers ConfigMap and apply the Ingress:
 
 ```bash
+kubectl create configmap custom-headers \
+    --from-literal=X-Served-By=lab-eks \
+    -n lab06-$STUDENT_NAME
+
 envsubst < ingress-annotations.yaml | kubectl apply -f -
 
 curl -s -H "Host: api-$STUDENT_NAME.lab.local" http://$INGRESS_IP/api/

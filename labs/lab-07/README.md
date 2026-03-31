@@ -16,7 +16,7 @@
 
 ### Prerequisites
 
-- Completed Labs 1-6
+- Completion of Lab 1 with `kubectl` and cluster access configured
 - kubectl with cluster-admin access on a running EKS cluster
 
 > **Duration:** ~45-55 minutes (core), 60+ with IRSA
@@ -31,6 +31,7 @@
 cd ~/environment/verisign_k8s/labs/lab-07
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 ---

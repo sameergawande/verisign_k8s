@@ -15,10 +15,10 @@
 
 ### Prerequisites
 
-- kubectl, Docker, and AWS CLI configured
+- Completion of Lab 1 with `kubectl` and cluster access configured. Helm installed.
+- Docker and AWS CLI configured
 - Access to a Kubernetes cluster (EKS)
 - ArgoCD CLI (optional)
-- Completed Labs 1-12
 
 > **Duration:** ~45-55 minutes (core), 70+ with FluxCD
 >
@@ -31,6 +31,7 @@
 ```bash
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 > ⚠️ **Important:** Your `$STUDENT_NAME` ensures your resources don't conflict with other students.

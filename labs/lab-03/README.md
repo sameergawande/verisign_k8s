@@ -17,7 +17,7 @@
 ### Prerequisites
 
 - Access to the EKS cluster via `kubectl`
-- Completion of Labs 1 and 2
+- Completion of Lab 1 with `kubectl` and cluster access configured
 
 > **Duration:** ~40-50 minutes
 >
@@ -31,6 +31,7 @@
 cd ~/environment/verisign_k8s/labs/lab-03
 export STUDENT_NAME=<your-name>
 echo "Student: $STUDENT_NAME"
+kubectl config set-context --current --namespace=default
 ```
 
 > ⚠️ **Important:** This shared cluster is used by all 22 students. Your `$STUDENT_NAME` ensures your resources don't conflict with others.

@@ -10,8 +10,7 @@ metadata:
     nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.example.com"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      more_set_headers "X-Served-By: lab-eks";
+    nginx.ingress.kubernetes.io/custom-headers: "lab06-$STUDENT_NAME/custom-headers"
 spec:
   ingressClassName: nginx
   rules:
