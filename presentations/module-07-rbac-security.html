@@ -85,7 +85,7 @@
                     <div class="step"></div>
                     <div class="step"></div>
                 </div>
-                <aside class="notes">Module 7 shifts our focus to security. We'll cover Kubernetes RBAC in depth, ServiceAccounts, security contexts, and Pod Security Standards. Security is not an afterthought — it's a fundamental part of operating production workloads on Kubernetes.</aside>
+                <aside class="notes">Module 7 covers Kubernetes RBAC, ServiceAccounts, security contexts, and Pod Security Standards. Security is a fundamental part of operating workloads on Kubernetes.</aside>
             </section>
 
             <!-- Slide 2: Agenda -->
@@ -97,16 +97,16 @@
                     <li class="fragment fade-up">ServiceAccounts and pod identity</li>
                     <li class="fragment fade-up">Security contexts at pod and container level</li>
                     <li class="fragment fade-up">Pod Security Standards and admission controllers</li>
-                    <li class="fragment fade-up">Security best practices for production clusters</li>
+                    <li class="fragment fade-up">Security best practices</li>
                 </ul>
-                <aside class="notes">We'll work through the Kubernetes security model layer by layer — starting with how identities are established, how permissions are granted, and how workloads are constrained. Each section builds on the previous one.</aside>
+                <aside class="notes">We'll work through the security model layer by layer — identities, permissions, and workload constraints. Each section builds on the previous one.</aside>
             </section>
 
             <!-- Slide 3: Section Divider — Kubernetes Security Model -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128737;&#65039; Kubernetes Security Model</h2>
                 <h3>Authentication, authorization, and admission control</h3>
-                <aside class="notes">Every API request to Kubernetes passes through three gates: authentication (who are you?), authorization (what can you do?), and admission control (should this specific request be allowed?). Understanding this pipeline is essential.</aside>
+                <aside class="notes">Every API request passes through three gates: authentication, authorization, and admission control.</aside>
             </section>
 
             <!-- Slide 4: The Three Gates -->
@@ -138,7 +138,7 @@
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Think of these as three security checkpoints. Authentication verifies identity. Authorization checks permissions against RBAC policies. Admission controllers can modify or reject requests even after authorization succeeds — for example, enforcing security policies or injecting sidecars.</aside>
+                <aside class="notes">Authentication verifies identity. Authorization checks RBAC policies. Admission controllers can modify or reject requests even after authorization — e.g., enforcing security policies or injecting sidecars.</aside>
             </section>
 
             <!-- Slide 5: Authentication Methods -->
@@ -174,7 +174,7 @@
                         </div>
                     </div>
                 </div>
-                <aside class="notes">Kubernetes itself does not store user accounts — it delegates authentication to external systems. In EKS, the AWS IAM Authenticator is the primary method: IAM roles and users are mapped to Kubernetes identities via the aws-auth ConfigMap. OIDC is increasingly popular for human users in enterprise environments.</aside>
+                <aside class="notes">Kubernetes delegates authentication to external systems. In EKS, the AWS IAM Authenticator maps IAM roles/users to K8s identities via the aws-auth ConfigMap. OIDC is common for human users.</aside>
             </section>
 
             <!-- Slide 6: Section Divider — RBAC Deep Dive -->
@@ -210,7 +210,7 @@
                 <div class="key-point">
                     <strong>Key insight:</strong> Roles define <em>what</em> is allowed. Bindings define <em>who</em> gets those permissions. You always need both.
                 </div>
-                <aside class="notes">The separation of Roles and Bindings is intentional — it allows reuse. A single ClusterRole can be bound to different users in different namespaces via multiple RoleBindings. This is how most multi-tenant clusters are configured.</aside>
+                <aside class="notes">The separation allows reuse — a single ClusterRole can be bound to different users in different namespaces via multiple RoleBindings.</aside>
             </section>
 
             <!-- Slide 8: Role YAML Example -->
@@ -228,7 +228,7 @@ rules:
 - apiGroups: [""]
   resources: ["pods/log"]
   verbs: ["get"]</code></pre>
-                <aside class="notes">Tip: This Role only grants permissions within the development namespace — it cannot affect other namespaces. The empty string apiGroup represents the core API group. The resources field supports sub-resources like pods/log.</aside>
+                <aside class="notes">This Role only grants permissions within the development namespace. Empty string apiGroup = core API group. Sub-resources like pods/log are also supported.</aside>
             </section>
 
             <!-- Slide 9: ClusterRole YAML Example -->
@@ -247,7 +247,7 @@ rules:
   verbs: ["get", "list"]
 - nonResourceURLs: ["/healthz", "/readyz"]
   verbs: ["get"]</code></pre>
-                <aside class="notes">Tip: ClusterRoles can reference nonResourceURLs like /healthz — something Roles cannot do. ClusterRoles also serve as reusable templates that can be bound per-namespace via RoleBindings, a common pattern in multi-tenant setups.</aside>
+                <aside class="notes">ClusterRoles can reference nonResourceURLs (Roles cannot). They also serve as reusable templates bound per-namespace via RoleBindings.</aside>
             </section>
 
             <!-- Slide 10: RoleBinding YAML Example -->
@@ -268,7 +268,7 @@ roleRef:
                 <div class="key-point">
                     <strong>Subjects</strong> can be Users, Groups, or ServiceAccounts. <strong>roleRef</strong> can point to a Role or ClusterRole.
                 </div>
-                <aside class="notes">A RoleBinding can reference a ClusterRole — this is a powerful pattern. It grants the ClusterRole's permissions but only within the RoleBinding's namespace. This lets you define permissions once as a ClusterRole and reuse them across multiple namespaces.</aside>
+                <aside class="notes">A RoleBinding can reference a ClusterRole — granting its permissions only within the RoleBinding's namespace. Define once, reuse across namespaces.</aside>
             </section>
 
             <!-- Slide 11: ClusterRoleBinding YAML Example -->
@@ -289,7 +289,7 @@ roleRef:
   kind: ClusterRole
   name: node-viewer
   apiGroup: rbac.authorization.k8s.io</code></pre>
-                <aside class="notes">Tip: ClusterRoleBindings grant permissions across ALL namespaces — use sparingly. A ClusterRoleBinding to cluster-admin gives full cluster access. Restrict who can create ClusterRoleBindings via admission control or OPA/Gatekeeper policies.</aside>
+                <aside class="notes">ClusterRoleBindings grant permissions across ALL namespaces — use sparingly. A ClusterRoleBinding to cluster-admin gives full cluster access.</aside>
             </section>
 
             <!-- Slide 12: Verbs and Resources Matrix -->
@@ -342,9 +342,9 @@ roleRef:
                     </tbody>
                 </table>
                 <div class="highlight-box">
-                    <strong>Wildcard:</strong> Use <code>"*"</code> for all verbs or all resources — but avoid this in production.
+                    <strong>Wildcard:</strong> Use <code>"*"</code> for all verbs or all resources — avoid this outside of testing.
                 </div>
-                <aside class="notes">Each RBAC verb maps to an HTTP method on the API server. The watch verb is unique to Kubernetes — it allows streaming updates via long-polling. When defining Roles, be specific about verbs. A common mistake is granting all verbs when only get/list are needed.</aside>
+                <aside class="notes">Each RBAC verb maps to an HTTP method. Be specific — a common mistake is granting all verbs when only get/list are needed.</aside>
             </section>
 
             <!-- Slide 13: Aggregated ClusterRoles -->
@@ -376,14 +376,14 @@ rules: []  # auto-filled by controller</code></pre>
                     <h4>How it works</h4>
                     <p>The controller manager automatically combines rules from all ClusterRoles matching the label selector. Built-in roles like <code>admin</code>, <code>edit</code>, and <code>view</code> use aggregation.</p>
                 </div>
-                <aside class="notes">Aggregated ClusterRoles are how Kubernetes extends its built-in roles. When you install a CRD, you can add a ClusterRole with the appropriate label, and it automatically gets merged into the admin/edit/view roles. This is a clean extension mechanism that avoids modifying built-in roles directly.</aside>
+                <aside class="notes">When you install a CRD, add a ClusterRole with the appropriate label and it auto-merges into admin/edit/view roles — no need to modify built-in roles.</aside>
             </section>
 
             <!-- Slide 14: Section Divider — ServiceAccounts -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#129520; ServiceAccounts</h2>
                 <h3>Identity for workloads running in the cluster</h3>
-                <aside class="notes">While users authenticate externally, pods authenticate using ServiceAccounts. Understanding ServiceAccounts is critical because they define what your workloads can do within the cluster and with external services.</aside>
+                <aside class="notes">Users authenticate externally; pods authenticate using ServiceAccounts. These define what workloads can do within the cluster and with external services.</aside>
             </section>
 
             <!-- Slide 15: ServiceAccount Anatomy -->
@@ -414,22 +414,14 @@ automountServiceAccountToken: false</code></pre>
                         </div>
                     </div>
                 </div>
-                <aside class="notes">Every pod runs as a ServiceAccount. If you don't specify one, it uses the default SA in the namespace. Best practice is to create dedicated ServiceAccounts per application and disable auto-mounting of tokens when API access isn't needed. The EKS annotation enables IAM Roles for Service Accounts (IRSA).</aside>
+                <aside class="notes">Every pod runs as a ServiceAccount — default SA if unspecified. Create dedicated SAs per application and disable auto-mounting when API access isn't needed. The EKS annotation enables IRSA.</aside>
             </section>
 
             <!-- Slide 16: ServiceAccount Token Projection -->
             <section>
                 <h2>&#128178; ServiceAccount Token Projection</h2>
-                <pre><code class="language-yaml">apiVersion: v1
-kind: Pod
-metadata: { name: my-app }
-spec:
+                <pre><code class="language-yaml">spec:
   serviceAccountName: app-sa
-  containers:
-  - name: app
-    image: my-app:1.0
-    volumeMounts:
-    - { name: sa-token, mountPath: /var/run/secrets/tokens }
   volumes:
   - name: sa-token
     projected:
@@ -437,8 +429,9 @@ spec:
       - serviceAccountToken:
           path: app-token
           expirationSeconds: 3600
-          audience: api</code></pre>
-                <aside class="notes">Tip: Projected tokens are time-bound and audience-scoped — a major security improvement over legacy static tokens. Kubernetes 1.20+ uses bound service account tokens by default. These tokens are time-limited, audience-bound, and object-bound. They expire and get automatically rotated. Always prefer projected tokens over legacy long-lived tokens.</aside>
+          audience: api
+  # ... container volumeMounts reference /var/run/secrets/tokens</code></pre>
+                <aside class="notes">Projected tokens are time-bound and audience-scoped — a major improvement over legacy static tokens. K8s 1.20+ uses bound tokens by default. Always prefer projected tokens.</aside>
             </section>
 
             <!-- Slide 17: Binding Roles to ServiceAccounts -->
@@ -460,7 +453,7 @@ roleRef:
                 <div class="key-point">
                     <strong>Pattern:</strong> Create a dedicated ServiceAccount per application, grant only the permissions it needs, and reference it in the pod spec with <code>serviceAccountName</code>.
                 </div>
-                <aside class="notes">This is the standard pattern for granting in-cluster permissions to workloads. The ServiceAccount subject includes a namespace field, which is important when creating cross-namespace bindings. Never grant permissions to the default ServiceAccount — always create dedicated ones.</aside>
+                <aside class="notes">The SA subject includes a namespace field, important for cross-namespace bindings. Never grant permissions to the default ServiceAccount.</aside>
             </section>
 
             <!-- Slide 18: Pod Identity and IRSA -->
@@ -491,24 +484,20 @@ roleRef:
                         </div>
                     </div>
                 </div>
-                <aside class="notes">IRSA eliminates the need for node-level IAM roles or storing AWS credentials in secrets. Each pod gets its own identity with only the AWS permissions it needs. This is a major security improvement over the older kiam/kube2iam approaches. EKS Pod Identity is the newer alternative that simplifies the setup further.</aside>
+                <aside class="notes">IRSA eliminates node-level IAM roles — each pod gets its own scoped identity. EKS Pod Identity is the newer alternative that simplifies setup further.</aside>
             </section>
 
             <!-- Slide 19: Section Divider — Security Context -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128737;&#65039; Security Context</h2>
                 <h3>Constraining what pods and containers can do</h3>
-                <aside class="notes">RBAC controls what you can do with the API. Security contexts control what your containers can do at the OS level — which user they run as, what Linux capabilities they have, and whether they can escalate privileges.</aside>
+                <aside class="notes">RBAC controls API access. Security contexts control OS-level behavior — user, Linux capabilities, and privilege escalation.</aside>
             </section>
 
             <!-- Slide 20: Pod SecurityContext -->
             <section>
                 <h2>&#128451;&#65039; Pod SecurityContext</h2>
-                <pre><code class="language-yaml">apiVersion: v1
-kind: Pod
-metadata:
-  name: secure-pod
-spec:
+                <pre><code class="language-yaml">spec:
   securityContext:
     runAsUser: 1000
     runAsGroup: 3000
@@ -516,9 +505,7 @@ spec:
     runAsNonRoot: true
     seccompProfile:
       type: RuntimeDefault
-  containers:
-  - name: app
-    image: my-app:1.0</code></pre>
+  # ... containers follow</code></pre>
                 <div class="two-columns">
                     <div class="highlight-box">
                         <strong>runAsUser/runAsGroup:</strong> Sets the UID/GID for all containers in the pod
@@ -527,7 +514,7 @@ spec:
                         <strong>fsGroup:</strong> Sets the group ownership of all mounted volumes
                     </div>
                 </div>
-                <aside class="notes">Pod-level security context applies to all containers in the pod. runAsNonRoot is a critical setting — it prevents containers from running as root even if the Dockerfile specifies USER root. The seccomp profile restricts available system calls. Always set these in production workloads.</aside>
+                <aside class="notes">Pod-level security context applies to all containers. runAsNonRoot prevents running as root even if the Dockerfile specifies it. The seccomp profile restricts system calls.</aside>
             </section>
 
             <!-- Slide 21: Container SecurityContext -->
@@ -555,12 +542,12 @@ spec:
                         <div>
                             <ul>
                                 <li><strong>capabilities:</strong> Fine-grained Linux capability control</li>
-                                <li><strong>privileged:</strong> Never set to <code>true</code> in production</li>
+                                <li><strong>privileged:</strong> Never set to <code>true</code> for application workloads</li>
                             </ul>
                         </div>
                     </div>
                 </div>
-                <aside class="notes">The recommended approach is drop ALL capabilities first, then add back only what you need. NET_BIND_SERVICE allows binding to ports below 1024. readOnlyRootFilesystem forces applications to write only to mounted volumes, which improves security and makes container behavior more predictable. Use emptyDir volumes for temp files.</aside>
+                <aside class="notes">Drop ALL capabilities first, then add back only what's needed. readOnlyRootFilesystem forces writes to mounted volumes only — use emptyDir for temp files.</aside>
             </section>
 
             <!-- Slide 22: Building Secure Container Images -->
@@ -594,7 +581,7 @@ ENTRYPOINT ["/app"]</code></pre>
                         </div>
                     </div>
                 </div>
-                <aside class="notes">The number one container best practice is to minimize your attack surface. Fewer binaries means fewer CVEs. Multi-stage builds keep your final image lean — build tools, compilers, and test dependencies never ship to production. The distroless nonroot tag already sets a non-root user, which pairs well with the runAsNonRoot security context we just covered. On EKS, smaller images also reduce ECR storage costs and speed up node scaling.</aside>
+                <aside class="notes">Minimize attack surface: fewer binaries means fewer CVEs. Multi-stage builds keep final images lean. The distroless nonroot tag pairs well with the runAsNonRoot security context. Smaller images also speed up node scaling.</aside>
             </section>
 
             <!-- Slide 23: Image Scanning, Signing, and Secrets -->
@@ -627,7 +614,7 @@ ENTRYPOINT ["/app"]</code></pre>
                     </div>
                 </div>
                 <p style="margin-top: 15px;"><strong>Supply-chain rule of thumb:</strong> Build minimal &rarr; scan for CVEs &rarr; sign the artifact &rarr; verify at deploy</p>
-                <aside class="notes">These practices form a container supply-chain security pipeline. Trivy can run as a single binary in any CI system — pass --exit-code 1 to fail the build on HIGH/CRITICAL CVEs. ECR Enhanced Scanning uses Amazon Inspector and provides continuous monitoring, not just scan-on-push. Cosign with Sigstore lets you sign images without managing long-lived keys — it ties the signature to your CI system's OIDC identity. Remind students that docker history exposes every layer, so secrets baked into images are trivially extractable even if you delete them in a later layer.</aside>
+                <aside class="notes">Trivy: pass --exit-code 1 to fail builds on HIGH/CRITICAL CVEs. ECR Enhanced Scanning uses Amazon Inspector for continuous monitoring. Cosign with Sigstore signs images without long-lived keys. Remind students that docker history exposes every layer, so secrets in images are extractable.</aside>
             </section>
 
             <!-- Slide 24: Pod Security Standards -->
@@ -652,14 +639,14 @@ ENTRYPOINT ["/app"]</code></pre>
                         <h4 style="color: var(--success-color);">Restricted</h4>
                         <ul>
                             <li>Non-root, drop all capabilities</li>
-                            <li>Production hardened target</li>
+                            <li>Recommended hardening target</li>
                         </ul>
                     </div>
                 </div>
                 <div class="key-point">
                     <strong>Recommendation:</strong> Target <strong>Restricted</strong> for application workloads. Use <strong>Baseline</strong> as a transition step. Reserve <strong>Privileged</strong> for infrastructure components only.
                 </div>
-                <aside class="notes">Pod Security Standards replace the deprecated PodSecurityPolicy (PSP). They define three levels of restriction. Most application workloads should target Restricted. The Baseline level is useful during migration from unrestricted clusters. These standards are enforced by the Pod Security Admission controller, which we'll cover next.</aside>
+                <aside class="notes">Pod Security Standards replace the deprecated PodSecurityPolicy. Most workloads should target Restricted; Baseline is useful during migration. Enforced by the Pod Security Admission controller, covered next.</aside>
             </section>
 
             <!-- Slide 23: Pod Security Admission Controller -->
@@ -674,14 +661,14 @@ metadata:
     pod-security.kubernetes.io/enforce-version: latest
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted</code></pre>
-                <aside class="notes">Tip: enforce rejects pods that violate the policy. audit/warn logs violations without rejecting. Migration strategy: start with warn, then audit, then enforce. Pod Security Admission is built into Kubernetes since 1.25 — configured via namespace labels, no installation needed.</aside>
+                <aside class="notes">enforce rejects violations; audit/warn logs them without rejecting. Migration path: warn, then audit, then enforce. Built into K8s since 1.25 — namespace labels only, no install needed.</aside>
             </section>
 
             <!-- Slide 24: Section Divider — Security Best Practices -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#9989; Security Best Practices</h2>
-                <h3>Hardening your cluster for production</h3>
-                <aside class="notes">Now that we understand the mechanisms, let's talk about best practices. These recommendations come from the Kubernetes security documentation, CIS benchmarks, and real-world production experience.</aside>
+                <h3>Hardening your cluster</h3>
+                <aside class="notes">These recommendations come from Kubernetes security docs, CIS benchmarks, and operational experience.</aside>
             </section>
 
             <!-- Slide 25: Principle of Least Privilege -->
@@ -715,7 +702,7 @@ kubectl auth can-i --list \
   --as=system:serviceaccount:prod:app-sa</code></pre>
                     </div>
                 </div>
-                <aside class="notes">The resourceNames field is underused but powerful — it restricts access to specific named resources. The kubectl auth can-i command is essential for verifying RBAC policies. Use the --as flag to impersonate users or ServiceAccounts and test their effective permissions before deploying changes.</aside>
+                <aside class="notes">resourceNames restricts access to specific named resources. Use kubectl auth can-i with --as to test effective permissions before deploying changes.</aside>
             </section>
 
             <!-- Slide 26: Audit Logging -->
@@ -749,7 +736,7 @@ rules:
                         </div>
                     </div>
                 </div>
-                <aside class="notes">Audit logs are essential for security monitoring and forensics. Always log RBAC changes at RequestResponse level — you need to know who modified permissions. Log secrets at Metadata level only to avoid exposing secret values in logs. In EKS, enable control plane logging and ship audit logs to CloudWatch for analysis and alerting.</aside>
+                <aside class="notes">Log RBAC changes at RequestResponse level. Log secrets at Metadata only to avoid exposing values. In EKS, enable control plane logging and ship audit logs to CloudWatch.</aside>
             </section>
 
             <!-- Slide 27: Image Security -->
@@ -787,7 +774,7 @@ containers:
     .amazonaws.com/app@sha256:abc123...</code></pre>
                     </div>
                 </div>
-                <aside class="notes">Image security is a critical part of the supply chain. Never use the latest tag in production — always use immutable tags or SHA256 digests. ECR supports both automatic scanning and manual scanning. For signing, Cosign from the Sigstore project is becoming the industry standard. Admission controllers like Kyverno or OPA/Gatekeeper can enforce registry allowlists and signature verification.</aside>
+                <aside class="notes">Never use the latest tag — always use immutable tags or SHA256 digests. Cosign is becoming the standard for signing. Kyverno or OPA/Gatekeeper can enforce registry allowlists and signature verification.</aside>
             </section>
 
             <!-- Slide 28: EKS Security Best Practices -->
@@ -822,14 +809,14 @@ containers:
                 <div class="key-point">
                     <strong>aws-auth ConfigMap:</strong> Regularly audit this to ensure only authorized IAM principals have cluster access. Consider migrating to EKS access entries for more granular control.
                 </div>
-                <aside class="notes">EKS-specific security goes beyond generic Kubernetes security. The aws-auth ConfigMap is a common source of misconfiguration — audit it regularly. Envelope encryption ensures etcd secrets are encrypted with a KMS key you control. EKS access entries are the newer replacement for aws-auth that provide better integration with IAM and support condition keys.</aside>
+                <aside class="notes">The aws-auth ConfigMap is a common misconfiguration source — audit regularly. Envelope encryption uses a KMS key you control. EKS access entries are the newer replacement for aws-auth.</aside>
             </section>
 
             <!-- Section: IRSA — IAM Roles for Service Accounts -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128273; IRSA: IAM Roles for Service Accounts</h2>
                 <h3>Least-privilege AWS access for pods</h3>
-                <aside class="notes">We just locked down in-cluster access with RBAC and Pod Security. But pods often need to reach AWS services — S3, SQS, Secrets Manager. Without IRSA, every pod on a node shares the EC2 instance profile, violating least privilege. IRSA extends the security boundary to AWS IAM. On the organization's EKS platform, IRSA is the standard pattern for any workload accessing AWS services like S3, SQS, or Secrets Manager.</aside>
+                <aside class="notes">Pods often need AWS services — S3, SQS, Secrets Manager. Without IRSA, every pod on a node shares the EC2 instance profile. IRSA extends the security boundary to AWS IAM.</aside>
             </section>
 
             <!-- IRSA Slide 1: The Problem and What IRSA Solves -->
@@ -846,7 +833,7 @@ containers:
                 <div class="key-point fragment fade-up">
                     <strong>IRSA solves this</strong> by mapping each Kubernetes ServiceAccount to its own IAM role with scoped permissions &mdash; true least privilege for AWS access.
                 </div>
-                <aside class="notes">The node IAM role is typically broad because it serves all workloads. Any pod can query the IMDS endpoint at 169.254.169.254 to retrieve those credentials. IRSA eliminates this by giving each ServiceAccount its own short-lived, scoped IAM credentials. This is the AWS equivalent of what we just did with RBAC inside the cluster.</aside>
+                <aside class="notes">Any pod can query IMDS (169.254.169.254) to get the broad node role credentials. IRSA gives each ServiceAccount its own short-lived, scoped IAM credentials instead.</aside>
             </section>
 
             <!-- IRSA Slide 2: How IRSA Works -->
@@ -865,7 +852,7 @@ containers:
                 <div class="highlight-box success fragment fade-up">
                     <strong>Zero code changes:</strong> The AWS SDK credential chain detects IRSA environment variables automatically.
                 </div>
-                <aside class="notes">The projected token is short-lived (default 24 hours), audience-scoped to sts.amazonaws.com, and auto-rotated by the kubelet. The application never handles credentials directly — the SDK does everything transparently. This is the same OIDC federation pattern used by GitHub Actions and other CI systems.</aside>
+                <aside class="notes">The projected token is short-lived (default 24h), audience-scoped to sts.amazonaws.com, and auto-rotated by the kubelet. The SDK handles everything transparently.</aside>
             </section>
 
             <!-- IRSA Slide 3: ServiceAccount Annotation + Trust Policy -->
@@ -904,7 +891,7 @@ metadata:
                 <div class="key-point fragment fade-up">
                     <strong>Security boundary:</strong> The <code>:sub</code> condition scopes the role to an exact namespace + ServiceAccount. Without it, any SA in the cluster could assume this role.
                 </div>
-                <aside class="notes">The trust policy is the critical security control. The :sub condition must exactly match namespace:serviceaccount-name. For quick setup, eksctl create iamserviceaccount handles both the IAM role and the K8s ServiceAccount annotation in one command. For production, manage these through Terraform or CloudFormation for auditability and repeatability.</aside>
+                <aside class="notes">The :sub condition must exactly match namespace:serviceaccount-name. For quick setup, eksctl create iamserviceaccount handles both sides. For repeatability, manage via Terraform or CloudFormation.</aside>
             </section>
 
             <!-- IRSA Slide 4: Best Practices -->
@@ -931,7 +918,7 @@ metadata:
                     </div>
                 </div>
                 <p style="margin-top: 15px; font-size: 0.9em;"><strong>EKS Pod Identity</strong> (GA 2023) simplifies IRSA by removing trust-policy management. IRSA remains the standard for existing clusters.</p>
-                <aside class="notes">Think of IRSA as the AWS extension of the RBAC least-privilege principle we covered earlier. Inside the cluster, RBAC controls what a ServiceAccount can do with the Kubernetes API. Outside the cluster, IRSA controls what that same ServiceAccount can do with AWS APIs. Together they form a complete identity and access management story for EKS workloads.</aside>
+                <aside class="notes">RBAC controls K8s API access; IRSA controls AWS API access. Together they form a complete IAM story for EKS workloads.</aside>
             </section>
 
             <!-- Slide 34: Lab Callout -->
@@ -950,25 +937,25 @@ metadata:
                 <div class="highlight-box">
                     <strong>Duration:</strong> ~45 minutes
                 </div>
-                <aside class="notes">This lab covers the full RBAC workflow: creating roles, binding them, and testing with impersonation. Students will also apply security contexts and see Pod Security Admission in action, plus configure IRSA for AWS access. Common issues: forgetting to specify the namespace in RoleBindings, and using the wrong apiGroup in subjects. Circulate and help with RBAC debugging — kubectl auth can-i is the key diagnostic tool.</aside>
+                <aside class="notes">Full RBAC workflow plus security contexts, Pod Security Admission, and IRSA. Common issues: missing namespace in RoleBindings, wrong apiGroup in subjects. Key diagnostic: kubectl auth can-i.</aside>
             </section>
 
             <!-- Key Takeaways -->
             <section>
                 <h2>&#127919; Key Takeaways</h2>
                 <div class="key-point fragment fade-up">
-                    <strong>Least Privilege:</strong> Grant only the minimum permissions needed. Roles/ClusterRoles define permissions; Bindings grant them. ServiceAccounts provide pod identity. Start with no access and add permissions as required.
+                    <strong>Least Privilege:</strong> Grant minimum permissions needed. Roles define what; Bindings define who. Start with no access and add as required.
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>PSS Restricted Profile:</strong> Use the restricted Pod Security Standard for all production namespaces to enforce non-root, read-only FS, and no privilege escalation. securityContext and audit logging provide defense in depth.
+                    <strong>PSS Restricted Profile:</strong> Use the restricted Pod Security Standard to enforce non-root, read-only FS, and no privilege escalation. Combine with securityContext and audit logging for defense in depth.
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>IRSA for Pod Identity:</strong> Use IAM Roles for Service Accounts to give pods scoped AWS access without sharing static credentials. Per-pod AWS credentials via OIDC federation eliminate shared node IAM roles.
+                    <strong>IRSA for Pod Identity:</strong> Per-pod AWS credentials via OIDC federation eliminate shared node IAM roles and static credentials.
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>Audit Logging:</strong> Enable Kubernetes audit logging and forward to your SIEM to detect unauthorized access and policy violations.
+                    <strong>Audit Logging:</strong> Enable audit logging and forward to your SIEM for detecting unauthorized access and policy violations.
                 </div>
-                <aside class="notes">These four takeaways represent the highest-impact security practices. Least privilege applies to both RBAC and IAM. PSS restricted is the new standard replacing PSPs. IRSA eliminates the need for long-lived AWS credentials. Audit logging is essential for compliance and incident response.</aside>
+                <aside class="notes">Least privilege applies to both RBAC and IAM. PSS restricted replaces PSPs. IRSA eliminates long-lived AWS credentials. Audit logging supports compliance and incident response.</aside>
             </section>
 
             <!-- Slide 32: Questions -->
@@ -976,7 +963,7 @@ metadata:
                 <h2>&#10067; Questions &amp; Discussion</h2>
                 <p>How does your team currently manage access control in your Kubernetes clusters?</p>
                 <p style="font-size: 0.9em; margin-top: 30px;">Up Next: Module 8 &mdash; Network Policies</p>
-                <aside class="notes">Open the floor for questions. Common topics: How to integrate with existing identity providers, how to handle emergency access, how to audit RBAC policies at scale, and how Pod Security Standards compare to the deprecated PodSecurityPolicies. Encourage discussion about real-world access control challenges.</aside>
+                <aside class="notes">Common topics: integrating with identity providers, emergency access, auditing RBAC at scale, and PSS vs. deprecated PodSecurityPolicies.</aside>
             </section>
 
         </div>

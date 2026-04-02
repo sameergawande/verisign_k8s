@@ -85,7 +85,7 @@
                     <div class="step"></div>
                     <div class="step"></div>
                 </div>
-                <aside class="notes">Module 3 focuses on one of the most critical aspects of running production workloads — data persistence. By default, everything in Kubernetes is ephemeral. This module teaches how to break out of that model when your workloads require durable state.</aside>
+                <aside class="notes">Module 3 covers data persistence. By default, everything in Kubernetes is ephemeral. This module teaches how to configure durable state when your workloads require it.</aside>
             </section>
 
             <!-- Slide 2: Module Agenda -->
@@ -114,14 +114,14 @@
                 <div class="key-point fragment fade-up">
                     <strong>Goal:</strong> Understand when and how to persist data in Kubernetes, and choose the right storage abstraction for your workload.
                 </div>
-                <aside class="notes">We start with the foundational storage model and work our way up to real-world patterns. By the end of this module, you'll know how to provision persistent storage, manage stateful workloads with StatefulSets, and leverage AWS-native storage options on EKS.</aside>
+                <aside class="notes">We start with the foundational storage model and work up to real-world patterns covering PVC provisioning, StatefulSets, and AWS-native storage on EKS.</aside>
             </section>
 
             <!-- Slide 3: Section Divider — Kubernetes Storage Model -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128230; The Kubernetes Storage Model</h2>
                 <h3>Ephemeral by default — persistent by design</h3>
-                <aside class="notes">Kubernetes was designed with stateless workloads as the primary use case. Understanding why requires understanding how containers and pods handle filesystem state.</aside>
+                <aside class="notes">Kubernetes was designed for stateless workloads first. Understanding persistence requires understanding how containers handle filesystem state.</aside>
             </section>
 
             <!-- Slide 4: Ephemeral by Default -->
@@ -136,7 +136,7 @@
                 <div class="highlight-box danger fragment fade-up">
                     <strong>This means:</strong> Logs written to disk, temp files, cached data, database files — all gone when a pod restarts. This is by design, not a bug.
                 </div>
-                <aside class="notes">This is the most important mental model shift for developers coming from traditional infrastructure. On a VM, your disk persists across reboots. On Kubernetes, your pod can be killed and rescheduled at any time, and the filesystem resets to the image baseline. This makes stateless apps trivial but stateful apps require explicit storage configuration.</aside>
+                <aside class="notes">Key mental model shift: on a VM, disk persists across reboots. On Kubernetes, pods can be killed and rescheduled at any time, resetting the filesystem. Stateful apps require explicit storage configuration.</aside>
             </section>
 
             <!-- Slide 5: Why Persistence Matters -->
@@ -169,7 +169,7 @@
                     <h4>The Rule of Thumb</h4>
                     <p>If your workload writes data that must survive a pod restart, you need persistent storage. If it only reads data or writes ephemeral data, the default model works fine.</p>
                 </div>
-                <aside class="notes">Not every workload needs persistence. Stateless API servers, web frontends, and data processors that read from queues and write to external stores don't need persistent volumes. Reserve persistent storage for workloads that own their data — databases, message brokers, and file stores.</aside>
+                <aside class="notes">Not every workload needs persistence. Reserve persistent storage for workloads that own their data — databases, message brokers, and file stores.</aside>
             </section>
 
             <!-- Slide 6: The Abstraction Layers -->
@@ -186,7 +186,7 @@
                 <div class="key-point fragment fade-up">
                     <strong>Analogy:</strong> PV = the actual hard drive provisioned by the platform team. PVC = a ticket requesting "I need 10Gi of fast storage." Kubernetes matches claims to volumes automatically.
                 </div>
-                <aside class="notes">This three-layer model separates concerns cleanly. Platform teams manage PVs and StorageClasses. Developers create PVCs to request what they need. The Kubernetes control plane handles the binding. This is the same producer-consumer pattern we see throughout Kubernetes.</aside>
+                <aside class="notes">Platform teams manage PVs and StorageClasses. Developers create PVCs. The control plane handles binding — the same producer-consumer pattern seen throughout Kubernetes.</aside>
             </section>
 
             <!-- Slide 7: Volume Types Overview -->
@@ -209,7 +209,7 @@
                         <tr>
                             <td><code>hostPath</code></td>
                             <td>Node lifetime</td>
-                            <td>Node-level logs, DaemonSet workloads (avoid in production)</td>
+                            <td>Node-level logs, DaemonSet workloads (avoid for app workloads)</td>
                         </tr>
                         <tr>
                             <td><code>configMap</code></td>
@@ -228,31 +228,25 @@
                         </tr>
                     </tbody>
                 </table>
-                <aside class="notes">Tip: hostPath is a security risk and ties pods to specific nodes — use it only for system-level DaemonSets, never for application workloads. emptyDir is the simplest volume type. configMap and secret volumes inject configuration. PVC is the path to real persistence.</aside>
+                <aside class="notes">hostPath is a security risk and ties pods to specific nodes — use only for system-level DaemonSets. PVC is the path to real persistence.</aside>
             </section>
 
             <!-- Slide 8: emptyDir and hostPath Examples -->
             <section>
                 <h2>&#128221; emptyDir &amp; hostPath in Practice</h2>
                 <pre><code class="language-yaml"># emptyDir — shared scratch space between containers
-apiVersion: v1
-kind: Pod
-metadata:
-  name: log-processor
 spec:
   containers:
   - name: app
-    image: myapp:v1
     volumeMounts:
     - { name: shared-logs, mountPath: /var/log/app }
   - name: log-shipper
-    image: fluentbit:latest
     volumeMounts:
     - { name: shared-logs, mountPath: /var/log/app, readOnly: true }
   volumes:
   - name: shared-logs
     emptyDir: { sizeLimit: 500Mi }</code></pre>
-                <aside class="notes">Tip: The app writes logs to /var/log/app and the sidecar reads and ships them. Both containers share the same emptyDir volume. This sidecar pattern is extremely common. The sizeLimit prevents a runaway log from consuming the entire node's disk. emptyDir lives on the node's filesystem or optionally in memory using emptyDir.medium: Memory.</aside>
+                <aside class="notes">The app writes logs and the sidecar reads and ships them via a shared emptyDir. sizeLimit prevents runaway disk usage. Can also use emptyDir.medium: Memory for tmpfs-backed storage.</aside>
             </section>
 
             <!-- Slide 9: PersistentVolume Deep Dive -->
@@ -278,7 +272,7 @@ spec:
                     <li class="fragment fade-up"><strong>reclaimPolicy</strong> — what happens when the PVC is deleted</li>
                     <li class="fragment fade-up"><strong>storageClassName</strong> — links to a StorageClass for dynamic provisioning</li>
                 </ul>
-                <aside class="notes">PVs are cluster-scoped resources — they don't belong to any namespace. This YAML shows a manually-created PV backed by an AWS EBS volume. In practice, you'll rarely create PVs manually because dynamic provisioning via StorageClasses handles it for you. But understanding the PV spec is essential for troubleshooting.</aside>
+                <aside class="notes">PVs are cluster-scoped. You'll rarely create them manually — dynamic provisioning handles that — but understanding the PV spec is essential for troubleshooting.</aside>
             </section>
 
             <!-- Slide 10: PersistentVolumeClaim Deep Dive -->
@@ -308,7 +302,7 @@ spec:
   - name: data
     persistentVolumeClaim:
       claimName: postgres-data</code></pre>
-                <aside class="notes">The PVC is the developer-facing resource. You specify what you need — access mode, storage class, and size — and Kubernetes finds or creates a matching PV. The PVC is namespace-scoped, so it lives alongside your application resources. The pod references the PVC by name in its volumes section.</aside>
+                <aside class="notes">The PVC is the developer-facing resource. Specify access mode, storage class, and size — Kubernetes finds or creates a matching PV. PVCs are namespace-scoped. The pod references the PVC by name.</aside>
             </section>
 
             <!-- Slide 11: PVC Binding Lifecycle -->
@@ -330,7 +324,7 @@ kubectl get pvc postgres-data
 # postgres-data   Bound    pvc-a1b2   50Gi       RWO            gp3
 
 kubectl describe pvc postgres-data | grep -A2 Events</code></pre>
-                <aside class="notes">The most common issue developers hit is a PVC stuck in Pending. This usually means no PV matches the request — wrong StorageClass, insufficient capacity, or the provisioner is not running. Always check kubectl describe pvc for events when troubleshooting.</aside>
+                <aside class="notes">Most common issue: PVC stuck in Pending. Usually means wrong StorageClass, insufficient capacity, or provisioner not running. Always check kubectl describe pvc events.</aside>
             </section>
 
             <!-- Slide 12: Access Modes -->
@@ -366,7 +360,7 @@ kubectl describe pvc postgres-data | grep -A2 Events</code></pre>
                         </tr>
                     </tbody>
                 </table>
-                <aside class="notes">Tip: EBS volumes are ReadWriteOnce only — use EFS for shared storage across nodes. ReadWriteOncePod (RWOP) restricts access to a single pod, useful for sensitive data. Access modes are about node-level access, not pod-level. For EKS, EBS is RWO and EFS supports RWX.</aside>
+                <aside class="notes">EBS is RWO only; use EFS for RWX. Access modes govern node-level access, not pod-level. ReadWriteOncePod (RWOP) restricts to a single pod.</aside>
             </section>
 
             <!-- Slide 13: Reclaim Policies -->
@@ -378,7 +372,7 @@ kubectl describe pvc postgres-data | grep -A2 Events</code></pre>
                         <ul>
                             <li>PV and data preserved after PVC deletion</li>
                             <li>Manual cleanup required</li>
-                            <li><strong>Best for production databases</strong></li>
+                            <li><strong>Recommended for databases</strong></li>
                         </ul>
                     </div>
                     <div class="card">
@@ -397,14 +391,14 @@ kubectl describe pvc postgres-data | grep -A2 Events</code></pre>
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Tip: The default reclaim policy for dynamically provisioned PVs is Delete. For any stateful workload, override to Retain to prevent accidental data loss. You can change an existing PV's reclaim policy with kubectl patch.</aside>
+                <aside class="notes">Default reclaim policy for dynamic PVs is Delete. Override to Retain for stateful workloads. Change existing PVs with kubectl patch.</aside>
             </section>
 
             <!-- Slide 14: Section Divider — StorageClasses -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#9881;&#65039; StorageClasses &amp; Dynamic Provisioning</h2>
                 <h3>Automate volume creation with declarative storage tiers</h3>
-                <aside class="notes">StorageClasses are the key to making storage self-service for developers. Instead of asking a platform engineer to create an EBS volume, developers declare what they need and the StorageClass provisioner handles the rest.</aside>
+                <aside class="notes">StorageClasses make storage self-service. Developers declare what they need; the provisioner handles the rest.</aside>
             </section>
 
             <!-- Slide 15: StorageClass Anatomy -->
@@ -430,7 +424,7 @@ volumeBindingMode: WaitForFirstConsumer</code></pre>
                     <li class="fragment fade-up"><strong>volumeBindingMode</strong> — <code>WaitForFirstConsumer</code> delays binding until a pod is scheduled (AZ-aware)</li>
                     <li class="fragment fade-up"><strong>allowVolumeExpansion</strong> — enables online resizing of PVCs</li>
                 </ul>
-                <aside class="notes">WaitForFirstConsumer is essential on EKS. EBS volumes are AZ-specific — if you provision a volume in us-east-2a but the pod lands on a node in us-east-2b, it can't attach. WaitForFirstConsumer ensures the volume is created in the same AZ as the node where the pod is scheduled.</aside>
+                <aside class="notes">WaitForFirstConsumer is essential on EKS. EBS volumes are AZ-specific — this mode ensures the volume is created in the same AZ as the scheduled pod.</aside>
             </section>
 
             <!-- Slide 16: AWS EBS CSI Driver -->
@@ -470,25 +464,21 @@ volumeBindingMode: WaitForFirstConsumer</code></pre>
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">The EBS CSI driver is an EKS add-on that must be installed on the cluster. It replaces the legacy in-tree EBS provisioner. gp3 is the recommended default — it's cheaper than gp2 and provides better baseline performance. io2 is for workloads like production databases that need guaranteed IOPS. Always encrypt volumes in production.</aside>
+                <aside class="notes">The EBS CSI driver is an EKS add-on replacing the legacy in-tree provisioner. gp3 is the recommended default — cheaper than gp2 with better baseline performance. io2 is for databases needing guaranteed IOPS. Always encrypt volumes.</aside>
             </section>
 
             <!-- Slide 17: AWS EFS CSI Driver -->
             <section>
                 <h2>&#128193; AWS EFS CSI Driver for Shared Storage</h2>
-                <pre><code class="language-yaml">apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: efs-sc
+                <pre><code class="language-yaml">kind: StorageClass
+metadata: { name: efs-sc }
 provisioner: efs.csi.aws.com
 parameters:
   provisioningMode: efs-ap
   fileSystemId: fs-0abc123def456789
   directoryPerms: "700"
-  gidRangeStart: "1000"
-  gidRangeEnd: "2000"
-mountOptions:
-  - tls</code></pre>
+  # ... gidRangeStart, gidRangeEnd
+mountOptions: [tls]</code></pre>
                 <div class="two-columns fragment fade-up">
                     <div class="highlight-box success">
                         <strong>EFS Strengths:</strong> ReadWriteMany, auto-scaling capacity, cross-AZ, shared access across pods and nodes
@@ -497,7 +487,7 @@ mountOptions:
                         <strong>EFS Trade-offs:</strong> Higher latency than EBS, higher cost per GB, not suitable for database workloads
                     </div>
                 </div>
-                <aside class="notes">EFS is NFS-based and supports ReadWriteMany, making it the go-to for workloads that need shared filesystem access — think content management systems, shared configuration, or ML training jobs reading shared datasets. EFS uses Access Points for dynamic provisioning, creating isolated directories within a single filesystem. Always use the tls mount option for encryption in transit.</aside>
+                <aside class="notes">EFS is NFS-based with ReadWriteMany support — suited for shared filesystem access. Uses Access Points for dynamic provisioning. Always use the tls mount option for encryption in transit.</aside>
             </section>
 
             <!-- Slide 18: Dynamic Provisioning Workflow -->
@@ -518,7 +508,7 @@ mountOptions:
 kubectl get pvc -w
 kubectl get pv
 kubectl describe pvc my-claim  # Check events for provisioning status</code></pre>
-                <aside class="notes">This workflow is entirely automated. The developer writes a PVC and a pod spec, and the platform handles everything else. The key insight is that with WaitForFirstConsumer, steps 3-6 happen together — the volume isn't created until a pod actually needs it. This avoids AZ mismatch issues and prevents unused volumes from accumulating.</aside>
+                <aside class="notes">Fully automated. With WaitForFirstConsumer, steps 3-6 happen together — the volume isn't created until a pod needs it, avoiding AZ mismatches and unused volumes.</aside>
             </section>
 
             <!-- Slide 19: EBS vs EFS Decision Matrix -->
@@ -563,14 +553,14 @@ kubectl describe pvc my-claim  # Check events for provisioning status</code></pr
                 <div class="key-point fragment fade-up">
                     <strong>Decision rule:</strong> If one pod writes, use EBS. If multiple pods need concurrent read-write access, use EFS.
                 </div>
-                <aside class="notes">This is the most common decision point for storage on EKS. EBS is the right default for most stateful workloads because of its performance characteristics. EFS fills the niche for shared storage. A common mistake is using EFS for databases — it doesn't have the IOPS or latency profile that databases need.</aside>
+                <aside class="notes">EBS is the right default for most stateful workloads. EFS fills the shared-storage niche. Common mistake: using EFS for databases — it lacks the IOPS and latency profile databases need.</aside>
             </section>
 
             <!-- Slide 20: Section Divider — StatefulSets -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128202; StatefulSets</h2>
                 <h3>Managing workloads that need stable identity and persistent storage</h3>
-                <aside class="notes">StatefulSets are the Kubernetes primitive for running stateful workloads. They solve the problems that Deployments can't — stable network names, ordered operations, and per-replica persistent storage.</aside>
+                <aside class="notes">StatefulSets solve what Deployments cannot — stable network names, ordered operations, and per-replica persistent storage.</aside>
             </section>
 
             <!-- Slide 21: StatefulSets vs Deployments -->
@@ -599,7 +589,7 @@ kubectl describe pvc my-claim  # Check events for provisioning status</code></pr
                 <div class="highlight-box fragment fade-up">
                     <strong>Key distinction:</strong> Use a Deployment unless your workload requires stable identity, ordered operations, or per-replica persistent storage. Most workloads are Deployments.
                 </div>
-                <aside class="notes">The critical difference is identity. In a Deployment, pods are cattle — interchangeable and disposable. In a StatefulSet, pods are pets — each has a unique identity, a stable hostname, and its own persistent volume. Databases need this because replica-0 might be the primary and replica-1 and replica-2 are secondaries.</aside>
+                <aside class="notes">In a Deployment, pods are interchangeable. In a StatefulSet, each pod has a unique identity, stable hostname, and its own volume. Databases need this — replica-0 is the primary, others are secondaries.</aside>
             </section>
 
             <!-- Slide 22: StatefulSet Anatomy -->
@@ -622,7 +612,7 @@ spec:
       accessModes: ["ReadWriteOnce"]
       storageClassName: gp3
       resources: { requests: { storage: 50Gi } }</code></pre>
-                <aside class="notes">Two things distinguish a StatefulSet spec from a Deployment: the serviceName field and the volumeClaimTemplates section. The serviceName must reference a headless Service that provides DNS entries for each pod. The volumeClaimTemplates create a unique PVC for each replica, named data-postgres-0, data-postgres-1, and data-postgres-2.</aside>
+                <aside class="notes">Two things distinguish a StatefulSet from a Deployment: serviceName (references a headless Service for DNS) and volumeClaimTemplates (creates a unique PVC per replica).</aside>
             </section>
 
             <!-- Slide 23: Headless Service & Stable Network Identities -->
@@ -650,7 +640,7 @@ spec:
                 <div class="key-point fragment fade-up">
                     <strong>Why this matters:</strong> Applications can connect to a specific replica by name. The primary can always be reached at <code>postgres-0</code>, regardless of which node it runs on.
                 </div>
-                <aside class="notes">The headless Service with clusterIP: None tells Kubernetes not to create a virtual IP. Instead, DNS queries return the individual pod IPs. This is how database replication works on Kubernetes — the primary is always postgres-0, and replicas can find the primary by its stable DNS name. Even if the pod is rescheduled to a different node, the DNS name stays the same.</aside>
+                <aside class="notes">clusterIP: None means DNS returns individual pod IPs instead of a virtual IP. The primary is always postgres-0, reachable by stable DNS name regardless of which node it runs on.</aside>
             </section>
 
             <!-- Slide 24: VolumeClaimTemplates -->
@@ -692,7 +682,7 @@ kubectl get pvc
                     </div>
                 </div>
                 <p style="margin-top: 15px;"><strong>Why ordering matters:</strong> Databases initialize the primary (ordinal 0) first, then join replicas one at a time. Unordered startup can cause split-brain.</p>
-                <aside class="notes">The ordering guarantee is critical for distributed systems. For example, a PostgreSQL cluster using Patroni needs pod-0 to initialize the primary before pod-1 can stream replication from it. If both started simultaneously, neither would know who the primary is. The reverse order for scale-down ensures replicas are drained before the primary is affected.</aside>
+                <aside class="notes">Ordering is critical: pod-0 must initialize as primary before pod-1 can replicate from it. Reverse order for scale-down ensures replicas drain before the primary is affected.</aside>
             </section>
 
             <!-- Slide 26: StatefulSet Update Strategies -->
@@ -725,51 +715,45 @@ kubectl get pvc
                     </div>
                 </div>
                 <p style="margin-top: 15px;"><strong>Canary example:</strong> Set <code>partition=2</code> on a 3-replica set &rarr; only <code>pod-2</code> updates. Validate, then lower to 1, then 0.</p>
-                <aside class="notes">The partition field is a powerful canary mechanism unique to StatefulSets. Unlike Deployment rollouts that are all-or-nothing per ReplicaSet, StatefulSet partitions let you update one replica at a time and validate before proceeding. For database upgrades, this is invaluable — update one replica, verify data integrity, then continue.</aside>
+                <aside class="notes">The partition field enables canary updates unique to StatefulSets — update one replica at a time and validate before proceeding. Invaluable for database upgrades.</aside>
             </section>
 
             <!-- Slide 27: Section Divider — Real-World Patterns -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#127919; Real-World Storage Patterns</h2>
-                <h3>Production-tested approaches for stateful workloads on EKS</h3>
-                <aside class="notes">Now that we understand the primitives, let's look at how they come together in real production scenarios. These patterns are drawn from common workloads teams run on EKS.</aside>
+                <h3>Recommended approaches for stateful workloads on EKS</h3>
+                <aside class="notes">Now let's see how these primitives come together. These patterns are drawn from common workloads teams run on EKS.</aside>
             </section>
 
             <!-- Slide 28: PostgreSQL StatefulSet Example -->
             <section>
                 <h2>&#128024; PostgreSQL on Kubernetes</h2>
-                <pre><code class="language-yaml">apiVersion: apps/v1
-kind: StatefulSet
+                <pre><code class="language-yaml">kind: StatefulSet
 metadata: { name: postgresql }
 spec:
   serviceName: postgresql-headless
   replicas: 3
-  selector: { matchLabels: { app: postgresql } }
+  # ... selector, labels
   template:
-    metadata: { labels: { app: postgresql } }
     spec:
       containers:
       - name: postgresql
         image: postgres:16
         env:
-        - name: POSTGRES_PASSWORD
-          valueFrom: { secretKeyRef: { name: pg-secret, key: password } }
         - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
-        ports: [{ containerPort: 5432 }]
+        # ... password from Secret, ports, resources
         volumeMounts: [{ name: data, mountPath: /var/lib/postgresql/data }]
-        resources:
-          requests: { cpu: "500m", memory: "1Gi" }
-          limits: { cpu: "2", memory: "4Gi" }
-  # ... volumeClaimTemplates: gp3, 100Gi RWO per replica</code></pre>
-                <aside class="notes">This is a production-grade PostgreSQL StatefulSet. Key details: PGDATA is set to a subdirectory of the mount point because PostgreSQL requires the data directory to be empty on init. Resources are set with both requests and limits. In a real production setup, you'd use an operator like CloudNativePG or Zalando's postgres-operator to handle replication, failover, and backups.</aside>
+  volumeClaimTemplates:    # gp3, 100Gi RWO per replica
+  # ...</code></pre>
+                <aside class="notes">Key detail: PGDATA is set to a subdirectory because PostgreSQL requires the data directory to be empty on init. For a more complete setup, use an operator like CloudNativePG to handle replication, failover, and backups.</aside>
             </section>
 
             <!-- Slide 29: Database Operator Pattern -->
             <section>
-                <h2>&#128736;&#65039; Database Operators — The Production Path</h2>
+                <h2>&#128736;&#65039; Database Operators — The Recommended Path</h2>
                 <div class="concept-box">
                     <h4>Why Use an Operator Instead of Raw StatefulSets?</h4>
-                    <p>A raw StatefulSet gives you storage and identity. An operator adds the operational logic that databases need to run reliably.</p>
+                    <p>A raw StatefulSet gives you storage and identity. An operator adds the operational logic databases need to run reliably.</p>
                 </div>
                 <div class="three-columns fragment fade-up">
                     <div class="card">
@@ -794,7 +778,7 @@ spec:
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Running a raw StatefulSet for a database is possible but operationally expensive. Operators encode the domain expertise of DBAs into software — they handle leader election, failover, backup scheduling, and version upgrades. For production databases on EKS, always evaluate an operator before building your own automation around raw StatefulSets.</aside>
+                <aside class="notes">Operators encode DBA expertise into software — leader election, failover, backups, and upgrades. Always evaluate an operator before building custom automation around raw StatefulSets.</aside>
             </section>
 
             <!-- Slide 30: Volume Expansion -->
@@ -811,52 +795,45 @@ kubectl patch pvc data-postgres-0 -p \
 # Monitor the resize operation
 kubectl get pvc data-postgres-0 -w
 kubectl describe pvc data-postgres-0 | grep Conditions</code></pre>
-                <aside class="notes">Tip: EBS volumes support online expansion — no pod restart required. Volumes can only grow, never shrink, so plan initial size carefully. The resize happens in two stages: the cloud provider resizes the block device, then the kubelet resizes the filesystem.</aside>
+                <aside class="notes">EBS supports online expansion — no pod restart needed. Volumes can only grow, never shrink. Two stages: cloud provider resizes the block device, then kubelet resizes the filesystem.</aside>
             </section>
 
             <!-- Slide 31: Volume Snapshots — Creating -->
             <section>
                 <h2>&#128248; Volume Snapshots — Create</h2>
                 <pre><code class="language-yaml"># VolumeSnapshotClass — defines the snapshot provisioner
-apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotClass
-metadata:
-  name: ebs-snapclass
+metadata: { name: ebs-snapclass }
 driver: ebs.csi.aws.com
 deletionPolicy: Retain</code></pre>
                 <pre class="fragment fade-up"><code class="language-yaml"># VolumeSnapshot — take a snapshot of a PVC
-apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshot
-metadata:
-  name: postgres-snap-20260313
+metadata: { name: postgres-snap-20260313 }
 spec:
   volumeSnapshotClassName: ebs-snapclass
   source:
     persistentVolumeClaimName: data-postgres-0</code></pre>
-                <aside class="notes">Volume snapshots are the Kubernetes-native backup mechanism. They map directly to EBS snapshots on AWS. VolumeSnapshotClass configures how snapshots are taken, and VolumeSnapshot triggers the actual snapshot.</aside>
+                <aside class="notes">Volume snapshots map directly to EBS snapshots on AWS. VolumeSnapshotClass configures how; VolumeSnapshot triggers the actual snapshot.</aside>
             </section>
 
             <!-- Slide 31b: Volume Snapshots — Restoring -->
             <section>
                 <h2>&#128248; Volume Snapshots — Restore</h2>
-                <pre><code class="language-yaml"># Restore from snapshot — create a new PVC
-apiVersion: v1
+                <pre><code class="language-yaml"># Restore from snapshot — create a new PVC with dataSource
 kind: PersistentVolumeClaim
-metadata:
-  name: postgres-restored
+metadata: { name: postgres-restored }
 spec:
   accessModes: ["ReadWriteOnce"]
   storageClassName: gp3
-  resources:
-    requests: { storage: 100Gi }
+  resources: { requests: { storage: 100Gi } }
   dataSource:
     name: postgres-snap-20260313
     kind: VolumeSnapshot
     apiGroup: snapshot.storage.k8s.io</code></pre>
                 <div class="highlight-box success fragment fade-up">
-                    <strong>Snapshot workflow:</strong> SnapshotClass configures <em>how</em>, VolumeSnapshot triggers <em>when</em>, and a PVC with <code>dataSource</code> restores <em>from</em> it. Useful for pre-upgrade backups, disaster recovery, and cloning environments.
+                    <strong>Snapshot workflow:</strong> SnapshotClass configures <em>how</em>, VolumeSnapshot triggers <em>when</em>, PVC with <code>dataSource</code> restores <em>from</em> it.
                 </div>
-                <aside class="notes">A PVC with a dataSource referencing a VolumeSnapshot restores from that snapshot. This is useful for pre-upgrade backups, disaster recovery, and cloning environments.</aside>
+                <aside class="notes">Useful for pre-upgrade backups, disaster recovery, and cloning environments.</aside>
             </section>
 
             <!-- Slide 32: Storage Best Practices for EKS -->
@@ -878,13 +855,13 @@ spec:
                         <ul>
                             <li class="fragment fade-up">Monitor PVC usage with Prometheus metrics</li>
                             <li class="fragment fade-up">Automate volume snapshots for backups</li>
-                            <li class="fragment fade-up">Use operators for production databases</li>
+                            <li class="fragment fade-up">Use operators for database workloads</li>
                             <li class="fragment fade-up">Test failover and recovery procedures</li>
                             <li class="fragment fade-up">Tag EBS volumes for cost allocation</li>
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">These best practices reflect the operational reality of running stateful workloads on EKS. Encryption should be non-negotiable. WaitForFirstConsumer prevents the most common provisioning failure. Monitoring PVC usage prevents the silent failure of a database filling its disk. And testing recovery before you need it is the difference between a minor incident and a major outage.</aside>
+                <aside class="notes">Encryption is non-negotiable. WaitForFirstConsumer prevents the most common provisioning failure. Monitor PVC usage to catch disks filling up. Test recovery before you need it.</aside>
             </section>
 
             <!-- Slide 33: Common Troubleshooting -->
@@ -926,7 +903,7 @@ spec:
                         </tr>
                     </tbody>
                 </table>
-                <aside class="notes">These are the most common storage issues you'll encounter on EKS. The number one issue is PVC Pending — always start with kubectl describe pvc to see the events. AZ mismatch is the second most common, which is why WaitForFirstConsumer is essential. Force-detaching an EBS volume should be a last resort — it can cause data corruption if the volume was being written to.</aside>
+                <aside class="notes">Start with kubectl describe pvc for Pending issues. AZ mismatch is the second most common problem. Force-detaching EBS should be a last resort — risk of data corruption.</aside>
             </section>
 
             <!-- Slide 34: Lab Callout -->
@@ -944,7 +921,7 @@ spec:
                 <div class="highlight-box">
                     <strong>Duration:</strong> ~45 minutes
                 </div>
-                <aside class="notes">This lab covers the full storage lifecycle. Participants will explore the existing gp2 StorageClass, provision PVCs, deploy an nginx StatefulSet, and test failure scenarios. The key validation is seeing that data persists across pod restarts and that the volume follows the pod identity, not the node. Budget extra time for the StatefulSet exercises as they involve waiting for ordered pod creation.</aside>
+                <aside class="notes">Covers the full storage lifecycle. Key validation: data persists across pod restarts and volumes follow pod identity, not the node. Budget extra time for StatefulSet exercises (ordered pod creation).</aside>
             </section>
 
             <!-- Slide 35: Key Takeaways -->
@@ -957,11 +934,11 @@ spec:
                         <li class="fragment fade-up"><strong>StorageClasses enable self-service</strong> — dynamic provisioning eliminates manual volume management</li>
                         <li class="fragment fade-up"><strong>EBS = single-writer, EFS = shared storage</strong> — choose based on access pattern</li>
                         <li class="fragment fade-up"><strong>StatefulSets provide stable identity</strong> — ordered operations, persistent names, per-replica storage</li>
-                        <li class="fragment fade-up"><strong>Use operators for production databases</strong> — they encode operational expertise as code</li>
+                        <li class="fragment fade-up"><strong>Use operators for databases</strong> — they encode operational expertise as code</li>
                         <li class="fragment fade-up"><strong>Always set Retain reclaim policy</strong> — protect against accidental data loss</li>
                     </ul>
                 </div>
-                <aside class="notes">These seven points capture the essential knowledge for managing data on Kubernetes. The most important mental model is the separation between the developer interface (PVC) and the platform implementation (PV, StorageClass, CSI driver). Developers declare intent, and the platform fulfills it. This same pattern repeats throughout Kubernetes.</aside>
+                <aside class="notes">Core mental model: developers declare intent via PVCs, the platform fulfills it via PVs, StorageClasses, and CSI drivers.</aside>
             </section>
 
             <!-- Slide 36: Questions -->
@@ -969,7 +946,7 @@ spec:
                 <h2>&#10067; Questions &amp; Discussion</h2>
                 <p>What stateful workloads does your team run today, and how do you currently manage their storage?</p>
                 <p style="font-size: 0.9em; margin-top: 30px;">Up Next: Module 4 &mdash; Services &amp; Service Discovery</p>
-                <aside class="notes">Open the floor for questions. Common topics: How do we migrate existing databases to Kubernetes? Should we run databases on K8s or use managed services like RDS? How do we handle backup and restore? What about multi-AZ database replication? These are all valid discussions that help gauge the audience's current state and readiness for stateful K8s workloads.</aside>
+                <aside class="notes">Common topics: migrating databases to K8s, K8s databases vs managed services (RDS), backup/restore, multi-AZ replication.</aside>
             </section>
 
         </div>

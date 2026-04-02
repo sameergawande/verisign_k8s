@@ -78,7 +78,7 @@
                     <div class="step completed"></div>
                     <div class="step active"></div>
                 </div>
-                <aside class="notes">Module 13 focuses on CI/CD integration and GitOps patterns for Kubernetes. We'll cover the principles, tools, and production patterns that enable reliable, automated delivery pipelines. This builds on everything we've learned about deployments, Helm, and configuration management.</aside>
+                <aside class="notes">Module 13 covers CI/CD integration and GitOps patterns for Kubernetes, building on deployments, Helm, and configuration management.</aside>
             </section>
 
             <!-- Slide 2: Agenda -->
@@ -99,21 +99,21 @@
                             <li class="fragment">ArgoCD deep dive</li>
                             <li class="fragment">FluxCD overview</li>
                             <li class="fragment">Pipeline tooling (GitHub Actions, Tekton)</li>
-                            <li class="fragment">Production patterns and promotion strategies</li>
+                            <li class="fragment">Deployment patterns and promotion strategies</li>
                         </ul>
                     </div>
                 </div>
                 <div class="highlight-box fragment">
                     <strong>Lab 13:</strong> CI/CD Integration &mdash; build a complete pipeline with GitOps-based deployment (~45 minutes)
                 </div>
-                <aside class="notes">We'll start with CI/CD fundamentals specific to Kubernetes, then move into GitOps as a deployment philosophy. The bulk of the module covers ArgoCD and FluxCD as the two leading GitOps tools. We'll close with production patterns before heading into the hands-on lab.</aside>
+                <aside class="notes">We'll cover CI/CD fundamentals for Kubernetes, GitOps as a deployment philosophy, ArgoCD and FluxCD as the leading GitOps tools, then deployment patterns before the hands-on lab.</aside>
             </section>
 
             <!-- Slide 3: Section - CI/CD Fundamentals -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#9881;&#65039; CI/CD Fundamentals for Kubernetes</h2>
                 <h3>From code commit to running containers</h3>
-                <aside class="notes">Let's start by understanding how CI/CD pipelines differ when targeting Kubernetes versus traditional infrastructure. The containerized workflow introduces new stages and concerns.</aside>
+                <aside class="notes">How CI/CD pipelines differ when targeting Kubernetes versus traditional infrastructure.</aside>
             </section>
 
             <!-- Slide 4: Traditional vs Cloud-Native CI/CD -->
@@ -144,7 +144,7 @@
                 <div class="key-point fragment">
                     <strong>Key shift:</strong> The artifact is a container image, and the desired state is a versioned manifest in Git.
                 </div>
-                <aside class="notes">The fundamental shift is from mutable to immutable infrastructure. Instead of SSH-ing into servers to deploy, we build an immutable image once and declare where it should run. This makes deployments reproducible and auditable. The manifest in Git becomes the source of truth for cluster state.</aside>
+                <aside class="notes">The shift is from mutable to immutable infrastructure. Build an immutable image once and declare where it should run. The manifest in Git becomes the source of truth for cluster state.</aside>
             </section>
 
             <!-- Slide 5: Pipeline Stages -->
@@ -175,7 +175,7 @@
                 <div class="highlight-box warning fragment">
                     <strong>Separation of concerns:</strong> CI builds and tests the artifact. CD deploys the artifact. GitOps manages the desired state.
                 </div>
-                <aside class="notes">Each stage serves a distinct purpose and should be independently auditable. The scan stage is critical in enterprise environments for CVE detection and policy enforcement. Notice the clear separation: CI is responsible for producing a trusted artifact, while CD handles getting that artifact running in the cluster. This separation is key to the GitOps model.</aside>
+                <aside class="notes">Each stage serves a distinct purpose. CI produces a trusted artifact; CD gets it running in the cluster. This separation is key to the GitOps model.</aside>
             </section>
 
             <!-- Slide 6: Container Image Lifecycle -->
@@ -194,7 +194,7 @@
                         <h4>&#127991;&#65039; Tag &amp; Push</h4>
                         <ul>
                             <li class="fragment">Immutable tags (Git SHA, semver)</li>
-                            <li class="fragment">Never use <code>:latest</code> in production</li>
+                            <li class="fragment">Never use <code>:latest</code> in deployments</li>
                             <li class="fragment">Push to ECR / private registry</li>
                         </ul>
                     </div>
@@ -214,14 +214,14 @@ cosign sign --key cosign.key myapp:${GIT_SHA}
 ECR=123456789.dkr.ecr.us-east-2.amazonaws.com
 docker tag myapp:${GIT_SHA} ${ECR}/myapp:${GIT_SHA}
 docker push ${ECR}/myapp:${GIT_SHA}</code></pre>
-                <aside class="notes">The image lifecycle is the backbone of cloud-native CI. Multi-stage builds keep images lean, immutable tags ensure reproducibility, and image signing creates a chain of trust. Using Git SHA as the tag creates a direct link between the code commit and the running image. ECR supports image scanning natively, and Cosign from the Sigstore project provides keyless or key-based signing.</aside>
+                <aside class="notes">Multi-stage builds keep images lean, immutable tags ensure reproducibility, and image signing creates a chain of trust. Git SHA as the tag links code commits directly to running images.</aside>
             </section>
 
             <!-- Slide 7: Section - GitOps Principles -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128218; GitOps Principles</h2>
                 <h3>Git as the single source of truth for infrastructure</h3>
-                <aside class="notes">GitOps is more than a deployment tool - it's an operational framework. Let's understand the principles that define GitOps and why they matter for Kubernetes operations at scale.</aside>
+                <aside class="notes">GitOps is an operational framework. Let's understand the principles that define it and why they matter for Kubernetes.</aside>
             </section>
 
             <!-- Slide 8: GitOps Definition and Four Principles -->
@@ -251,7 +251,7 @@ docker push ${ECR}/myapp:${GIT_SHA}</code></pre>
                         <p style="font-size: 0.85em;">Agents observe actual state, detect drift, and correct it automatically</p>
                     </div>
                 </div>
-                <aside class="notes">These four principles were defined by the OpenGitOps project under the CNCF. Declarative means you describe what, not how. Versioned means Git provides the audit trail and rollback capability. Pull-based means agents in the cluster fetch state rather than CI pushing to the cluster. Continuous reconciliation means the system self-heals when drift is detected.</aside>
+                <aside class="notes">Defined by the OpenGitOps project (CNCF). Declarative = describe what, not how. Versioned = Git provides audit trail and rollback. Pull-based = agents fetch state. Continuous reconciliation = self-heal on drift.</aside>
             </section>
 
             <!-- Slide 9: Push vs Pull-Based Deployment -->
@@ -282,7 +282,7 @@ docker push ${ECR}/myapp:${GIT_SHA}</code></pre>
                 <div class="highlight-box success fragment">
                     <strong>Security advantage:</strong> Pull-based models eliminate the need to store cluster credentials in external CI systems &mdash; the agent only needs read access to Git.
                 </div>
-                <aside class="notes">The security model is the primary differentiator. In push-based, your CI system needs a kubeconfig with cluster admin privileges, which is a significant attack surface. In pull-based, the agent runs inside the cluster with the necessary RBAC and only needs read access to the Git repository. The continuous reconciliation loop also ensures that manual kubectl changes are automatically reverted.</aside>
+                <aside class="notes">Security is the primary differentiator. Push-based CI needs cluster admin privileges (large attack surface). Pull-based agents run inside the cluster with scoped RBAC and only need Git read access. Manual kubectl changes get automatically reverted.</aside>
             </section>
 
             <!-- Slide 10: Jenkins CI/CD Pipeline Integration -->
@@ -311,7 +311,7 @@ docker push ${ECR}/myapp:${GIT_SHA}</code></pre>
                 <div class="highlight-box fragment">
                     <strong>EKS integration:</strong> Jenkins authenticates to EKS via IRSA (IAM Roles for Service Accounts) or kubeconfig with a service account token &mdash; avoid storing long-lived cluster admin credentials.
                 </div>
-                <aside class="notes">Jenkins remains the most common CI/CD tool in enterprise environments. The Kubernetes plugin transforms Jenkins from a static VM-based system into a cloud-native build platform by scheduling build agents as Pods. For The organization's EKS clusters, IRSA is the recommended authentication method since it ties IAM roles directly to Kubernetes service accounts without managing static credentials. However, as we discussed in the push vs pull comparison, Jenkins represents the push-based model where the CI system requires direct cluster access. Many organizations keep Jenkins for CI (build, test, scan) but hand off the CD (deploy) step to a GitOps tool like ArgoCD.</aside>
+                <aside class="notes">The Kubernetes plugin schedules build agents as Pods, making Jenkins cloud-native. IRSA is the recommended auth method for EKS. Jenkins represents push-based deployment; many teams keep it for CI but hand off CD to ArgoCD.</aside>
             </section>
 
             <!-- Slide 11: From Jenkins to GitOps -->
@@ -330,7 +330,7 @@ docker push ${ECR}/myapp:${GIT_SHA}</code></pre>
                 <div class="key-point fragment">
                     <strong>Best of both worlds:</strong> Jenkins handles CI (build, test, scan) while ArgoCD owns CD (deploy, reconcile, rollback) &mdash; no cluster credentials leave the cluster.
                 </div>
-                <aside class="notes">This hybrid pattern is rapidly becoming the industry standard. Jenkins excels at running complex build and test pipelines, but giving Jenkins direct kubectl access to production clusters is a security concern. In the hybrid model, the final Jenkins stage simply updates an image tag in the GitOps repository via a Git commit. ArgoCD, running inside the cluster, detects the change and performs the actual deployment. This gives you Jenkins's mature CI ecosystem plus GitOps security and drift detection. Many teams already running Jenkins can adopt this pattern incrementally without replacing their existing CI investment.</aside>
+                <aside class="notes">This hybrid pattern is increasingly common. Jenkins handles CI; the final stage updates an image tag in the GitOps repo. ArgoCD detects the change and deploys. Teams can adopt this incrementally without replacing existing CI infrastructure.</aside>
             </section>
 
             <!-- Slide 12: Git as Single Source of Truth -->
@@ -352,14 +352,14 @@ docker push ${ECR}/myapp:${GIT_SHA}</code></pre>
                 <div class="key-point fragment">
                     <strong>Every change</strong> goes through a pull request &mdash; code review, approval, and audit trail are built into the workflow.
                 </div>
-                <aside class="notes">This mono-repo structure is one common pattern. Applications live under apps/ with Kustomize base/overlay structure. Shared infrastructure components get their own directory. Cluster-level configuration defines which apps and infra components are deployed where. Some teams prefer separate repos for apps and infrastructure. The key principle: if it's not in Git, it shouldn't be in the cluster.</aside>
+                <aside class="notes">One common pattern. Apps use Kustomize base/overlay structure; shared infra gets its own directory. Key principle: if it's not in Git, it shouldn't be in the cluster.</aside>
             </section>
 
             <!-- Slide 13: Section - ArgoCD -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128737;&#65039; ArgoCD</h2>
                 <h3>Declarative, GitOps continuous delivery for Kubernetes</h3>
-                <aside class="notes">ArgoCD is the most widely adopted GitOps tool in the CNCF ecosystem. It's a graduated CNCF project with a rich UI, CLI, and API. Let's dive into its architecture and capabilities.</aside>
+                <aside class="notes">ArgoCD is the most widely adopted GitOps tool -- a CNCF graduated project with a rich UI, CLI, and API.</aside>
             </section>
 
             <!-- Slide 12: ArgoCD Architecture -->
@@ -395,36 +395,29 @@ docker push ${ECR}/myapp:${GIT_SHA}</code></pre>
                     </div>
                 </div>
                 <aside class="notes">Tip: Additional components include Redis (caching), Dex (SSO), ApplicationSet Controller (multi-cluster), and Notifications Controller (alerts).</aside>
-                <aside class="notes">The three core components work together in a loop. The repo server clones and renders manifests from Git. The application controller compares the rendered manifests against what's actually running in the cluster. When differences are detected, the controller can automatically sync or wait for manual approval depending on the sync policy. The API server provides the UI and access control layer.</aside>
+                <aside class="notes">Repo server clones and renders manifests. Application controller compares desired vs actual state and syncs or waits for approval. API server provides UI and access control.</aside>
             </section>
 
             <!-- Slide 13: ArgoCD Application CRD -->
             <section>
                 <h2>ArgoCD Application CRD</h2>
-                <pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: frontend
-  namespace: argocd
+                <pre><code class="language-yaml">kind: Application
+metadata: { name: frontend, namespace: argocd }
 spec:
-  project: default
   source:
     repoURL: https://github.com/mycompany/gitops-repo.git
     targetRevision: main
-    path: apps/frontend/overlays/production
+    path: apps/frontend/overlays/staging
   destination:
     server: https://kubernetes.default.svc
     namespace: frontend
   syncPolicy:
     automated: { selfHeal: true, prune: true }
-    syncOptions: [CreateNamespace=true]
-    retry:
-      limit: 5
-      backoff: { duration: 5s, maxDuration: 3m0s, factor: 2 }</code></pre>
+    # ... retry, syncOptions, etc.</code></pre>
                 <div class="key-point fragment">
                     <strong>Source + Destination + SyncPolicy</strong> = the three pillars of every ArgoCD Application definition.
                 </div>
-                <aside class="notes">The Application CRD is the core abstraction. Source defines where manifests live in Git - the repo, branch, and path. Destination defines where to deploy - which cluster and namespace. SyncPolicy controls automation behavior. The retry block handles transient failures during sync. CreateNamespace ensures the target namespace exists. This single resource encapsulates an entire application's deployment configuration.</aside>
+                <aside class="notes">Source = where manifests live in Git. Destination = which cluster and namespace. SyncPolicy = automation behavior. This single resource encapsulates an entire application's deployment config.</aside>
             </section>
 
             <!-- Slide 14: ArgoCD Sync Policies -->
@@ -460,7 +453,7 @@ spec:
                     </div>
                 </div>
                 <aside class="notes">Tip: Production recommendation — Enable selfHeal always. Enable automated sync only after establishing confidence. Consider manual sync approval for critical workloads.</aside>
-                <aside class="notes">These three policies control how aggressively ArgoCD reconciles state. Automated sync means any Git commit triggers deployment. Self-heal reverts manual changes made directly to the cluster. Prune removes resources that no longer exist in Git. In production, many teams start with self-heal enabled but automated sync disabled, requiring manual sync approval through the UI or CLI for an additional safety gate.</aside>
+                <aside class="notes">These three policies control reconciliation behavior. Many teams start with self-heal enabled but automated sync disabled, requiring manual sync approval as a safety gate.</aside>
             </section>
 
             <!-- Slide 15: Multi-Environment Management -->
@@ -469,7 +462,7 @@ spec:
                 <div class="two-columns">
                     <div>
                         <h3>Kustomize Overlays</h3>
-                        <pre><code class="language-yaml"># overlays/production/kustomization.yaml
+                        <pre><code class="language-yaml"># overlays/staging/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources: [../../base]
@@ -498,14 +491,14 @@ spec:
         path: apps/frontend/overlays/{{cluster}}</code></pre>
                     </div>
                 </div>
-                <aside class="notes">Kustomize overlays handle per-environment differences like replica counts, resource limits, and image tags. ApplicationSets take this further by generating ArgoCD Application resources from a template. The list generator is the simplest, but you can also use Git directory generators, cluster generators, and pull request generators. This is how large organizations manage hundreds of applications across dozens of clusters.</aside>
+                <aside class="notes">Kustomize overlays handle per-environment differences. ApplicationSets generate ArgoCD Applications from a template using list, Git directory, cluster, or PR generators.</aside>
             </section>
 
             <!-- Slide 16: Section - FluxCD -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#127800; FluxCD Overview</h2>
                 <h3>A toolkit approach to GitOps on Kubernetes</h3>
-                <aside class="notes">FluxCD takes a different architectural approach than ArgoCD. It's composed of specialized controllers rather than a monolithic application. Let's understand its design and when to choose it.</aside>
+                <aside class="notes">FluxCD uses specialized controllers rather than a monolithic application.</aside>
             </section>
 
             <!-- Slide 17: FluxCD Architecture -->
@@ -543,7 +536,7 @@ spec:
                 <div class="highlight-box fragment">
                     <strong>Additional controllers:</strong> Notification Controller (alerts &amp; webhooks), Image Automation Controller (auto-update image tags in Git)
                 </div>
-                <aside class="notes">Flux's modular architecture means you only install what you need. The source controller is the foundation, fetching artifacts from various sources. The kustomize controller handles applying manifests. The helm controller manages Helm releases declaratively. Each controller watches its own CRDs and operates independently. The image automation controller is unique to Flux - it can automatically update image tags in your Git repo when new images are pushed to a registry.</aside>
+                <aside class="notes">Install only what you need. Each controller watches its own CRDs independently. The image automation controller is unique to Flux -- it auto-updates image tags in Git when new images appear.</aside>
             </section>
 
             <!-- Slide 18: FluxCD CRDs -->
@@ -577,7 +570,7 @@ spec:
       namespace: frontend</code></pre>
                     </div>
                 </div>
-                <aside class="notes">The GitRepository CRD tells the source controller where to fetch manifests and how often to check for changes. The Kustomization CRD (not to be confused with native Kustomize) tells the kustomize controller which path to apply and includes health checks to verify the deployment succeeded. The interval fields control polling frequency. The prune flag works like ArgoCD's prune - removing resources deleted from Git.</aside>
+                <aside class="notes">GitRepository = where to fetch and how often. Kustomization (Flux CRD, not native Kustomize) = which path to apply with health checks. Prune works like ArgoCD's prune.</aside>
             </section>
 
             <!-- Slide 19: FluxCD vs ArgoCD -->
@@ -627,14 +620,14 @@ spec:
                 <div class="highlight-box success fragment">
                     <strong>Both are excellent choices.</strong> ArgoCD excels with its UI and multi-cluster management. FluxCD excels with its lightweight, composable design and native image automation.
                 </div>
-                <aside class="notes">This is not a winner-takes-all comparison. ArgoCD is often preferred when teams want a visual dashboard and centralized multi-cluster management. FluxCD is preferred when teams want a lighter footprint and CLI-first workflow. Both are CNCF graduated projects with strong communities. Some organizations even use both - ArgoCD for application deployments and Flux for cluster infrastructure bootstrapping.</aside>
+                <aside class="notes">Not a winner-takes-all comparison. ArgoCD suits teams wanting a visual dashboard; FluxCD suits lighter, CLI-first workflows. Both are CNCF graduated with strong communities.</aside>
             </section>
 
             <!-- Section Divider: FluxCD in Practice -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128736;&#65039; FluxCD in Practice</h2>
                 <h3>Bootstrap, HelmReleases, Image Automation &amp; Multi-Tenancy</h3>
-                <aside class="notes">Now let's go deeper into FluxCD with practical patterns you'll use day-to-day. We'll cover bootstrapping a cluster, managing Helm releases declaratively, automating image updates, and isolating teams with multi-tenancy.</aside>
+                <aside class="notes">Practical FluxCD patterns: bootstrapping, HelmReleases, image automation, and multi-tenancy.</aside>
             </section>
 
             <!-- FluxCD: Bootstrap & Cluster Management -->
@@ -659,7 +652,7 @@ flux bootstrap github \
 &#9500;&#9472;&#9472; infrastructure/    # Shared infra components
 &#9492;&#9472;&#9472; applications/      # Application manifests</code></pre>
                 </div>
-                <aside class="notes">Bootstrap is a one-time operation that installs Flux controllers and commits their manifests to Git, making Flux self-managing. The recommended repo structure separates cluster-specific config from shared components. Each cluster directory contains Kustomization resources referencing shared infrastructure and application directories. This pattern scales to dozens of clusters.</aside>
+                <aside class="notes">Bootstrap installs Flux controllers and commits their manifests to Git, making Flux self-managing. Each cluster directory references shared infrastructure and application directories.</aside>
             </section>
 
             <!-- FluxCD: HelmRelease CRD -->
@@ -688,7 +681,7 @@ spec:
                     <li class="fragment"><strong>upgrade.remediation</strong> &mdash; auto-retry or rollback on failure</li>
                     <li class="fragment"><strong>valuesFrom</strong> &mdash; inject secrets from ConfigMaps/Secrets without storing in Git</li>
                 </ul>
-                <aside class="notes">The HelmRelease CRD replaces imperative helm install/upgrade commands with a declarative spec. Semver ranges let you automatically pick up patch releases while staying within a major version. The remediation settings define what happens when an upgrade fails, including automatic rollback after configurable retries. Use valuesFrom to reference Secrets managed by external-secrets or sealed-secrets for sensitive values.</aside>
+                <aside class="notes">HelmRelease replaces imperative helm commands with a declarative spec. Semver ranges auto-pick patch releases. Remediation settings handle upgrade failures with auto-rollback. Use valuesFrom for sensitive values.</aside>
             </section>
 
             <!-- FluxCD: Image Automation -->
@@ -714,7 +707,7 @@ spec:
                 <div class="key-point fragment">
                     <strong>Closed loop:</strong> CI builds image &rarr; Flux detects new tag &rarr; updates manifest in Git &rarr; deploys automatically.
                 </div>
-                <aside class="notes">Image automation is a three-step pipeline: ImageRepository scans a container registry, ImagePolicy selects the latest tag matching a semver range, and ImageUpdateAutomation writes the selected tag back to Git using setter markers. This closes the CI/CD loop entirely -- when CI builds a new image, Flux detects it and updates the deployment manifest automatically without any manual intervention.</aside>
+                <aside class="notes">Three-step pipeline: ImageRepository scans a registry, ImagePolicy selects tags matching a semver range, ImageUpdateAutomation writes the tag back to Git. Closes the CI/CD loop entirely.</aside>
             </section>
 
             <!-- FluxCD: Multi-Tenancy & Monitoring -->
@@ -756,14 +749,14 @@ spec:
                 <div class="key-point fragment">
                     <strong>Monitor:</strong> Alert when <code>gotk_reconcile_condition{status="False"}</code> persists &gt; 10 min. Grafana dashboard ID: <strong>16714</strong>.
                 </div>
-                <aside class="notes">Multi-tenancy in Flux scopes each team's Kustomization to a service account with limited RBAC. The targetNamespace override prevents cross-namespace deployments. For observability, the notification controller routes Flux events to Slack, PagerDuty, or Teams. Combine with Prometheus metrics -- gotk_reconcile_condition tells you whether each resource is Ready, Stalled, or Suspended. The official Grafana dashboard 16714 provides a complete overview of GitOps health.</aside>
+                <aside class="notes">Flux scopes each team's Kustomization to a service account with limited RBAC. targetNamespace prevents cross-namespace deployments. Notification controller routes events to Slack, PagerDuty, or Teams.</aside>
             </section>
 
             <!-- Slide 20: Section - Pipeline Tools -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128295; Pipeline Tools</h2>
                 <h3>CI platforms, image scanning, and policy enforcement</h3>
-                <aside class="notes">Now let's look at the CI side of the equation. These are the tools that build, test, scan, and prepare artifacts before they enter the GitOps workflow.</aside>
+                <aside class="notes">The CI tools that build, test, scan, and prepare artifacts before they enter the GitOps workflow.</aside>
             </section>
 
             <!-- Slide 21: GitHub Actions for Kubernetes -->
@@ -786,7 +779,7 @@ jobs:
         run: |
           docker push $ECR_REGISTRY/myapp:${{ github.sha }}
       # ... kustomize edit set image, git commit & push</code></pre>
-                <aside class="notes">This workflow demonstrates the CI portion of a GitOps pipeline. Notice the final step updates the GitOps repository with the new image tag rather than deploying directly to the cluster. OIDC-based authentication with AWS eliminates long-lived credentials. The trivy scan fails the pipeline if critical vulnerabilities are found. ArgoCD or FluxCD then picks up the Git change and deploys it.</aside>
+                <aside class="notes">The final step updates the GitOps repo with the new image tag rather than deploying directly. OIDC auth eliminates long-lived credentials. ArgoCD/FluxCD picks up the Git change.</aside>
             </section>
 
             <!-- Slide 22: Jenkins X / Tekton -->
@@ -824,7 +817,7 @@ spec:
                     </div>
                 </div>
                 <aside class="notes">Tip: Kaniko builds container images inside Kubernetes without requiring Docker daemon access.</aside>
-                <aside class="notes">Tekton is a powerful option when you want your CI pipelines to run inside Kubernetes itself. Each step runs as a container in a Pod, which means you get all the benefits of Kubernetes scheduling, resource limits, and RBAC. Kaniko is often paired with Tekton since it can build Docker images without the Docker daemon - essential in unprivileged Pod environments. Jenkins X wraps Tekton with higher-level automation and environment promotion workflows.</aside>
+                <aside class="notes">Tekton runs CI pipelines as Pods inside Kubernetes. Kaniko builds images without the Docker daemon. Jenkins X wraps Tekton with higher-level automation and environment promotion.</aside>
             </section>
 
             <!-- Slide 23: Image Scanning in CI -->
@@ -862,8 +855,8 @@ snyk container monitor \
   myapp:v1.2.3 --org=mycompany</code></pre>
                     </div>
                 </div>
-                <aside class="notes">Tip: Never deploy unscanned images to production. Integrate scanning as a mandatory pipeline gate, not an optional step.</aside>
-                <aside class="notes">Image scanning should be a non-negotiable gate in your CI pipeline. Trivy is the most popular open-source option and covers OS packages, language dependencies, and even infrastructure-as-code misconfigurations. Snyk offers deeper language analysis and automated fix PRs. SBOM generation is increasingly required for compliance. The --ignore-unfixed flag in Trivy is useful to avoid blocking on CVEs that don't have patches yet.</aside>
+                <aside class="notes">Tip: Never deploy unscanned images. Integrate scanning as a mandatory pipeline gate, not an optional step.</aside>
+                <aside class="notes">Image scanning is a non-negotiable CI gate. Trivy covers OS packages, language deps, and IaC misconfigurations. Snyk offers deeper analysis and automated fix PRs. --ignore-unfixed avoids blocking on unpatched CVEs.</aside>
             </section>
 
             <!-- Slide 24: Policy as Code -->
@@ -876,8 +869,7 @@ snyk container monitor \
                             <li class="fragment">Admission controller (Rego language)</li>
                             <li class="fragment">ConstraintTemplates + Constraints</li>
                         </ul>
-                        <pre class="fragment"><code class="language-yaml">apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: K8sRequiredLabels
+                        <pre class="fragment"><code class="language-yaml">kind: K8sRequiredLabels
 metadata: { name: require-team-label }
 spec:
   match:
@@ -891,8 +883,7 @@ spec:
                             <li class="fragment">Kubernetes-native (YAML, no Rego)</li>
                             <li class="fragment">Validate, mutate, generate resources</li>
                         </ul>
-                        <pre class="fragment"><code class="language-yaml">apiVersion: kyverno.io/v1
-kind: ClusterPolicy
+                        <pre class="fragment"><code class="language-yaml">kind: ClusterPolicy
 metadata: { name: disallow-latest-tag }
 spec:
   validationFailureAction: Enforce
@@ -900,21 +891,20 @@ spec:
   - name: require-image-tag
     match: { resources: { kinds: ["Pod"] } }
     validate:
-      message: "Must use a specific tag"
       pattern:
         spec:
           containers:
           - image: "!*:latest"</code></pre>
                     </div>
                 </div>
-                <aside class="notes">Policy as code completes the security story. These tools act as admission controllers, intercepting API requests before resources are created. Gatekeeper uses Rego, which is powerful but has a learning curve. Kyverno uses native YAML, making it more accessible. Common policies include requiring labels, disallowing privileged containers, enforcing resource limits, and blocking the latest tag. In a GitOps workflow, these policies ensure that even if something wrong gets into Git, the cluster rejects it.</aside>
+                <aside class="notes">Admission controllers intercept API requests before resources are created. Gatekeeper uses Rego; Kyverno uses native YAML. In GitOps, these policies reject bad manifests even if they make it into Git.</aside>
             </section>
 
             <!-- Slide 25: Section - Production Patterns -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
-                <h2>&#127919; Production Patterns</h2>
-                <h3>Strategies for reliable, auditable delivery at scale</h3>
-                <aside class="notes">Let's bring everything together with production patterns. These are the strategies teams use to manage environment promotion, secrets, and rollbacks in real-world GitOps workflows.</aside>
+                <h2>&#127919; Recommended Patterns</h2>
+                <h3>Strategies for reliable, auditable delivery</h3>
+                <aside class="notes">Strategies teams use for environment promotion, secrets, and rollbacks in GitOps workflows.</aside>
             </section>
 
             <!-- Slide 26: Environment Promotion Strategies -->
@@ -949,7 +939,7 @@ spec:
                 <div class="highlight-box success fragment">
                     <strong>Recommended:</strong> Directory-based with Kustomize overlays on a single branch. Use automated PRs to promote image tags between environments.
                 </div>
-                <aside class="notes">Branch-based promotion is intuitive but leads to merge conflicts and branch divergence over time. Directory-based promotion using Kustomize overlays on a single branch is the recommended approach. Promotion happens by updating the image tag in the next environment's overlay, typically via an automated PR created by the CI pipeline or by a tool like Flux's image automation controller. This keeps the audit trail clean and avoids long-lived branch management.</aside>
+                <aside class="notes">Branch-based promotion leads to merge conflicts over time. Directory-based with Kustomize overlays on a single branch is the recommended approach. Promote by updating image tags via automated PRs.</aside>
             </section>
 
             <!-- Slide 27: Secrets Management in CI/CD -->
@@ -966,7 +956,7 @@ spec:
   < secret.yaml \
   > sealed-secret.yaml</code></pre>
                 </div>
-                <aside class="notes">Tip: Never store plain-text secrets in Git. Even in private repositories, secrets must be encrypted or externally referenced. Sealed Secrets encrypts the entire secret with a cluster-specific key.</aside>
+                <aside class="notes">Tip: Never store plain-text secrets in Git, even in private repos. Sealed Secrets encrypts with a cluster-specific key.</aside>
             </section>
 
             <section>
@@ -996,7 +986,7 @@ spec:
   secrets.enc.yaml</code></pre>
                     </div>
                 </div>
-                <aside class="notes">External Secrets Operator syncs from external secret stores like AWS Secrets Manager or Vault, keeping secrets completely out of Git. SOPS encrypts individual values within a YAML file while leaving keys readable. For AWS environments, External Secrets Operator with AWS Secrets Manager is typically the best choice because it supports rotation and centralized management.</aside>
+                <aside class="notes">ESO syncs from AWS Secrets Manager or Vault, keeping secrets out of Git. SOPS encrypts values within YAML while leaving keys readable. For AWS, ESO with Secrets Manager is a strong choice.</aside>
             </section>
 
             <!-- Slide 28: Rollback Strategies -->
@@ -1030,7 +1020,7 @@ argocd app rollback frontend 3</code></pre>
                 <div class="key-point fragment">
                     <strong>GitOps rollback = Git revert.</strong> Forward-only commit history provides a clear, auditable record.
                 </div>
-                <aside class="notes">In GitOps, the preferred rollback mechanism is git revert because it maintains a forward-only history. Never use git reset or force push since that destroys audit history. ArgoCD's manual rollback is useful for emergencies but it's temporary - the next sync cycle will revert to whatever is in Git. This reinforces the principle that Git is always the source of truth. The kubectl rollout undo command still works but creates drift that ArgoCD will detect and correct if self-heal is enabled.</aside>
+                <aside class="notes">Prefer git revert for forward-only history. Never git reset or force push. ArgoCD manual rollback is temporary -- next sync reverts to Git. kubectl rollout undo creates drift that self-heal will correct.</aside>
             </section>
 
             <!-- Slide 29: CI/CD Security Best Practices -->
@@ -1061,7 +1051,7 @@ argocd app rollback frontend 3</code></pre>
                 <div class="highlight-box warning fragment">
                     <strong>Defense in depth:</strong> Scan in CI, enforce policies at admission, monitor at runtime. No single gate is sufficient.
                 </div>
-                <aside class="notes">Supply chain security has become critical after high-profile attacks. OIDC eliminates static credentials in CI systems. Pinning actions by SHA prevents supply chain attacks through compromised GitHub Actions. Cosign and SLSA provenance create a verifiable chain from source code to running container. Defense in depth means layering security at every stage - scanning in CI, admission policies at the API server, and runtime monitoring with tools like Falco.</aside>
+                <aside class="notes">OIDC eliminates static credentials. Pin actions by SHA to prevent supply chain attacks. Cosign and SLSA create a verifiable chain from source to running container. Layer security at every stage.</aside>
             </section>
 
             <!-- Slide 30: Putting It All Together -->
@@ -1087,19 +1077,19 @@ argocd app rollback frontend 3</code></pre>
                         <strong>Key repos:</strong> Application repo (source code) + GitOps repo (manifests) = clean separation of concerns
                     </div>
                 </div>
-                <aside class="notes">This is the complete picture. Two repositories - one for application source code, one for deployment manifests. CI handles the artifact lifecycle, and the only output is an updated image tag in the GitOps repo. The GitOps agent handles deployment, drift detection, and self-healing. Every change is auditable through Git history. This pattern scales from a single application to hundreds across multiple clusters.</aside>
+                <aside class="notes">Two repos: app source code and deployment manifests. CI produces artifacts; GitOps agent handles deployment, drift detection, and self-healing. Scales from one app to hundreds across clusters.</aside>
             </section>
 
             <!-- Slide 31: Module Summary -->
             <section>
                 <h2>&#128203; Module Summary</h2>
                 <ul>
-                    <li>GitOps uses Git as the single source of truth for declarative infrastructure</li>
-                    <li>ArgoCD and FluxCD reconcile cluster state with desired state from Git</li>
+                    <li>GitOps: Git as single source of truth for declarative infrastructure</li>
+                    <li>ArgoCD and FluxCD reconcile cluster state with Git</li>
                     <li>Directory-based promotion with Kustomize overlays avoids branch divergence</li>
-                    <li>Secrets management in GitOps requires Sealed Secrets, ESO, or SOPS</li>
-                    <li>Git revert is the preferred rollback mechanism preserving audit history</li>
-                    <li>Supply chain security layers scanning, signing, and admission policies</li>
+                    <li>Secrets: Sealed Secrets, ESO, or SOPS</li>
+                    <li>Rollback via git revert preserves audit history</li>
+                    <li>Supply chain security: scanning, signing, admission policies</li>
                 </ul>
             </section>
 
@@ -1116,7 +1106,7 @@ argocd app rollback frontend 3</code></pre>
                         <li>Create a FluxCD HelmRelease and test drift reconciliation</li>
                     </ul>
                 </div>
-                <aside class="notes">This lab walks through the full CI/CD lifecycle. Participants will build and push a container image to ECR, deploy manually with kubectl, create an ArgoCD Application using the pre-installed ArgoCD, trigger a pipeline with a code change, and create a FluxCD HelmRelease to observe drift reconciliation.</aside>
+                <aside class="notes">Full CI/CD lifecycle lab: build/push to ECR, deploy with kubectl, create ArgoCD Application, trigger pipeline with code change, and test FluxCD drift reconciliation.</aside>
             </section>
 
             <!-- Slide 33: Key Takeaways -->
@@ -1125,9 +1115,9 @@ argocd app rollback frontend 3</code></pre>
                 <div class="highlight-box success">
                     <strong>Remember These Points</strong>
                     <ol>
-                        <li>Separate application repos from GitOps manifest repos for clean separation of concerns</li>
-                        <li>Enable drift detection and self-healing so the cluster always matches Git</li>
-                        <li>Use OIDC for CI authentication and pin action versions by SHA to prevent supply chain attacks</li>
+                        <li>Separate app repos from GitOps manifest repos</li>
+                        <li>Enable drift detection and self-healing so clusters always match Git</li>
+                        <li>Use OIDC for CI auth and pin action versions by SHA</li>
                     </ol>
                 </div>
             </section>
@@ -1137,7 +1127,7 @@ argocd app rollback frontend 3</code></pre>
                 <h2>&#10067; Questions &amp; Discussion</h2>
                 <p>Module 13: CI/CD Integration &amp; GitOps</p>
                 <p style="font-size: 0.9em; margin-top: 30px;">Final module &mdash; Course Wrap-Up</p>
-                <aside class="notes">Open the floor for questions. Common topics include: choosing between ArgoCD and FluxCD, managing secrets in GitOps workflows, handling database migrations in CI/CD pipelines, multi-cluster strategies, and integrating existing CI tools with a GitOps deployment model.</aside>
+                <aside class="notes">Common topics: ArgoCD vs FluxCD, secrets in GitOps, database migrations in CI/CD, multi-cluster strategies, integrating existing CI with GitOps.</aside>
             </section>
 
         </div>

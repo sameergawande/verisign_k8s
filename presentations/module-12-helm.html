@@ -78,7 +78,7 @@
                     <div class="step active"></div>
                     <div class="step"></div>
                 </div>
-                <aside class="notes">Module 12 covers Helm, the de facto package manager for Kubernetes. We'll explore chart structure, Go templating, release management, and production best practices. This is essential tooling for managing complex deployments at scale.</aside>
+                <aside class="notes">Module 12 covers Helm: chart structure, Go templating, release management, and best practices.</aside>
             </section>
 
             <!-- Slide 2: Agenda -->
@@ -104,14 +104,14 @@
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">We'll start with the motivation for Helm, move through chart anatomy and templating, then cover day-2 operations and advanced features. The lab at the end will have you building a chart from scratch.</aside>
+                <aside class="notes">Covers motivation, chart anatomy, templating, day-2 operations, and advanced features. Lab at the end builds a chart from scratch.</aside>
             </section>
 
             <!-- Slide 3: Section - Why Helm -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128269; Why Helm?</h2>
                 <h3>The problem with raw YAML at scale</h3>
-                <aside class="notes">Before we dive into Helm mechanics, let's establish why it exists and what problems it solves for platform teams.</aside>
+                <aside class="notes">Why Helm exists and what problems it solves.</aside>
             </section>
 
             <!-- Slide 4: The Problem - Managing Multiple YAML Files -->
@@ -127,7 +127,7 @@
                     <li class="fragment"><strong>No dependency management</strong> &mdash; ordering and relationships are manual</li>
                     <li class="fragment"><strong>Parameterization</strong> &mdash; <code>sed</code> and <code>envsubst</code> don&rsquo;t scale</li>
                 </ul>
-                <aside class="notes">With 50 microservices, you might have 400+ YAML files. Changing a common pattern means editing every single one. Helm addresses all of these concerns by treating a set of manifests as a single versioned, parameterized package.</aside>
+                <aside class="notes">Helm treats a set of manifests as a single versioned, parameterized package.</aside>
             </section>
 
             <!-- Slide 5: Helm Concepts -->
@@ -150,14 +150,14 @@
                 <div class="key-point fragment">
                     <strong>Key relationship:</strong> A <em>chart</em> is installed into a cluster as a <em>release</em>. The same chart can be installed multiple times, each producing a distinct release.
                 </div>
-                <aside class="notes">Think of charts like Docker images and releases like running containers. A chart is the blueprint; a release is a deployed instance. You can have multiple releases of the same chart, each with different configuration values.</aside>
+                <aside class="notes">Chart = blueprint, release = deployed instance. Multiple releases of the same chart can coexist with different values.</aside>
             </section>
 
             <!-- Slide 6: Section - Helm Architecture -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#127959;&#65039; Helm Architecture</h2>
                 <h3>Chart structure, values, and the rendering pipeline</h3>
-                <aside class="notes">Now let's look at how Helm charts are organized internally. Understanding the file layout and value hierarchy is essential for both consuming and authoring charts.</aside>
+                <aside class="notes">Chart file layout and value hierarchy.</aside>
             </section>
 
             <!-- Slide 7: Chart Structure -->
@@ -181,13 +181,13 @@
                 <div class="highlight-box fragment">
                     <strong>Chart.yaml</strong> is the only required file &mdash; it defines the chart&rsquo;s API version, name, and version.
                 </div>
-                <aside class="notes">The templates directory is where all Kubernetes manifests live as Go templates. The _helpers.tpl file contains reusable template snippets. NOTES.txt is rendered after install to show the user helpful information like how to access their application.</aside>
+                <aside class="notes">Templates/ holds Go-templated manifests. _helpers.tpl has reusable snippets. NOTES.txt renders post-install instructions.</aside>
             </section>
 
             <!-- Slide 8: Values and Overrides -->
             <section>
                 <h2>Values and Override Hierarchy</h2>
-                <p>Helm merges values from multiple sources with a clear precedence order:</p>
+                <p>Helm merges values from multiple sources in precedence order:</p>
                 <div class="concept-box">
                     <h4>Override Precedence (lowest to highest)</h4>
                     <ol>
@@ -199,44 +199,34 @@
                 </div>
                 <pre class="fragment"><code class="language-bash"># Override with a file and individual values
 helm install my-app ./mychart \
-  -f production-values.yaml \
-  --set image.tag=v2.1.0 \
-  --set replicas=3</code></pre>
-                <aside class="notes">The precedence order matters. Command-line --set flags always win. In practice, teams keep a base values.yaml in the chart and then layer environment-specific files on top. Multiple -f flags are supported and merge left to right.</aside>
+  -f env-values.yaml \
+  --set image.tag=v2.1.0</code></pre>
+                <aside class="notes">--set flags always win. Teams layer environment-specific files on top of base values.yaml. Multiple -f flags merge left to right.</aside>
             </section>
 
             <!-- Slide 9: Section - Templating -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128196; Templating</h2>
                 <h3>Go templates, functions, and control flow</h3>
-                <aside class="notes">Templating is the heart of Helm. Understanding Go templates will let you build flexible, reusable charts. Let's start with the fundamentals and build up to advanced patterns.</aside>
+                <aside class="notes">Go template fundamentals through advanced patterns.</aside>
             </section>
 
             <!-- Slide 10: Go Template Basics -->
             <section>
                 <h2>Go Template Basics</h2>
-                <pre><code class="language-yaml">apiVersion: apps/v1
-kind: Deployment
-metadata:
+                <pre><code class="language-yaml">metadata:
   name: {{ .Release.Name }}-app
   labels:
     app.kubernetes.io/name: {{ .Chart.Name }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  selector:
-    matchLabels: { app: {{ .Release.Name }} }
-  template:
-    spec:
-      containers:
-        - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          ports:
-            - containerPort: {{ .Values.service.port }}</code></pre>
+  # ...
+  containers:
+    - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"</code></pre>
                 <div class="highlight-box fragment">
                     <strong>Double curly braces</strong> <code>{{ }}</code> delimit actions. The dot (<code>.</code>) is the root context object.
                 </div>
-                <aside class="notes">Everything inside double curly braces is evaluated by the Go template engine. The dot-notation accesses the hierarchical data passed into the template. Values come from values.yaml, Release metadata comes from the Helm runtime, and Chart metadata comes from Chart.yaml.</aside>
+                <aside class="notes">Dot-notation accesses hierarchical data: .Values from values.yaml, .Release from Helm runtime, .Chart from Chart.yaml.</aside>
             </section>
 
             <!-- Slide 11: Built-in Objects -->
@@ -267,7 +257,7 @@ spec:
                 <div class="key-point fragment">
                     <strong>Tip:</strong> Use <code>.Capabilities.APIVersions.Has</code> to conditionally include resources based on what the target cluster supports.
                 </div>
-                <aside class="notes">These built-in objects are always available in every template. .Values is the most commonly used, but .Release is critical for naming and namespace scoping. .Capabilities is powerful for writing charts that work across different Kubernetes versions.</aside>
+                <aside class="notes">.Values is most common. .Release is critical for naming. .Capabilities helps write charts that work across K8s versions.</aside>
             </section>
 
             <!-- Slide 12: Template Functions -->
@@ -294,7 +284,7 @@ name: {{ .Values.name | lower | trunc 63 | trimSuffix "-" }}</code></pre>
                 <div class="highlight-box fragment">
                     <strong>Pipeline syntax</strong> (<code>|</code>) chains functions left to right, passing output as the last argument to the next function.
                 </div>
-                <aside class="notes">The pipe operator works like Unix pipes. Functions are applied in sequence. The toYaml plus nindent combination is one you'll use constantly - it converts a values block to YAML and indents it correctly. The required function is excellent for catching missing configuration early.</aside>
+                <aside class="notes">Pipe operator works like Unix pipes. toYaml + nindent is the most common combo. required catches missing config early.</aside>
             </section>
 
             <!-- Slide 13: Control Structures -->
@@ -319,8 +309,7 @@ metadata:
 nodeSelector:
   {{- toYaml . | nindent 2 }}
 {{- end }}</code></pre>
-                <aside class="notes">Tip: Use {{- and -}} to trim whitespace before/after template actions. Incorrect whitespace is the #1 source of templating bugs.</aside>
-                <aside class="notes">The dash inside the curly braces trims whitespace on that side. Without it, you get blank lines in your rendered output that can cause YAML parsing issues. The 'with' block changes the dot context, so inside a 'with .Values.nodeSelector' block, dot refers to nodeSelector itself.</aside>
+                <aside class="notes">Use {{- and -}} to trim whitespace. The 'with' block changes dot context to the scoped value.</aside>
             </section>
 
             <!-- Slide 14: Named Templates and _helpers.tpl -->
@@ -349,24 +338,24 @@ metadata:
                 <div class="key-point fragment">
                     <strong>Use <code>include</code> over <code>template</code></strong> &mdash; <code>include</code> captures output as a string so you can pipe it through functions like <code>nindent</code>.
                 </div>
-                <aside class="notes">The _helpers.tpl file is conventionally where all named templates live. The underscore prefix tells Helm not to render it as a standalone manifest. Always use 'include' instead of 'template' because include returns a string you can pipe through nindent or other functions.</aside>
+                <aside class="notes">Underscore prefix tells Helm not to render it as a manifest. Use 'include' over 'template' because it returns a pipeable string.</aside>
             </section>
 
             <!-- Slide 15: Section - Helm Operations -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128295; Helm Operations</h2>
                 <h3>Install, upgrade, rollback, and release management</h3>
-                <aside class="notes">Now that we understand chart structure and templating, let's look at the operational commands you'll use daily to manage releases in your clusters.</aside>
+                <aside class="notes">Day-to-day commands for managing releases.</aside>
             </section>
 
             <!-- Slide 16: helm install, upgrade, rollback, uninstall -->
             <section>
                 <h2>Release Lifecycle Commands</h2>
                 <pre><code class="language-bash"># Install a chart as a new release
-helm install my-release ./mychart -n production
+helm install my-release ./mychart -n myapp
 
-# Upgrade an existing release (creates new revision)
-helm upgrade my-release ./mychart -f prod-values.yaml
+# Upgrade (creates new revision)
+helm upgrade my-release ./mychart -f env-values.yaml
 
 # Install or upgrade in one command (idempotent)
 helm upgrade --install my-release ./mychart
@@ -374,41 +363,31 @@ helm upgrade --install my-release ./mychart
 # Rollback to a previous revision
 helm rollback my-release 2
 
-# Uninstall a release (removes all resources)
-helm uninstall my-release -n production
-
-# Dry run - render templates without applying
-helm install my-release ./mychart --dry-run --debug</code></pre>
+# Uninstall a release
+helm uninstall my-release -n myapp</code></pre>
                 <div class="highlight-box success fragment">
                     <strong>Best practice:</strong> Always use <code>helm upgrade --install</code> in CI/CD pipelines for idempotent deployments.
                 </div>
-                <aside class="notes">Each upgrade creates a new revision number. Rollback reverts to a previous revision's configuration and templates. The --dry-run flag is invaluable for testing changes before applying them. In production pipelines, upgrade --install is the standard pattern.</aside>
+                <aside class="notes">Each upgrade creates a new revision. Rollback reverts to a previous revision's config and templates. upgrade --install is the standard CI/CD pattern.</aside>
             </section>
 
             <!-- Slide 17: helm repo add, search, pull -->
             <section>
                 <h2>Repository Operations</h2>
-                <pre><code class="language-bash"># Add a chart repository
+                <pre><code class="language-bash"># Add a chart repository and update cache
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-
-# Update local cache of repository indexes
 helm repo update
 
-# Search for charts in added repos
+# Search for charts
 helm search repo nginx
 helm search repo bitnami/postgresql --versions
 
-# Search Artifact Hub (public registry)
-helm search hub prometheus
-
 # Download a chart without installing
-helm pull bitnami/postgresql --version 12.5.0
-helm pull bitnami/postgresql --untar  # extract to directory</code></pre>
+helm pull bitnami/postgresql --version 12.5.0 --untar</code></pre>
                 <div class="highlight-box fragment">
                     <strong>helm pull</strong> is useful for vendoring charts into your repository or inspecting their templates before deployment.
                 </div>
-                <aside class="notes">Repos are just HTTP servers hosting an index.yaml and packaged chart tarballs. Artifact Hub at artifacthub.io aggregates charts from many repositories. Always pin chart versions in production to avoid unexpected upgrades.</aside>
+                <aside class="notes">Repos are HTTP servers hosting an index.yaml and chart tarballs. Always pin chart versions to avoid unexpected upgrades.</aside>
             </section>
 
             <!-- Slide 18: helm template -->
@@ -419,20 +398,14 @@ helm template my-release ./mychart
 
 # Render with overrides
 helm template my-release ./mychart \
-  -f staging-values.yaml \
-  --set image.tag=v2.0
+  -f staging-values.yaml --set image.tag=v2.0
 
-# Show only specific template
-helm template my-release ./mychart \
-  -s templates/deployment.yaml
-
-# Validate against K8s API
-helm template my-release ./mychart \
-  --validate</code></pre>
+# Show only a specific template
+helm template my-release ./mychart -s templates/deployment.yaml</code></pre>
                 <div class="highlight-box fragment">
-                    <strong>Best friend during development:</strong> Renders everything locally without touching the cluster. Use it in CI to catch errors early.
+                    <strong>Key development tool:</strong> Renders locally without touching the cluster. Use in CI to catch errors early.
                 </div>
-                <aside class="notes">helm template is your best friend during development. It renders everything locally without touching the cluster. Use it in CI to catch errors early.</aside>
+                <aside class="notes">Renders locally without cluster access. Essential for CI pipelines.</aside>
             </section>
 
             <!-- Slide 18b: helm lint -->
@@ -441,80 +414,52 @@ helm template my-release ./mychart \
                 <pre><code class="language-bash"># Check chart for issues
 helm lint ./mychart
 
-# Lint with specific values
-helm lint ./mychart \
-  -f production-values.yaml
-
-# Strict mode (warnings = errors)
-helm lint ./mychart --strict
-
-# Example output:
-# ==> Linting ./mychart
-# [INFO] Chart.yaml: icon is recommended
-# [WARNING] templates/: directory not found
-# [ERROR] values.yaml: required field missing</code></pre>
+# Lint with specific values; strict mode treats warnings as errors
+helm lint ./mychart -f env-values.yaml --strict</code></pre>
                 <div class="highlight-box fragment">
-                    <strong>Use in CI pipelines:</strong> <code>helm lint</code> checks for structural issues and best practice violations. Together with <code>helm template</code>, these form the first line of defense in a chart testing pipeline.
+                    <strong>Use in CI:</strong> <code>helm lint</code> + <code>helm template</code> form the first line of defense in chart validation.
                 </div>
-                <aside class="notes">helm lint checks for structural issues and best practice violations. Together with helm template, these form the first line of defense in a chart testing pipeline.</aside>
+                <aside class="notes">lint checks structure and best practices. Pair with helm template for full validation.</aside>
             </section>
 
             <!-- Slide 19: Release Management and History -->
             <section>
                 <h2>Release Management &amp; History</h2>
-                <pre><code class="language-bash"># List all releases across namespaces
+                <pre><code class="language-bash"># List releases; show history
 helm list --all-namespaces
-
-# Show release history (all revisions)
 helm history my-release
-# REVISION  STATUS      CHART           APP VERSION  DESCRIPTION
-# 1         superseded  mychart-1.0.0   2.0.0        Install complete
-# 2         superseded  mychart-1.1.0   2.1.0        Upgrade complete
-# 3         deployed    mychart-1.1.0   2.1.0        Rollback to 2
 
-# Get release details
+# Inspect a release
 helm get values my-release        # user-supplied values
-helm get values my-release --all  # all computed values
-helm get manifest my-release      # rendered Kubernetes manifests
-helm get notes my-release         # NOTES.txt output</code></pre>
+helm get manifest my-release      # rendered manifests</code></pre>
                 <div class="key-point fragment">
                     <strong>Release state is stored as Secrets</strong> in the release namespace. Each revision creates a new Secret named <code>sh.helm.release.v1.&lt;name&gt;.v&lt;revision&gt;</code>.
                 </div>
-                <aside class="notes">Helm stores all release state as base64-encoded, gzip-compressed Secrets in the cluster. This means release data is namespace-scoped and subject to RBAC. The helm get commands are essential for debugging - 'get manifest' shows you exactly what was applied to the cluster.</aside>
+                <aside class="notes">Release state is stored as Secrets in the cluster, namespace-scoped and subject to RBAC.</aside>
             </section>
 
             <!-- Slide 20: Section - Advanced Helm -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128640; Advanced Helm</h2>
                 <h3>Hooks, dependencies, library charts, and testing</h3>
-                <aside class="notes">Let's move into advanced Helm features that you'll encounter in production charts and complex deployment scenarios.</aside>
+                <aside class="notes">Advanced Helm features for real-world charts.</aside>
             </section>
 
             <!-- Slide 21: Hooks — Example -->
             <section>
                 <h2>Helm Hooks</h2>
                 <p>Hooks run at specific points in the release lifecycle:</p>
-                <pre><code class="language-yaml">apiVersion: batch/v1
-kind: Job
-metadata:
+                <pre><code class="language-yaml">metadata:
   name: {{ .Release.Name }}-db-migrate
   annotations:
     "helm.sh/hook": pre-upgrade
     "helm.sh/hook-weight": "1"
     "helm.sh/hook-delete-policy": hook-succeeded
-spec:
-  template:
-    spec:
-      containers:
-        - name: migrate
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          command: ["./migrate", "--apply"]
-      restartPolicy: Never
-</code></pre>
+# ... Job spec runs migration before upgrade</code></pre>
                 <div class="highlight-box fragment">
                     <strong>Common use cases:</strong> Database migrations before upgrade, cache warming after install, cleanup jobs before delete.
                 </div>
-                <aside class="notes">Hooks are regular Kubernetes resources with special annotations. Hook-weight controls execution order when multiple hooks exist. Delete policies control whether hook resources are cleaned up automatically.</aside>
+                <aside class="notes">Hooks are regular K8s resources with special annotations. Hook-weight controls order; delete policies handle cleanup.</aside>
             </section>
 
             <!-- Slide 21b: Hooks — Reference Table -->
@@ -531,7 +476,7 @@ spec:
                 <div class="key-point fragment">
                     <strong>hook-weight</strong> controls execution order when multiple hooks exist. <strong>hook-delete-policy</strong> controls whether hook resources are cleaned up automatically.
                 </div>
-                <aside class="notes">Hook-weight is an integer string that determines ordering. Lower weights run first. The delete policy options are: hook-succeeded (delete after success), hook-failed (delete after failure), and before-hook-creation (delete any existing hook resource before creating a new one).</aside>
+                <aside class="notes">Lower hook-weight runs first. Delete policy options: hook-succeeded, hook-failed, before-hook-creation.</aside>
             </section>
 
             <!-- Slide 22: Declaring Dependencies -->
@@ -554,7 +499,7 @@ dependencies:
                 <div class="highlight-box fragment">
                     <strong>condition</strong> and <strong>tags</strong> let users enable/disable dependencies. Use <strong>alias</strong> to install the same chart multiple times with different configs.
                 </div>
-                <aside class="notes">Dependencies are declared in Chart.yaml. The Chart.lock file pins exact versions, similar to package-lock.json. The alias field is useful when you need two instances of the same chart, like two Redis instances.</aside>
+                <aside class="notes">Chart.lock pins exact versions. Alias lets you install the same chart multiple times with different configs.</aside>
             </section>
 
             <!-- Slide 22b: Managing Dependencies -->
@@ -577,7 +522,7 @@ cache:  # uses alias
                 <div class="highlight-box fragment">
                     <strong>Subchart values are scoped</strong> under the dependency name (or alias) in the parent's <code>values.yaml</code>.
                 </div>
-                <aside class="notes">Dependencies are downloaded into the charts/ directory as .tgz files. Subchart values are scoped under the dependency name in the parent's values.yaml.</aside>
+                <aside class="notes">Dependencies download into charts/ as .tgz files. Subchart values are scoped under the dependency name.</aside>
             </section>
 
             <!-- Slide 23: Creating Library Charts -->
@@ -587,22 +532,17 @@ cache:  # uses alias
                     <h4>What are Library Charts?</h4>
                     <p>Charts that provide <strong>only named templates</strong> &mdash; no rendered manifests. They define common patterns shared across multiple application charts.</p>
                 </div>
-                <pre><code class="language-yaml"># Chart.yaml — type: library
+                <pre><code class="language-yaml"># Chart.yaml — type: library (no rendered manifests)
 apiVersion: v2
 name: common-lib
-version: 1.0.0
-type: library  # no rendered manifests
+type: library
+# ...
 
-# templates/_deployment.tpl
+# templates/_deployment.tpl — reusable named template
 {{- define "common.deployment" -}}
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ .Release.Name }}
-  labels:
-    {{- include "common.labels" . | nindent 4 }}
+# ... standard Deployment with shared labels, security context, etc.
 {{- end -}}</code></pre>
-                <aside class="notes">Library charts are powerful for platform teams. You define standard deployment patterns once, and all application teams consume them. The type: library field in Chart.yaml is what distinguishes it from a regular application chart.</aside>
+                <aside class="notes">type: library distinguishes it from application charts. Define patterns once, consume everywhere.</aside>
             </section>
 
             <!-- Slide 23b: Consuming Library Charts -->
@@ -617,35 +557,27 @@ dependencies:
 # templates/deployment.yaml
 {{- include "common.deployment" . }}</code></pre>
                 <div class="highlight-box success">
-                    <strong>Use case:</strong> Enforce org-wide standards for labels, security contexts, and resource structures across hundreds of microservices.
+                    <strong>Use case:</strong> Enforce org-wide standards for labels, security contexts, and resource structures across services.
                 </div>
                 <div class="key-point fragment">
                     <strong>Example:</strong> Bitnami's <code>common</code> chart is a well-known library chart that provides reusable templates for labels, names, and common Kubernetes patterns.
                 </div>
-                <aside class="notes">All application teams consume the library chart as a dependency. This ensures consistency across hundreds of microservices. Bitnami's common chart is a well-known example.</aside>
+                <aside class="notes">Bitnami's common chart is a well-known library chart example.</aside>
             </section>
 
             <!-- Slide 24: Helm Testing — Test Pod -->
             <section>
                 <h2>Helm Testing: Test Definition</h2>
                 <pre><code class="language-yaml"># templates/tests/test-connection.yaml
-apiVersion: v1
-kind: Pod
 metadata:
   name: {{ .Release.Name }}-test-connection
   annotations:
     "helm.sh/hook": test
-spec:
-  containers:
-    - name: wget
-      image: busybox
-      command: ['wget']
-      args: ['{{ .Release.Name }}-svc:{{ .Values.service.port }}']
-  restartPolicy: Never</code></pre>
+# ... Pod spec that verifies connectivity</code></pre>
                 <div class="highlight-box">
                     <strong>Helm tests</strong> are Pods with the <code>helm.sh/hook: test</code> annotation. They verify your release is functioning correctly after install or upgrade.
                 </div>
-                <aside class="notes">Helm tests are pods with the helm.sh/hook: test annotation. Tests can check connectivity, validate data, or run integration test suites.</aside>
+                <aside class="notes">Tests are Pods with helm.sh/hook: test. They verify connectivity, data, or run integration checks.</aside>
             </section>
 
             <!-- Slide 24b: Helm Testing — Running Tests -->
@@ -653,22 +585,11 @@ spec:
                 <h2>Helm Testing: Running Tests</h2>
                 <pre><code class="language-bash"># Run tests after install/upgrade
 helm test my-release
-
-# Run tests with logs
-helm test my-release --logs
-
-# Example output:
-# NAME: my-release
-# LAST DEPLOYED: Mon Mar 13 10:00:00 2026
-# STATUS: deployed
-# TEST SUITE:     my-release-test-connection
-# Last Started:   Mon Mar 13 10:00:05 2026
-# Last Completed: Mon Mar 13 10:00:08 2026
-# Phase:          Succeeded</code></pre>
+helm test my-release --logs  # include pod logs in output</code></pre>
                 <div class="key-point fragment">
                     <strong>CI/CD integration:</strong> Include <code>helm test</code> in your pipeline after every deployment to catch issues before they reach users.
                 </div>
-                <aside class="notes">Include helm test in your CI/CD pipeline after every deployment. Tests run as pods in the cluster, so they can verify actual connectivity and functionality.</aside>
+                <aside class="notes">Tests run as pods in the cluster, verifying actual connectivity and functionality.</aside>
             </section>
 
             <!-- Slide 25: OCI Registry Support -->
@@ -677,27 +598,17 @@ helm test my-release --logs
                 <div class="highlight-box">
                     <strong>Since Helm 3.8+</strong>, charts can be stored in OCI-compliant container registries alongside your container images.
                 </div>
-                <pre><code class="language-bash"># Login to an OCI registry
-helm registry login registry.example.com
-
-# Package and push a chart
+                <pre><code class="language-bash"># Package and push to OCI registry
 helm package ./mychart
 helm push mychart-1.0.0.tgz oci://registry.example.com/charts
 
-# Pull from OCI registry
-helm pull oci://registry.example.com/charts/mychart --version 1.0.0
-
 # Install directly from OCI
 helm install my-release oci://registry.example.com/charts/mychart \
-  --version 1.0.0
-
-# Show chart info from OCI
-helm show chart oci://registry.example.com/charts/mychart \
   --version 1.0.0</code></pre>
                 <div class="key-point fragment">
-                    <strong>Advantages:</strong> Unified artifact storage, immutable chart versions, standard authentication, and no separate chart repository server needed.
+                    <strong>Advantages:</strong> Unified artifact storage, immutable versions, standard auth, no separate chart server needed.
                 </div>
-                <aside class="notes">OCI support is a major shift. Instead of running a separate chart museum or using GitHub Pages, you store charts in the same ECR, ACR, or GCR registries you already use for images. AWS ECR, Azure ACR, Google Artifact Registry, and GitHub Container Registry all support Helm OCI. This simplifies infrastructure and leverages existing auth/RBAC.</aside>
+                <aside class="notes">Store charts in the same ECR/ACR/GCR registries used for images. Simplifies infrastructure and leverages existing auth.</aside>
             </section>
 
             <!-- Slide 26: Helm vs Kustomize -->
@@ -716,14 +627,14 @@ helm show chart oci://registry.example.com/charts/mychart \
                 <div class="highlight-box success fragment">
                     <strong>They complement each other.</strong> Many teams use Helm for packaging third-party charts and Kustomize for environment-specific overlays on top of <code>helm template</code> output.
                 </div>
-                <aside class="notes">This is not an either/or decision. A common production pattern: render Helm charts with helm template, then apply Kustomize overlays for environment-specific patches. ArgoCD and Flux both support this combined workflow natively. Choose based on your use case - Helm for distributable packages, Kustomize for environment configuration.</aside>
+                <aside class="notes">Not either/or. A common pattern: render with helm template, then apply Kustomize overlays. ArgoCD and Flux support this natively.</aside>
             </section>
 
             <!-- Slide 27: Section - Best Practices -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#9989; Best Practices</h2>
-                <h3>Chart development guidelines and production patterns</h3>
-                <aside class="notes">Let's wrap up the teaching content with best practices for chart development and production usage that the Helm community has established.</aside>
+                <h3>Chart development guidelines and recommended patterns</h3>
+                <aside class="notes">Best practices for chart development established by the Helm community.</aside>
             </section>
 
             <!-- Slide 28: Chart Development Guidelines -->
@@ -752,7 +663,7 @@ helm show chart oci://registry.example.com/charts/mychart \
                 <div class="highlight-box warning fragment">
                     <strong>Version your charts independently</strong> from your application. Bump the chart version for template changes, and <code>appVersion</code> for the application itself.
                 </div>
-                <aside class="notes">The helm create command generates a well-structured starting point. Template names should be prefixed with the chart name to avoid collisions when used as subcharts. Version separation between the chart and the app is critical - a chart template fix shouldn't require an app version bump.</aside>
+                <aside class="notes">Prefix template names with chart name to avoid subchart collisions. Separate chart version from app version.</aside>
             </section>
 
             <!-- Slide 29: Values Schema — JSON Schema -->
@@ -760,28 +671,19 @@ helm show chart oci://registry.example.com/charts/mychart \
                 <h2>Values Schema: JSON Schema</h2>
                 <h4>values.schema.json</h4>
                 <pre><code class="language-json">{
-  "$schema": "https://json-schema.org/draft-07/schema#",
-  "type": "object",
   "required": ["image", "service"],
   "properties": {
-    "replicaCount": {
-      "type": "integer", "minimum": 1, "maximum": 20
-    },
+    "replicaCount": { "type": "integer", "minimum": 1 },
     "image": {
-      "type": "object",
       "required": ["repository"],
       "properties": {
         "repository": { "type": "string" },
-        "tag": { "type": "string" },
-        "pullPolicy": {
-          "enum": ["Always", "IfNotPresent", "Never"]
-        }
+        "pullPolicy": { "enum": ["Always", "IfNotPresent", "Never"] }
       }
     }
   }
 }</code></pre>
-                <aside class="notes">Tip: Place values.schema.json at the chart root alongside values.yaml. Helm validates all supplied values against this schema before rendering.</aside>
-                <aside class="notes">The values.schema.json file is placed at the chart root alongside values.yaml. Helm validates all supplied values against this schema before rendering templates.</aside>
+                <aside class="notes">Place values.schema.json at chart root. Helm validates values against this schema before rendering.</aside>
             </section>
 
             <!-- Slide 29b: Values Schema — Benefits -->
@@ -795,9 +697,9 @@ helm show chart oci://registry.example.com/charts/mychart \
                     <li class="fragment"><strong>Pattern matching</strong> &mdash; validate format (e.g., semver)</li>
                 </ul>
                 <div class="key-point fragment">
-                    <strong>Validated automatically</strong> during <code>helm install</code>, <code>helm upgrade</code>, <code>helm lint</code>, and <code>helm template</code>. Catches configuration errors before they become runtime failures.
+                    <strong>Validated automatically</strong> during <code>helm install</code>, <code>helm upgrade</code>, <code>helm lint</code>, and <code>helm template</code>.
                 </div>
-                <aside class="notes">This catches configuration errors before they become runtime failures. It's especially valuable for charts consumed by other teams who may not know all the valid options.</aside>
+                <aside class="notes">Catches config errors before runtime. Valuable for charts consumed by other teams.</aside>
             </section>
 
             <!-- Slide 30: Module Summary -->
@@ -827,7 +729,7 @@ helm show chart oci://registry.example.com/charts/mychart \
                         <li>Package and install the custom chart</li>
                     </ul>
                 </div>
-                <aside class="notes">This lab covers the full chart development lifecycle. Participants will create a chart from the scaffolded template, customize templates with Go templating, manage releases through install/upgrade/rollback cycles, add a dependency, and validate everything with lint and template commands. Encourage them to experiment with --dry-run before applying changes.</aside>
+                <aside class="notes">Full chart development lifecycle: scaffold, customize, install/upgrade/rollback, and validate with lint and template.</aside>
             </section>
 
             <!-- Slide 32: Key Takeaways -->
@@ -848,7 +750,7 @@ helm show chart oci://registry.example.com/charts/mychart \
                 <h2>&#10067; Questions &amp; Discussion</h2>
                 <p>Module 12: Helm &amp; Templating</p>
                 <p style="font-size: 0.9em; margin-top: 30px;">Up Next: Module 13 &mdash; CI/CD Integration &amp; GitOps</p>
-                <aside class="notes">Open the floor for questions. Common topics include: how to manage Helm in a GitOps workflow, chart versioning strategies for mono-repos, handling secrets with Helm (sealed secrets, external secrets operator), and when to choose Helm vs Kustomize vs raw manifests for specific use cases.</aside>
+                <aside class="notes">Common questions: Helm in GitOps workflows, chart versioning, handling secrets, Helm vs Kustomize choice.</aside>
             </section>
 
         </div>

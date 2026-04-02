@@ -78,7 +78,7 @@
                     <div class="step"></div>
                     <div class="step"></div>
                 </div>
-                <aside class="notes">Module 9 covers observability, the practice of understanding what's happening inside your systems from the outside. We'll explore the three pillars — logs, metrics, and traces — and how to implement each on EKS. This is foundational for running production workloads reliably.</aside>
+                <aside class="notes">Module 9 covers observability — understanding system internals from the outside. We'll explore the three pillars (logs, metrics, traces) and how to implement each on EKS.</aside>
             </section>
 
             <!-- Slide 2: Agenda -->
@@ -106,14 +106,14 @@
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">We'll start with the conceptual framework of the three pillars, then go deep on each pillar with practical tooling. We'll finish with alerting, incident response, and a hands-on lab deploying a full observability stack.</aside>
+                <aside class="notes">We'll cover the conceptual framework, then go deep on each pillar with practical tooling, finishing with alerting and a hands-on lab.</aside>
             </section>
 
             <!-- Slide 3: Section — Three Pillars of Observability -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#127959;&#65039; Three Pillars of Observability</h2>
                 <h3>Logs, Metrics, and Traces</h3>
-                <aside class="notes">Observability is not the same as monitoring. Monitoring tells you when something is broken. Observability lets you ask arbitrary questions about your system's state — even questions you didn't anticipate when you built it.</aside>
+                <aside class="notes">Monitoring tells you when something is broken. Observability lets you ask arbitrary questions about your system's state — even ones you didn't anticipate.</aside>
             </section>
 
             <!-- Slide 4: Observability vs. Monitoring -->
@@ -142,7 +142,7 @@
                 <div class="highlight-box fragment fade-up">
                     <strong>Goal:</strong> Build systems where internal state is externally queryable without deploying new code.
                 </div>
-                <aside class="notes">Monitoring is a subset of observability. Think of monitoring as a fixed set of questions you've pre-configured answers for. Observability gives you the raw data and tools to answer questions you haven't thought of yet. In a microservices environment, you cannot predict every failure mode in advance.</aside>
+                <aside class="notes">Monitoring is a subset of observability — pre-configured answers to known questions. Observability gives you the data and tools to answer questions you haven't thought of yet.</aside>
             </section>
 
             <!-- Slide 5: Three Pillars Overview -->
@@ -174,7 +174,7 @@
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Logs are discrete, timestamped events. Metrics are numeric measurements over time. Traces track request flow across services. Each pillar answers different questions. Logs tell you what happened at a specific point in time. Metrics tell you the aggregated health and performance characteristics. Traces tell you how a single request flows through your distributed system. You need all three for full observability.</aside>
+                <aside class="notes">Logs are discrete, timestamped events. Metrics are numeric measurements over time. Traces track request flow across services. Each answers different questions — you need all three for full observability.</aside>
             </section>
 
             <!-- Slide 6: How the Pillars Complement Each Other -->
@@ -191,14 +191,14 @@
                 <div class="highlight-box fragment fade-up">
                     <strong>Correlation is key:</strong> Use trace IDs to link logs, metrics, and traces for the same request.
                 </div>
-                <aside class="notes">The real power comes when you correlate across all three pillars. A metric tells you something is wrong. A trace narrows it down to a service. Logs give you the exact error. Without correlation — like shared trace IDs — you're searching blindly across separate systems.</aside>
+                <aside class="notes">The real power comes from correlation. Metrics tell you something is wrong, traces narrow it to a service, logs give the exact error. Without shared trace IDs, you're searching blindly.</aside>
             </section>
 
             <!-- Slide 7: Section — Logging -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128220; Logging in Kubernetes</h2>
                 <h3>Container stdout/stderr to centralized stores</h3>
-                <aside class="notes">Logging in Kubernetes follows a fundamentally different model than traditional servers. Containers write to stdout and stderr, and the platform is responsible for collecting, forwarding, and storing those logs.</aside>
+                <aside class="notes">Containers write to stdout/stderr, and the platform handles collection, forwarding, and storage.</aside>
             </section>
 
             <!-- Slide 8: Container Logging Model -->
@@ -215,9 +215,9 @@
                     </ul>
                 </div>
                 <div class="highlight-box warning fragment fade-up">
-                    <strong>Key implication:</strong> Never rely on local container logs for production. Ship them to a durable store.
+                    <strong>Key implication:</strong> Never rely on local container logs. Ship them to a durable store.
                 </div>
-                <aside class="notes">The twelve-factor app principle says applications should write logs to stdout. Kubernetes embraces this. The kubelet writes container logs to disk on the node, but those logs are ephemeral. When a pod is evicted or a node is replaced, the logs are gone. This is why centralized logging is mandatory for production.</aside>
+                <aside class="notes">Kubernetes follows the twelve-factor principle: apps write to stdout, kubelet stores logs on disk, but they're ephemeral. When a pod is evicted or node replaced, logs are gone — centralized logging is essential.</aside>
             </section>
 
             <!-- Slide 9: kubectl logs -->
@@ -243,7 +243,7 @@ kubectl logs deployment/api-server --since=30m</code></pre>
                 <div class="highlight-box fragment fade-up">
                     <strong>Tip:</strong> Use <code>stern</code> for multi-pod log tailing with color-coded output per pod.
                 </div>
-                <aside class="notes">kubectl logs is your first-line debugging tool. The --previous flag is critical for crash loops — it shows logs from the container that just died. The -l flag lets you aggregate logs across all pods with a matching label. For production use, consider the stern tool which provides a much better multi-pod tailing experience with color coding.</aside>
+                <aside class="notes">kubectl logs is your first-line debugging tool. The --previous flag is critical for crash loops. The -l flag aggregates logs across matching pods. The stern tool provides a better multi-pod tailing experience.</aside>
             </section>
 
             <!-- Slide 10: Centralized Logging Architecture -->
@@ -273,23 +273,16 @@ kubectl logs deployment/api-server --since=30m</code></pre>
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">The standard pattern deploys a log collector as a DaemonSet so every node has an agent. Fluent Bit is the most common choice for Kubernetes due to its low memory footprint. It reads log files from /var/log/containers, enriches them with Kubernetes metadata like namespace, pod name, and labels, then forwards to a backend. On EKS, Fluent Bit with CloudWatch Logs is a well-supported path.</aside>
+                <aside class="notes">A DaemonSet log collector runs on every node. Fluent Bit is the most common choice — low memory, reads from /var/log/containers, enriches with K8s metadata, forwards to a backend. On EKS, Fluent Bit with CloudWatch Logs is a well-supported path.</aside>
             </section>
 
             <!-- Slide 11: Fluent Bit DaemonSet -->
             <section>
                 <h2>&#128295; Fluent Bit on EKS</h2>
-                <pre><code class="language-yaml">apiVersion: apps/v1
+                <pre><code class="language-yaml"># Fluent Bit DaemonSet — key container and volume config
 kind: DaemonSet
-metadata:
-  name: fluent-bit
-  namespace: amazon-cloudwatch
-spec:
-  selector:
-    matchLabels: { app: fluent-bit }
-  template:
+# ... metadata, spec.selector ...
     spec:
-      serviceAccountName: fluent-bit
       containers:
       - name: fluent-bit
         image: amazon/aws-for-fluent-bit:2.31.12
@@ -299,7 +292,7 @@ spec:
       volumes:
       - { name: varlog, hostPath: { path: /var/log } }
       - { name: config, configMap: { name: fluent-bit-config } }</code></pre>
-                <aside class="notes">This is the standard Fluent Bit DaemonSet for EKS. It mounts /var/log from the host to read container logs. The AWS-provided image includes output plugins for CloudWatch, Kinesis, and S3. The configuration is loaded from a ConfigMap, making it easy to adjust parsing and routing rules without rebuilding the image.</aside>
+                <aside class="notes">Mounts /var/log from the host to read container logs. The AWS image includes plugins for CloudWatch, Kinesis, and S3. Config is loaded from a ConfigMap.</aside>
             </section>
 
             <!-- Slide 12: Structured Logging Best Practices -->
@@ -330,7 +323,7 @@ after 30s for user api-svc</code></pre>
                 <div class="highlight-box success fragment fade-up">
                     <strong>Why structured?</strong> Enables filtering, aggregation, and correlation. Always include <code>trace_id</code> for cross-pillar linkage.
                 </div>
-                <aside class="notes">Structured logging is non-negotiable for production. JSON logs can be parsed, indexed, and queried without custom regex. Include consistent fields: timestamp, level, message, service name, and trace ID. The trace ID is the key that links your logs to traces and enables cross-pillar correlation.</aside>
+                <aside class="notes">JSON logs can be parsed, indexed, and queried without custom regex. Always include timestamp, level, message, service name, and trace ID for cross-pillar correlation.</aside>
             </section>
 
             <!-- Slide 13: CloudWatch Logs Integration -->
@@ -352,7 +345,7 @@ after 30s for user api-svc</code></pre>
 | sort @timestamp desc
 | limit 50</code></pre>
                 </div>
-                <aside class="notes">EKS integrates with CloudWatch Logs using a consistent log group hierarchy. Control plane logs — API server, scheduler, controller manager — are available natively when enabled in the EKS cluster configuration. Application and node logs require Fluent Bit or the CloudWatch agent. CloudWatch Logs Insights provides a SQL-like query language for searching across log groups.</aside>
+                <aside class="notes">Control plane logs are available natively when enabled in EKS config. Application and node logs require Fluent Bit or the CloudWatch agent. Logs Insights provides a SQL-like query language.</aside>
             </section>
 
             <!-- Slide 13b: Logging to Splunk via Fluent Bit -->
@@ -360,7 +353,7 @@ after 30s for user api-svc</code></pre>
                 <h2>&#128300; Logging to Splunk on EKS</h2>
                 <div class="concept-box">
                     <h4>Fluent Bit &rarr; Splunk HEC Pipeline</h4>
-                    <p>The organization's EKS clusters ship logs to Splunk using Fluent Bit's native <code>splunk</code> output plugin via the HTTP Event Collector (HEC)</p>
+                    <p>Fluent Bit ships logs to Splunk via the <code>splunk</code> output plugin and HTTP Event Collector (HEC)</p>
                 </div>
                 <pre class="fragment fade-up"><code class="language-ini"># fluent-bit OUTPUT section
 [OUTPUT]
@@ -379,14 +372,14 @@ after 30s for user api-svc</code></pre>
                 <div class="highlight-box fragment fade-up" style="margin-top: 10px;">
                     <strong>Key detail:</strong> HEC token is stored in a Kubernetes Secret and injected via <code>envFrom</code>. Index-per-namespace routing uses Fluent Bit's <code>Rewrite_Tag</code> filter to direct logs to the correct Splunk index.
                 </div>
-                <aside class="notes">the organization's EKS platform uses Fluent Bit DaemonSets to collect container logs and forward them to Splunk via the HTTP Event Collector. The Splunk output plugin ships JSON-structured logs over TLS to the HEC endpoint. The HEC token is stored as a Kubernetes Secret and mounted into the Fluent Bit pods. Index routing is handled by Fluent Bit's Rewrite_Tag filter — logs from different namespaces can be sent to separate Splunk indexes based on label or namespace metadata, which aligns with Splunk's role-based access controls. Splunk_Send_Raw preserves the JSON structure so fields are automatically extracted in Splunk without additional parsing configuration.</aside>
+                <aside class="notes">Fluent Bit ships JSON logs over TLS to the Splunk HEC endpoint. HEC token is stored as a K8s Secret. Rewrite_Tag filter routes logs to per-namespace Splunk indexes. Splunk_Send_Raw preserves JSON for automatic field extraction.</aside>
             </section>
 
             <!-- Slide 14: Section — Metrics -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128202; Metrics in Kubernetes</h2>
                 <h3>Measuring system health and performance</h3>
-                <aside class="notes">Metrics are the backbone of alerting and capacity planning. Unlike logs, metrics are inherently aggregatable and cheap to store, making them ideal for dashboards, alerts, and trend analysis over weeks or months.</aside>
+                <aside class="notes">Metrics are aggregatable and cheap to store — ideal for dashboards, alerts, and trend analysis.</aside>
             </section>
 
             <!-- Slide 15: Kubernetes Metrics Architecture -->
@@ -418,7 +411,7 @@ after 30s for user api-svc</code></pre>
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">APIs: Resource metrics via metrics-server, Custom metrics via custom.metrics.k8s.io, External metrics via external.metrics.k8s.io. Kubernetes defines three categories of metrics through the metrics APIs. Resource metrics from metrics-server are the simplest — CPU and memory. Custom metrics come from your application, exposed via Prometheus and served through the Prometheus Adapter. External metrics come from outside the cluster entirely, like AWS SQS queue depths. All three can drive autoscaling decisions.</aside>
+                <aside class="notes">Three metrics APIs: resource (metrics-server), custom (custom.metrics.k8s.io via Prometheus Adapter), and external (external.metrics.k8s.io). All three can drive autoscaling decisions.</aside>
             </section>
 
             <!-- Slide 16: Prometheus Fundamentals -->
@@ -436,34 +429,26 @@ after 30s for user api-svc</code></pre>
                 <div class="key-point fragment fade-up">
                     <strong>Four metric types:</strong> Counter (only goes up), Gauge (arbitrary values), Histogram (bucketed distributions), Summary (quantile calculations)
                 </div>
-                <aside class="notes">Prometheus uses a pull model — it actively scrapes endpoints rather than receiving pushed data. This is an important architectural choice: Prometheus controls the scrape interval, can detect when a target is down, and doesn't need an intermediary. The four metric types serve different purposes. Counters for things like total requests. Gauges for things like current memory usage. Histograms for latency distributions. Summaries for pre-calculated percentiles.</aside>
+                <aside class="notes">Prometheus pulls (scrapes) endpoints on a schedule. It controls the interval, detects down targets, and needs no intermediary. Counters count, gauges measure, histograms bucket distributions, summaries calculate percentiles.</aside>
             </section>
 
             <!-- Slide 17: ServiceMonitor and Scraping -->
             <section>
                 <h2>&#128301; ServiceMonitor Configuration</h2>
-                <pre><code class="language-yaml">apiVersion: monitoring.coreos.com/v1
+                <pre><code class="language-yaml"># ServiceMonitor — Prometheus Operator CRD
 kind: ServiceMonitor
-metadata:
-  name: api-server-monitor
-  namespace: monitoring
-  labels:
-    release: prometheus
+# ... metadata with release: prometheus label ...
 spec:
-  namespaceSelector:
-    matchNames: [production]
   selector:
-    matchLabels:
-      app: api-server
+    matchLabels: { app: api-server }
   endpoints:
   - port: metrics
     path: /metrics
-    interval: 15s
-    scrapeTimeout: 10s</code></pre>
+    interval: 15s</code></pre>
                 <div class="highlight-box fragment fade-up">
-                    <strong>ServiceMonitor</strong> is a CRD from the Prometheus Operator. It declaratively defines scrape targets instead of editing the Prometheus config directly.
+                    <strong>ServiceMonitor</strong> is a CRD from the Prometheus Operator. It declaratively defines scrape targets instead of editing Prometheus config directly.
                 </div>
-                <aside class="notes">The Prometheus Operator introduces CRDs like ServiceMonitor that let you define scrape targets declaratively. The operator watches for ServiceMonitor resources and automatically updates the Prometheus configuration. The label selector on the ServiceMonitor must match a Kubernetes Service, and the release label must match the Prometheus Operator's configuration. This is the standard approach when using kube-prometheus-stack.</aside>
+                <aside class="notes">The Prometheus Operator watches for ServiceMonitor resources and auto-updates Prometheus config. The selector must match a K8s Service, and the release label must match the operator's config.</aside>
             </section>
 
             <!-- Slide 18: PromQL Essentials -->
@@ -488,7 +473,7 @@ sum by (namespace) (
 
 # Memory usage vs. limits
 container_memory_working_set_bytes / container_spec_memory_limit_bytes</code></pre>
-                <aside class="notes">PromQL is how you query Prometheus. The rate function calculates per-second averages over a time window. histogram_quantile gives you percentile latency from histogram buckets. The error rate query divides 5xx requests by total requests. These are the queries you'll use most often for SLI calculations and dashboard panels.</aside>
+                <aside class="notes">rate() calculates per-second averages. histogram_quantile gives percentile latency from buckets. The error rate query divides 5xx by total requests. These are the most common queries for SLIs and dashboards.</aside>
             </section>
 
             <!-- Slide 19: Grafana Dashboards -->
@@ -517,7 +502,7 @@ container_memory_working_set_bytes / container_spec_memory_limit_bytes</code></p
                         </div>
                     </div>
                 </div>
-                <aside class="notes">Grafana is the visualization layer for Prometheus data. Rather than building dashboards from scratch, import community dashboards from grafana.com — dashboard IDs 315 for Kubernetes cluster overview, 6417 for pods, and 12740 for namespaces. The USE method applies to infrastructure: utilization, saturation, and errors. The RED method applies to services: rate, errors, and duration. Together they give you comprehensive coverage.</aside>
+                <aside class="notes">Import community dashboards from grafana.com (IDs 315, 6417, 12740). USE applies to infrastructure, RED applies to services.</aside>
             </section>
 
             <!-- Slide 20: kube-state-metrics and node-exporter -->
@@ -548,7 +533,7 @@ container_memory_working_set_bytes / container_spec_memory_limit_bytes</code></p
                 <div class="highlight-box fragment fade-up">
                     <strong>Together:</strong> kube-state-metrics tells you what Kubernetes <em>thinks</em>; node-exporter tells you what the node <em>experiences</em>.
                 </div>
-                <aside class="notes">These two exporters are essential companions to Prometheus. kube-state-metrics generates metrics by listening to the Kubernetes API server. It knows about deployments, pods, nodes, and all other API objects. node-exporter runs on each node and exports hardware metrics. You need both: kube-state-metrics tells you a pod is in CrashLoopBackOff; node-exporter tells you the node is running out of disk space.</aside>
+                <aside class="notes">kube-state-metrics listens to the K8s API and generates metrics about object state. node-exporter runs on each node and exports hardware metrics. You need both.</aside>
             </section>
 
             <!-- Slide 21: CloudWatch Container Insights -->
@@ -568,14 +553,14 @@ container_memory_working_set_bytes / container_spec_memory_limit_bytes</code></p
 aws eks create-addon --cluster-name mycompany-prod \
   --addon-name amazon-cloudwatch-observability \
   --addon-version v1.5.0-eksbuild.1</code></pre>
-                <aside class="notes">Container Insights is the AWS-native option for EKS monitoring. It requires no Prometheus stack — metrics go directly to CloudWatch. The newer ADOT-based approach uses the AWS Distro for OpenTelemetry, which can collect both metrics and traces. For teams already invested in CloudWatch for other AWS services, Container Insights provides a unified pane of glass. The trade-off is cost at scale — CloudWatch custom metrics can become expensive with high-cardinality workloads.</aside>
+                <aside class="notes">Container Insights sends metrics directly to CloudWatch — no Prometheus needed. The ADOT-based approach collects both metrics and traces. Trade-off: CloudWatch custom metrics can be expensive with high-cardinality workloads.</aside>
             </section>
 
             <!-- Slide 22: Section — Distributed Tracing -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128279; Distributed Tracing</h2>
                 <h3>Following requests across service boundaries</h3>
-                <aside class="notes">In a microservices architecture, a single user request might touch ten or more services. When that request is slow or fails, you need to know which service in the chain is responsible. Distributed tracing solves this by propagating context through every hop.</aside>
+                <aside class="notes">A single request may touch many services. Distributed tracing propagates context through every hop to pinpoint which service is responsible for slowness or failure.</aside>
             </section>
 
             <!-- Slide 23: Tracing Concepts -->
@@ -603,7 +588,7 @@ aws eks create-addon --cluster-name mycompany-prod \
                         </div>
                     </div>
                 </div>
-                <aside class="notes">A trace represents the full lifecycle of a request. Each service creates a span — a named, timed operation. Spans are organized in a parent-child tree. The critical mechanism is context propagation: when service A calls service B, it passes a trace ID and parent span ID in HTTP headers. This is how the tracing backend reconstructs the full picture from spans collected across different services.</aside>
+                <aside class="notes">Each service creates a span (named, timed operation) in a parent-child tree. Context propagation passes trace ID and parent span ID in HTTP headers, letting the backend reconstruct the full picture.</aside>
             </section>
 
             <!-- Slide 24: OpenTelemetry Overview -->
@@ -635,7 +620,7 @@ aws eks create-addon --cluster-name mycompany-prod \
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">OpenTelemetry is the industry standard for observability data — vendor-neutral APIs, SDKs, and tools for generating and collecting telemetry data. It is the CNCF project that has unified the observability instrumentation landscape. It merges the former OpenTracing and OpenCensus projects. The key insight is that OTel separates instrumentation from backend choice. You instrument your code once with OTel SDKs, and the Collector routes data to whatever backend you choose — Jaeger, X-Ray, Datadog, or any OTLP-compatible backend. ADOT is the AWS distribution of the OTel Collector.</aside>
+                <aside class="notes">OTel is the CNCF standard for vendor-neutral observability. Instrument once with OTel SDKs, route to any backend via the Collector. ADOT is the AWS distribution.</aside>
             </section>
 
             <!-- Slide 25: OTel Collector Configuration -->
@@ -662,7 +647,7 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [awsxray]</code></pre>
-                <aside class="notes">The OTel Collector config defines pipelines with three stages: receivers accept data, processors transform it, and exporters send it to backends. This example receives traces over OTLP gRPC and HTTP, applies memory limiting and batching, then exports to AWS X-Ray. You can have multiple pipelines — one for traces to X-Ray, another for metrics to Prometheus. The memory limiter is critical to prevent the collector from consuming unbounded memory under load.</aside>
+                <aside class="notes">Pipelines have three stages: receivers, processors, exporters. You can define multiple pipelines for different signal types. The memory_limiter prevents unbounded memory consumption under load.</aside>
             </section>
 
             <!-- Slide 26: Jaeger and X-Ray -->
@@ -691,26 +676,24 @@ service:
                     </div>
                 </div>
                 <div class="highlight-box fragment fade-up">
-                    <strong>Recommendation:</strong> Use X-Ray on EKS for AWS-native visibility. Add Jaeger if you need advanced trace analysis or self-hosted retention control.
+                    <strong>Recommended pattern:</strong> Use X-Ray on EKS for AWS-native visibility. Add Jaeger for advanced trace analysis or self-hosted retention.
                 </div>
-                <aside class="notes">Jaeger gives you full control and deep analysis capabilities. X-Ray gives you a managed service with zero infrastructure overhead and native integration with other AWS services like Lambda, API Gateway, and RDS. On EKS, you can use the ADOT Collector to export traces to both simultaneously if needed. For the organization's EKS environment, X-Ray is the natural starting point with Jaeger as an option for teams that need more advanced trace querying.</aside>
+                <aside class="notes">Jaeger gives full control and deep analysis. X-Ray is managed with native AWS integration. ADOT can export to both simultaneously.</aside>
             </section>
 
             <!-- Slide 27: Section — Alerting & Incident Response -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128680; Alerting &amp; Incident Response</h2>
                 <h3>From detection to resolution</h3>
-                <aside class="notes">Observability data is only useful if it drives action. This section covers how to configure meaningful alerts that reduce noise, route them to the right teams, and define SLOs that give you an objective framework for when to respond.</aside>
+                <aside class="notes">Observability data must drive action. This section covers meaningful alerts, routing, and SLOs for objective reliability decisions.</aside>
             </section>
 
             <!-- Slide 28: Alertmanager Configuration -->
             <section>
                 <h2>&#128276; Alertmanager Configuration</h2>
-                <pre><code class="language-yaml">apiVersion: monitoring.coreos.com/v1
+                <pre><code class="language-yaml"># PrometheusRule — Prometheus Operator CRD
 kind: PrometheusRule
-metadata:
-  name: api-server-alerts
-  labels: { release: prometheus }
+# ... metadata with release: prometheus label ...
 spec:
   groups:
   - name: api-server
@@ -719,13 +702,12 @@ spec:
       expr: |
         sum(rate(http_requests_total{status=~"5..",job="api"}[5m]))
         / sum(rate(http_requests_total{job="api"}[5m])) > 0.05
-      for: 5m
-      labels: { severity: critical }
+      for: 5m                    # prevents flapping
+      labels: { severity: critical }  # drives routing
       annotations:
         summary: "API error rate above 5%"
         runbook_url: "https://wiki.internal/runbooks/api-errors"</code></pre>
-                <aside class="notes">Tip: key fields -- for prevents flapping, severity drives routing, runbook_url links to remediation steps.</aside>
-                <aside class="notes">PrometheusRule is the CRD for defining alerting rules when using the Prometheus Operator. The for clause requires the condition to be true for 5 minutes before firing — this prevents transient spikes from triggering pages. Severity labels control routing in Alertmanager. The runbook URL is critical — every alert should link to documentation that explains what the alert means and how to resolve it.</aside>
+                <aside class="notes">The for clause requires the condition to hold for 5 min before firing. Severity labels control Alertmanager routing. Every alert should link to a runbook.</aside>
             </section>
 
             <!-- Slide 29: Alert Routing and Notification Channels -->
@@ -745,7 +727,7 @@ receivers:
   pagerduty_configs:
   - service_key_file: /etc/alertmanager/secrets/pd-key
   # ... slack, email, and other receiver configs</code></pre>
-                <aside class="notes">Alertmanager routes alerts based on label matching. The route tree is hierarchical — more specific matches override the default. group_by batches related alerts into a single notification to reduce noise. group_wait delays the first notification slightly to catch related alerts that fire around the same time. Critical severity goes to PagerDuty for immediate response; warnings go to Slack for awareness. The send_resolved flag sends a recovery notification when the alert clears.</aside>
+                <aside class="notes">Route tree is hierarchical — specific matches override defaults. group_by batches related alerts. group_wait catches co-firing alerts. Critical goes to PagerDuty; warnings to Slack.</aside>
             </section>
 
             <!-- Slide 29b: Enterprise Alerting Destinations -->
@@ -783,7 +765,7 @@ receivers:
                 <div class="highlight-box fragment fade-up" style="margin-top: 12px;">
                     <strong>Routing tree strategy:</strong> <code>severity: critical</code> &rarr; Netcool + WebEx &ensp;|&ensp; <code>severity: warning</code> &rarr; Email + WebEx &ensp;|&ensp; <code>severity: info</code> &rarr; Email only
                 </div>
-                <aside class="notes">On the organization's EKS platform, Alertmanager routes to three primary destinations. Netcool is the enterprise event management system — alerts reach it through a webhook receiver that POSTs JSON to the Netcool OMNIbus REST probe. The probe maps Kubernetes alert labels (severity, namespace, alertname) into Netcool event fields such as Class, Summary, and Node. Email uses the built-in SMTP receiver pointed at the corporate relay, and is typically reserved for warning and informational alerts that create tickets rather than pages. WebEx Teams integration uses the Incoming Webhook connector — Alertmanager posts an Adaptive Card with alert details to a designated Space so the on-call team has real-time visibility. In the routing tree, critical alerts fan out to both Netcool and WebEx for immediate response, while lower-severity alerts go to email for tracking.</aside>
+                <aside class="notes">Netcool receives alerts via webhook POST to the OMNIbus REST probe. Email uses the SMTP receiver for lower-severity ticket alerts. WebEx uses Incoming Webhook with Adaptive Cards for team visibility. Critical alerts go to Netcool + WebEx; warnings to email + WebEx.</aside>
             </section>
 
             <!-- Slide 30: SLOs and Error Budgets -->
@@ -812,7 +794,7 @@ receivers:
                         </div>
                     </div>
                 </div>
-                <aside class="notes">SLOs provide an objective framework for reliability decisions. Instead of arguing about whether a service is "reliable enough," you define a measurable target. The error budget is the inverse — if your SLO is 99.9%, you have a 0.1% error budget, which translates to about 43 minutes of downtime per month. When the budget is healthy, you ship features faster. When it's depleted, you focus on reliability. This removes subjective debates from engineering prioritization.</aside>
+                <aside class="notes">SLOs define measurable reliability targets. Error budget is the inverse — 99.9% SLO means ~43 min/month of tolerable failure. Healthy budget means ship features; depleted means focus on reliability.</aside>
             </section>
 
             <!-- Slide 31: Burn Rate Alerts -->
@@ -859,7 +841,7 @@ receivers:
                         <td>10% in 3 days</td>
                     </tr>
                 </table>
-                <aside class="notes">Burn rate alerting is the Google SRE approach to SLO-based alerts. Instead of alerting on raw error rate, you alert on the rate at which you're consuming your error budget. A 14.4x burn rate means you'll exhaust your entire monthly budget in about two days — that's a page-worthy event. A 1x burn rate is normal consumption. The multi-window approach requires both the long window and short window to be in violation, which prevents alerts from firing on brief spikes that have already recovered.</aside>
+                <aside class="notes">Alert on error budget consumption rate, not raw error rate. 14.4x burn rate exhausts the monthly budget in ~2 days. Multi-window requires both long and short windows in violation, preventing alerts on recovered spikes.</aside>
             </section>
 
             <!-- Slide 32: Debugging Workflow -->
@@ -879,7 +861,7 @@ receivers:
                 <div class="highlight-box danger fragment fade-up">
                     <strong>Anti-pattern:</strong> Jumping straight to <code>kubectl logs</code> without first narrowing the scope via metrics and traces.
                 </div>
-                <aside class="notes">A systematic workflow prevents thrashing during incidents. Start broad with metrics to understand the scope, narrow with traces to identify the responsible service, then use logs for the exact error. Checking Kubernetes events reveals infrastructure issues like OOMKills, failed scheduling, or image pull errors. The anti-pattern is going directly to log searching — without narrowing the scope first, you waste time reading irrelevant logs from healthy services.</aside>
+                <aside class="notes">Start broad with metrics, narrow with traces, then use logs for exact errors. K8s events reveal OOMKills, scheduling failures, and image pull errors. Avoid jumping straight to log searching without narrowing scope first.</aside>
             </section>
 
             <!-- Slide 33: Essential kubectl Debugging Commands -->
@@ -904,7 +886,7 @@ kubectl get pods -n production -o json | \
 
 # Debug networking with ephemeral containers
 kubectl debug -it &lt;pod-name&gt; --image=nicolaka/netshoot -- bash</code></pre>
-                <aside class="notes">These are the kubectl commands you'll reach for during an incident after you've narrowed the scope with metrics and traces. Events are the single most underused debugging tool — they surface OOMKills, failed mounts, scheduling failures, and image pull errors. The top command shows real-time resource consumption. The jq one-liner finds all pods that were recently OOMKilled. Ephemeral containers let you attach debugging tools to a running pod without modifying its spec.</aside>
+                <aside class="notes">Events surface OOMKills, failed mounts, and scheduling failures. kubectl top shows real-time resource consumption. Ephemeral containers attach debug tools to running pods without modifying the spec.</aside>
             </section>
 
             <!-- Slide 34: Module Summary -->
@@ -930,7 +912,7 @@ kubectl debug -it &lt;pod-name&gt; --image=nicolaka/netshoot -- bash</code></pre
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Module 9 covered the full observability stack: three pillars of data collection, the tools to implement each, and the operational framework to turn data into action. The key insight is that these pillars are most powerful when correlated — trace IDs linking logs to traces, metrics driving alerts that lead to targeted trace and log investigation.</aside>
+                <aside class="notes">Three pillars of data collection, tools for each, and the operational framework to turn data into action. Most powerful when correlated via trace IDs.</aside>
             </section>
 
             <!-- Slide 35: Lab Callout -->
@@ -948,25 +930,25 @@ kubectl debug -it &lt;pod-name&gt; --image=nicolaka/netshoot -- bash</code></pre
                 <div class="highlight-box" style="margin-top: 20px;">
                     <strong>Duration:</strong> ~45 minutes
                 </div>
-                <aside class="notes">This lab uses the pre-installed monitoring stack. Participants will explore kubectl log flags, deploy structured JSON logging, run PromQL queries in Prometheus, navigate Grafana dashboards, create a PrometheusRule alert, and debug a failing application using events, logs, and metrics.</aside>
+                <aside class="notes">Uses the pre-installed monitoring stack. Covers kubectl log flags, structured JSON logging, PromQL queries, Grafana dashboards, PrometheusRule alerts, and debugging a failing application.</aside>
             </section>
 
             <!-- Slide 36: Key Takeaways -->
             <section>
                 <h2>&#127919; Key Takeaways</h2>
                 <div class="key-point fragment fade-up">
-                    <strong>1. Correlate across all three pillars.</strong> Use trace IDs to link logs, metrics, and traces. Without correlation, you have three separate data silos.
+                    <strong>1. Correlate across all three pillars.</strong> Use trace IDs to link logs, metrics, and traces. Without correlation, you have three separate silos.
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>2. Structured logging is non-negotiable.</strong> JSON logs with consistent fields enable automated parsing, filtering, and alerting at scale.
+                    <strong>2. Structured logging is essential.</strong> JSON logs with consistent fields enable automated parsing, filtering, and alerting.
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>3. Alert on SLOs, not symptoms.</strong> Burn rate alerting reduces noise and focuses attention on user-facing impact rather than infrastructure fluctuations.
+                    <strong>3. Alert on SLOs, not symptoms.</strong> Burn rate alerting reduces noise and focuses on user-facing impact.
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>4. Instrument with OpenTelemetry.</strong> Vendor-neutral instrumentation lets you change backends without re-instrumenting your code.
+                    <strong>4. Instrument with OpenTelemetry.</strong> Vendor-neutral instrumentation decouples your code from any specific backend.
                 </div>
-                <aside class="notes">Four takeaways from this module. Correlation is what turns three data streams into actual observability. Structured logging is the foundation for searchable, queryable log data. SLO-based alerting reduces alert fatigue and focuses on what matters to users. And OpenTelemetry future-proofs your instrumentation investment by decoupling it from any specific vendor.</aside>
+                <aside class="notes">Correlation turns three data streams into observability. Structured logging enables search and query. SLO-based alerting reduces fatigue. OTel future-proofs instrumentation.</aside>
             </section>
 
             <!-- Slide 37: Questions -->
@@ -974,7 +956,7 @@ kubectl debug -it &lt;pod-name&gt; --image=nicolaka/netshoot -- bash</code></pre
                 <h2>&#10067; Questions &amp; Discussion</h2>
                 <p>Module 9: Observability &mdash; Logging, Metrics &amp; Tracing</p>
                 <p style="font-size: 0.9em; margin-top: 30px;">Up Next: Module 10 &mdash; Health Probes &amp; Application Debugging</p>
-                <aside class="notes">Let's discuss any questions. Common topics include: choosing between CloudWatch and the Prometheus/Grafana stack, log retention policies and cost management, how to handle high-cardinality metrics, and strategies for incrementally rolling out tracing across an existing microservices fleet.</aside>
+                <aside class="notes">Common topics: CloudWatch vs. Prometheus/Grafana, log retention and cost, high-cardinality metrics, incremental tracing rollout.</aside>
             </section>
 
         </div>

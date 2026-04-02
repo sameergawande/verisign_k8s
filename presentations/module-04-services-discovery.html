@@ -78,7 +78,7 @@
                     <div class="step"></div>
                     <div class="step"></div>
                 </div>
-                <aside class="notes">Welcome to Module 4 — Services and Service Discovery. This module covers how Kubernetes provides stable networking abstractions over ephemeral Pods, and how applications find and communicate with each other inside the cluster and beyond.</aside>
+                <aside class="notes">Module 4 covers how Kubernetes provides stable networking over ephemeral Pods, and how applications find and communicate with each other.</aside>
             </section>
 
             <!-- Module Agenda -->
@@ -103,14 +103,14 @@
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Here's what we'll cover today. We start with the fundamental problem Services solve, explore each Service type in depth, then move into service discovery mechanisms, kube-proxy internals, and advanced patterns including AWS-specific integrations.</aside>
+                <aside class="notes">We start with the problem Services solve, explore each type, then cover discovery mechanisms, kube-proxy, and advanced patterns including AWS integrations.</aside>
             </section>
 
             <!-- Section: Why Services Matter -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128268; Why Services Matter</h2>
                 <h3>Stable networking over ephemeral Pods</h3>
-                <aside class="notes">Let's start with the fundamental problem. Pods are ephemeral — they get created, destroyed, and rescheduled. Each time, they receive a new IP address. Services provide a stable abstraction layer on top of this dynamic infrastructure.</aside>
+                <aside class="notes">Pods are ephemeral and get new IPs each time they restart. Services provide a stable abstraction on top of this.</aside>
             </section>
 
             <!-- The Pod Networking Problem -->
@@ -129,7 +129,7 @@
                 <div class="key-point fragment fade-up">
                     <strong>Key insight:</strong> You need a stable endpoint that abstracts over a dynamic set of Pods.
                 </div>
-                <aside class="notes">Every time a Pod is recreated, it gets a brand new IP. If you have 3 replicas, that's 3 different IPs. During a rolling update, those IPs change. You can't hard-code them. This is the exact problem that Services solve.</aside>
+                <aside class="notes">Multiple replicas mean multiple changing IPs. Rolling updates swap them out. You cannot hard-code them. Services solve this.</aside>
             </section>
 
             <!-- Service Abstraction -->
@@ -148,31 +148,22 @@
                 <div class="highlight-box success fragment fade-up">
                     <strong>Result:</strong> Clients connect to a Service name or IP &mdash; Kubernetes handles routing to the right Pod.
                 </div>
-                <aside class="notes">A Service gives you a virtual IP and DNS name that persist for the lifetime of the Service object. Behind the scenes, Kubernetes watches for Pod changes and keeps the routing rules updated. Clients never need to know about individual Pod IPs.</aside>
+                <aside class="notes">A Service provides a virtual IP and DNS name that persist for its lifetime. Kubernetes keeps routing rules updated as Pods change.</aside>
             </section>
 
             <!-- Service Anatomy YAML -->
             <section>
                 <h2>Service Anatomy</h2>
-                <pre><code class="language-yaml" data-trim>apiVersion: v1
-kind: Service
-metadata:
-  name: my-app-service
-  namespace: production
-  labels: { app: my-app, tier: frontend }
-spec:
+                <pre><code class="language-yaml" data-trim>spec:
   type: ClusterIP             # Default type
   selector:
     app: my-app               # Matches Pod labels
-    version: v2
   ports:
     - name: http
       port: 80                # Service port (what clients use)
       targetPort: 8080        # Pod port (where app listens)
-    - name: metrics
-      port: 9090
-      targetPort: 9090</code></pre>
-                <aside class="notes">Here's the anatomy of a Service YAML. The selector field is critical — it defines which Pods this Service routes to by matching labels. The port is what clients connect to, and targetPort is where your application actually listens inside the Pod. You can also use named ports for targetPort to decouple from specific port numbers.</aside>
+    # ...</code></pre>
+                <aside class="notes">The selector defines which Pods this Service routes to by matching labels. The port is what clients connect to, and targetPort is where your app listens. You can use named ports for targetPort to decouple from specific port numbers.</aside>
             </section>
 
             <!-- ClusterIP Deep Dive -->
@@ -206,7 +197,7 @@ spec:
       targetPort: 3000</code></pre>
                     </div>
                 </div>
-                <aside class="notes">Tip: ClusterIP is the default — use for microservice-to-microservice communication inside the cluster. It allocates a virtual IP from the cluster's Service CIDR range, reachable only within the cluster. kube-proxy sets up iptables or IPVS rules to distribute traffic.</aside>
+                <aside class="notes">ClusterIP is the default. Use for internal microservice-to-microservice communication. kube-proxy sets up iptables or IPVS rules to distribute traffic.</aside>
             </section>
 
             <!-- NodePort Deep Dive -->
@@ -240,7 +231,7 @@ spec:
       nodePort: 30080  # Optional</code></pre>
                     </div>
                 </div>
-                <aside class="notes">Tip: NodePort requires managing node IPs and firewall rules — rarely used directly in production. It extends ClusterIP by opening a port on every node. Useful for development and testing, but in production you'd typically put a load balancer in front.</aside>
+                <aside class="notes">NodePort extends ClusterIP by opening a port on every node. Useful for development and testing; typically you put a load balancer in front for external access.</aside>
             </section>
 
             <!-- LoadBalancer Deep Dive -->
@@ -255,21 +246,14 @@ spec:
                         <li class="fragment fade-up">Each LoadBalancer Service gets its own cloud LB (cost consideration)</li>
                     </ul>
                 </div>
-                <pre><code class="language-yaml" data-trim>apiVersion: v1
-kind: Service
-metadata:
-  name: public-api
+                <pre><code class="language-yaml" data-trim>metadata:
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
     service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
 spec:
   type: LoadBalancer
-  selector:
-    app: public-api
-  ports:
-    - port: 443
-      targetPort: 8443</code></pre>
-                <aside class="notes">LoadBalancer extends NodePort by asking the cloud provider to create an actual load balancer. On AWS, by default you get a Classic Load Balancer, but with the right annotations you can get an NLB or ALB. Be aware that each LoadBalancer Service provisions a separate cloud resource — this can get expensive if you have many services. That's where Ingress comes in, which we cover in Module 6.</aside>
+  # ...</code></pre>
+                <aside class="notes">LoadBalancer extends NodePort by provisioning a cloud load balancer. On AWS, annotations control whether you get a CLB, NLB, or ALB. Each Service provisions a separate cloud resource, which can get expensive. Ingress (Module 6) addresses this.</aside>
             </section>
 
             <!-- ExternalName Service -->
@@ -289,12 +273,7 @@ spec:
                         </div>
                     </div>
                     <div>
-                        <pre><code class="language-yaml" data-trim>apiVersion: v1
-kind: Service
-metadata:
-  name: external-db
-  namespace: production
-spec:
+                        <pre><code class="language-yaml" data-trim>spec:
   type: ExternalName
   externalName: mydb.us-east-2.rds.amazonaws.com</code></pre>
                     </div>
@@ -331,7 +310,7 @@ spec:
                             <td><strong>LoadBalancer</strong></td>
                             <td>Internal + external</td>
                             <td>Cloud LB DNS</td>
-                            <td>Production external access</td>
+                            <td>External access via cloud LB</td>
                         </tr>
                         <tr class="fragment fade-up">
                             <td><strong>ExternalName</strong></td>
@@ -344,7 +323,7 @@ spec:
                 <div class="key-point fragment fade-up">
                     <strong>Remember:</strong> Each type builds on the previous &mdash; LoadBalancer &#8835; NodePort &#8835; ClusterIP.
                 </div>
-                <aside class="notes">This table summarizes the four Service types. The key insight is that they build on each other: LoadBalancer creates a NodePort, which creates a ClusterIP. ExternalName is the exception — it's a pure DNS alias with no proxying. In production EKS environments, you'll use ClusterIP for internal services and Ingress with an ALB for external services.</aside>
+                <aside class="notes">Types build on each other: LoadBalancer creates a NodePort, which creates a ClusterIP. ExternalName is the exception -- pure DNS alias. Typically, ClusterIP handles internal services and Ingress with ALB handles external access.</aside>
             </section>
 
             <!-- Selectors and Label Matching -->
@@ -409,14 +388,14 @@ metadata:
   kubernetes.io/service-name=my-svc</code></pre>
                     </div>
                 </div>
-                <aside class="notes">When a Service is created, Kubernetes automatically creates Endpoints or EndpointSlice objects that track which Pods match the selector. Legacy Endpoints store everything in a single object, which becomes a scalability bottleneck. EndpointSlices chunk the data into pieces of up to 100 endpoints each, making updates far more efficient. EndpointSlices are the default in modern Kubernetes.</aside>
+                <aside class="notes">Kubernetes auto-creates Endpoints or EndpointSlice objects tracking matching Pods. EndpointSlices chunk data into pieces of up to 100, making updates more efficient. They are the default in modern Kubernetes.</aside>
             </section>
 
             <!-- Section: Service Discovery -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128269; Service Discovery</h2>
                 <h3>How applications find each other in the cluster</h3>
-                <aside class="notes">Now let's look at how applications actually discover and connect to Services. Kubernetes provides two primary mechanisms: DNS-based discovery via CoreDNS, and environment variable injection. DNS is the recommended approach for almost all use cases.</aside>
+                <aside class="notes">Kubernetes provides two discovery mechanisms: DNS via CoreDNS, and environment variable injection. DNS is the recommended approach.</aside>
             </section>
 
             <!-- DNS-Based Discovery -->
@@ -435,7 +414,7 @@ metadata:
                 <div class="key-point fragment fade-up">
                     <strong>In practice:</strong> Applications simply connect to the Service name &mdash; DNS handles the rest.
                 </div>
-                <aside class="notes">CoreDNS is the standard DNS server in Kubernetes clusters. It runs as a Deployment in kube-system and watches the API server for changes. When a Service is created, CoreDNS automatically creates DNS records for it. Every Pod in the cluster has its resolv.conf configured to use CoreDNS, so applications can resolve Service names without any additional setup.</aside>
+                <aside class="notes">CoreDNS watches the API server and auto-creates DNS records for Services. Every Pod's resolv.conf points to CoreDNS, so resolution works without additional setup.</aside>
             </section>
 
             <!-- DNS Record Formats -->
@@ -459,7 +438,7 @@ _http._tcp.backend-api.production.svc.cluster.local
                 <div class="highlight-box fragment fade-up">
                     <strong>Shorthand works within the same namespace:</strong> Just use <code>backend-api</code> instead of the full FQDN. Cross-namespace: use <code>backend-api.production</code>.
                 </div>
-                <aside class="notes">Every Service gets an A record in the format service-name.namespace.svc.cluster.local. SRV records encode port information as well. The search domains in resolv.conf allow you to use short names within the same namespace. For cross-namespace access, you need at least service.namespace. Using the full FQDN with a trailing dot avoids unnecessary DNS search iterations.</aside>
+                <aside class="notes">Search domains in resolv.conf allow short names within the same namespace. Cross-namespace requires service.namespace. A trailing dot on the FQDN avoids unnecessary DNS search iterations.</aside>
             </section>
 
             <!-- Environment Variable Discovery -->
@@ -483,7 +462,7 @@ BACKEND_API_PORT=tcp://10.96.0.15:80
 BACKEND_API_PORT_80_TCP_ADDR=10.96.0.15</code></pre>
                     </div>
                 </div>
-                <aside class="notes">The environment variable approach is the older mechanism inherited from Docker links. kubelet automatically injects environment variables for every Service that exists at the time the Pod starts. The major limitation is ordering — if the Service doesn't exist yet, the Pod won't get those variables. DNS-based discovery doesn't have this problem, which is why it's the recommended approach. Full set also includes _PORT_80_TCP, _PORT_80_TCP_PROTO, and _PORT_80_TCP_PORT.</aside>
+                <aside class="notes">kubelet injects env vars for every Service that exists when the Pod starts. If the Service does not exist yet, the Pod will not get those variables. DNS has no such constraint.</aside>
             </section>
 
             <!-- Headless Services -->
@@ -516,14 +495,14 @@ $ nslookup cassandra.default.svc
 # 10.244.1.5, 10.244.2.3, 10.244.3.8</code></pre>
                     </div>
                 </div>
-                <aside class="notes">Headless Services set clusterIP to None. Instead of getting a virtual IP, DNS queries return the individual Pod IPs. This is critical for stateful applications where clients need to connect to specific instances — like Cassandra nodes, Kafka brokers, or ZooKeeper members. StatefulSets rely on headless Services to create stable DNS names for each Pod.</aside>
+                <aside class="notes">Headless Services return individual Pod IPs via DNS instead of a virtual IP. Critical for stateful apps (Cassandra, Kafka, ZooKeeper) where clients connect to specific instances. StatefulSets rely on headless Services for stable per-Pod DNS names.</aside>
             </section>
 
             <!-- Section: kube-proxy and Traffic Flow -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128230; kube-proxy &amp; Traffic Flow</h2>
                 <h3>Understanding the data plane</h3>
-                <aside class="notes">Now let's look under the hood at how traffic actually gets from a client to a backend Pod. kube-proxy is the component responsible for implementing the Service abstraction at the network level. Understanding its modes helps with debugging and performance tuning.</aside>
+                <aside class="notes">kube-proxy implements the Service abstraction at the network level. Understanding its modes helps with debugging and performance tuning.</aside>
             </section>
 
             <!-- kube-proxy Modes -->
@@ -554,7 +533,7 @@ $ nslookup cassandra.default.svc
                 <div class="key-point fragment fade-up">
                     <strong>EKS default:</strong> iptables mode. Consider IPVS for clusters with thousands of Services.
                 </div>
-                <aside class="notes">kube-proxy has two primary modes. iptables mode is the default — it programs NAT rules in the Linux kernel's netfilter framework. It works well for most clusters but performance degrades with thousands of Services because every packet traverses a chain of rules. IPVS mode uses kernel-level load balancing with hash tables for O(1) lookups, making it better at scale. EKS uses iptables by default, but you can switch to IPVS if needed.</aside>
+                <aside class="notes">iptables mode programs NAT rules in netfilter; works for most clusters but degrades with thousands of Services. IPVS uses hash tables for O(1) lookups, better at scale. EKS defaults to iptables.</aside>
             </section>
 
             <!-- Traffic Policies -->
@@ -586,7 +565,7 @@ $ nslookup cassandra.default.svc
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Traffic policy controls where kube-proxy sends traffic. Cluster policy distributes evenly across all Pods but adds an extra network hop and loses the client source IP via SNAT. Local policy keeps traffic on the same node, preserving source IP and reducing latency — but if Pods aren't evenly spread across nodes, some Pods get more traffic than others. Choose based on your requirements for source IP preservation and even load distribution.</aside>
+                <aside class="notes">Cluster policy distributes evenly but loses source IP via SNAT. Local policy preserves source IP and reduces latency but risks uneven load if Pods are not evenly spread.</aside>
             </section>
 
             <!-- Session Affinity -->
@@ -608,21 +587,17 @@ $ nslookup cassandra.default.svc
   sessionAffinityConfig:
     clientIP:
       timeoutSeconds: 1800
-  selector:
-    app: legacy-app
-  ports:
-    - port: 80
-      targetPort: 8080</code></pre>
+  # ...</code></pre>
                     </div>
                 </div>
-                <aside class="notes">Session affinity lets you pin a client IP to a specific backend Pod. This is a Layer 4 feature only — it uses client IP, not cookies. The default timeout is 3 hours. While it exists for legacy compatibility, modern applications should be stateless and use external session stores like Redis or DynamoDB. For cookie-based session affinity, you'd use an Ingress controller, which we cover in Module 6.</aside>
+                <aside class="notes">Session affinity pins a client IP to a backend Pod. L4 only -- uses client IP, not cookies. Default timeout is 3 hours. Prefer stateless apps with external session stores. Cookie-based affinity requires an Ingress controller (Module 6).</aside>
             </section>
 
             <!-- Section: Advanced Service Patterns -->
             <section data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)" class="section-divider">
                 <h2>&#128640; Advanced Service Patterns</h2>
-                <h3>Production-ready configurations</h3>
-                <aside class="notes">Now that we understand the fundamentals, let's explore advanced patterns you'll encounter in production EKS environments. These cover multi-port services, external traffic policy implications, topology-aware routing, and service mesh concepts.</aside>
+                <h3>Recommended configurations and patterns</h3>
+                <aside class="notes">Let's explore advanced patterns: multi-port services, external traffic policy implications, topology-aware routing, and service mesh concepts.</aside>
             </section>
 
             <!-- Multi-Port Services -->
@@ -647,7 +622,7 @@ $ nslookup cassandra.default.svc
                         <p style="color: var(--success-color); font-size: 0.85em;"><strong>Named ports</strong> decouple the Service from specific port numbers &mdash; Pods can change ports independently.</p>
                     </div>
                 </div>
-                <aside class="notes">Multi-port Services let you expose several ports through a single Service. When you define multiple ports, each one must have a name. Using named targetPorts is a best practice — it means the Pod's container port can change without updating the Service definition. DNS SRV records are created for each named port, allowing clients to discover both the address and port.</aside>
+                <aside class="notes">When defining multiple ports, each must have a name. Named targetPorts let the Pod change ports without updating the Service. SRV records are created for each named port.</aside>
             </section>
 
             <!-- ExternalTrafficPolicy Implications -->
@@ -695,7 +670,7 @@ $ nslookup cassandra.default.svc
                 <div class="key-point fragment fade-up">
                     <strong>Recommendation:</strong> Use <code>externalTrafficPolicy: Local</code> when source IP preservation is required for security logging or geo-routing.
                 </div>
-                <aside class="notes">This is an important production consideration. With Cluster policy, the load balancer distributes evenly but source IPs get masked by SNAT. With Local policy, source IPs are preserved and there's no extra network hop, but nodes without Pods for that Service will fail health checks and receive no traffic. This means uneven load distribution if your Pods aren't evenly spread. Choose Local when you need source IP for audit logging, security, or geographic routing.</aside>
+                <aside class="notes">With Local policy, nodes without Pods fail health checks and get no traffic. Choose Local when you need source IP for audit logging, security, or geo-routing.</aside>
             </section>
 
             <!-- Topology-Aware Routing -->
@@ -714,21 +689,16 @@ $ nslookup cassandra.default.svc
                         </div>
                     </div>
                     <div>
-                        <pre><code class="language-yaml" data-trim>apiVersion: v1
-kind: Service
-metadata:
-  name: data-service
+                        <pre><code class="language-yaml" data-trim>metadata:
   annotations:
     service.kubernetes.io/topology-mode: Auto
 spec:
   selector:
     app: data-service
-  ports:
-    - port: 80
-      targetPort: 8080</code></pre>
+  # ...</code></pre>
                     </div>
                 </div>
-                <aside class="notes">Tip: Cross-AZ traffic costs $0.01/GB — topology-aware routing can significantly reduce data transfer bills. Nodes must have topology.kubernetes.io/zone labels (auto-set on EKS). Be aware that uneven Pod distribution across zones can cause uneven load.</aside>
+                <aside class="notes">Cross-AZ traffic costs $0.01/GB. Nodes need topology.kubernetes.io/zone labels (auto-set on EKS). Uneven Pod distribution across zones can cause uneven load.</aside>
             </section>
 
             <!-- Service Mesh Introduction -->
@@ -760,14 +730,14 @@ spec:
                 <div class="key-point fragment fade-up">
                     <strong>When to adopt:</strong> Consider a service mesh when you need mTLS between all services, advanced traffic splitting, or deep observability across microservices.
                 </div>
-                <aside class="notes">A service mesh adds a proxy sidecar to every Pod, giving you features beyond what standard Kubernetes Services provide. Istio is the most feature-rich option, using Envoy proxies, while Linkerd is lighter weight. Both add mTLS, traffic management, and observability. The trade-off is complexity and resource overhead. Don't adopt a mesh unless you have a specific need — standard Services and Ingress cover most use cases.</aside>
+                <aside class="notes">A service mesh adds a proxy sidecar to every Pod for mTLS, traffic management, and observability. Trade-off is complexity and resource overhead. Standard Services and Ingress cover most use cases.</aside>
             </section>
 
             <!-- AWS Load Balancer Controller -->
             <section>
                 <h2>&#9729;&#65039; AWS Load Balancer Controller</h2>
                 <div class="concept-box">
-                    <h4>Production-Grade AWS Integration</h4>
+                    <h4>AWS Load Balancer Integration</h4>
                     <ul>
                         <li class="fragment fade-up">Replaces the in-tree cloud provider for LB provisioning</li>
                         <li class="fragment fade-up">Creates <strong>NLB</strong> for LoadBalancer Services, <strong>ALB</strong> for Ingress resources</li>
@@ -775,10 +745,7 @@ spec:
                         <li class="fragment fade-up">Integrates with AWS WAF, Shield, and ACM for TLS</li>
                     </ul>
                 </div>
-                <pre><code class="language-yaml" data-trim>apiVersion: v1
-kind: Service
-metadata:
-  name: production-api
+                <pre><code class="language-yaml" data-trim>metadata:
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: "external"
     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
@@ -786,11 +753,8 @@ metadata:
 spec:
   type: LoadBalancer
   loadBalancerClass: service.k8s.aws/nlb
-  selector: { app: production-api }
-  ports:
-    - port: 443
-      targetPort: 8443</code></pre>
-                <aside class="notes">The AWS Load Balancer Controller is the recommended way to manage load balancers on EKS. It provisions NLBs for LoadBalancer Services and ALBs for Ingress resources. The key advantage is IP-mode targeting, which routes traffic directly to Pod IPs instead of going through NodePort — reducing hops and improving performance. It also integrates with AWS security services like WAF and Shield, and uses ACM for TLS certificate management.</aside>
+  # ...</code></pre>
+                <aside class="notes">The AWS Load Balancer Controller provisions NLBs for Services and ALBs for Ingress. The key advantage is IP-mode targeting, routing directly to Pod IPs instead of going through NodePort. It also integrates with WAF, Shield, and ACM.</aside>
             </section>
 
             <!-- NLB IP Mode vs Instance Mode -->
@@ -825,7 +789,7 @@ spec:
                 <div class="key-point fragment fade-up">
                     <strong>EKS best practice:</strong> Use IP mode with the VPC CNI plugin for optimal performance and source IP preservation.
                 </div>
-                <aside class="notes">On EKS, you have two NLB target modes. Instance mode registers EC2 nodes as targets, so traffic goes through NodePort and kube-proxy before reaching your Pod — that's extra hops. IP mode registers Pod IPs directly as NLB targets, so traffic goes straight from the NLB to the Pod in a single hop. IP mode requires the VPC CNI plugin, which EKS uses by default. Always prefer IP mode for production workloads.</aside>
+                <aside class="notes">Instance mode routes through NodePort and kube-proxy (extra hops). IP mode registers Pod IPs directly as NLB targets (single hop). IP mode requires VPC CNI, which EKS uses by default. Prefer IP mode.</aside>
             </section>
 
             <!-- Debugging Services -->
@@ -850,7 +814,7 @@ kubectl run curl-test --rm -it --image=curlimages/curl -- \
 
 # 5. Check kube-proxy logs for errors
 kubectl logs -n kube-system -l k8s-app=kube-proxy --tail=50</code></pre>
-                <aside class="notes">Debugging Services follows a systematic approach. Start by checking the Service exists and has a ClusterIP. Then verify endpoints are populated — empty endpoints is the number one issue and usually means a label mismatch. Check Pod labels against the Service selector. Test DNS from inside the cluster with a temporary Pod. Finally, check kube-proxy logs for any errors in programming iptables or IPVS rules.</aside>
+                <aside class="notes">Start by verifying the Service exists and has endpoints. Empty endpoints (usually a label mismatch) is the most common issue. Test DNS from inside the cluster, then check kube-proxy logs.</aside>
             </section>
 
             <!-- Service Best Practices -->
@@ -880,7 +844,7 @@ kubectl logs -n kube-system -l k8s-app=kube-proxy --tail=50</code></pre>
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Here are the key best practices. Always use DNS over environment variables. Named targetPorts decouple Services from Pods. Set external traffic policy to Local when you need source IP. Enable topology-aware routing to save on cross-AZ costs. On EKS, always use IP-mode NLB targets. And critically, always define readiness probes — without them, Services will send traffic to Pods that aren't ready to handle requests.</aside>
+                <aside class="notes">Use DNS over env vars. Named targetPorts decouple Services from Pods. Use Local traffic policy when you need source IP. Always define readiness probes or Services will route to unready Pods.</aside>
             </section>
 
             <!-- Lab Callout -->
@@ -898,7 +862,7 @@ kubectl logs -n kube-system -l k8s-app=kube-proxy --tail=50</code></pre>
                 <div class="highlight-box" style="margin-top: 20px;">
                     <strong>Duration:</strong> ~45 minutes
                 </div>
-                <aside class="notes">This lab covers all the Service types and discovery mechanisms we discussed. Participants will create different Service types, verify endpoint resolution, test DNS discovery, work with headless Services, configure traffic policies, and practice debugging common issues. The AWS NLB exercise requires the AWS Load Balancer Controller to be installed in the cluster.</aside>
+                <aside class="notes">Participants create different Service types, verify endpoints, test DNS discovery, work with headless Services, and explore NLB integration. The NLB exercise requires the AWS Load Balancer Controller.</aside>
             </section>
 
             <!-- Key Takeaways -->
@@ -908,9 +872,9 @@ kubectl logs -n kube-system -l k8s-app=kube-proxy --tail=50</code></pre>
                     <li><strong>Services are the networking primitive</strong> &mdash; stable endpoints over dynamic Pods. Never hard-code Pod IPs.</li>
                     <li><strong>DNS is the standard discovery mechanism</strong> &mdash; use short names within the namespace, FQDNs across namespaces. Headless Services return Pod IPs directly.</li>
                     <li><strong>Choose the right traffic policy</strong> &mdash; <code>Local</code> for source IP preservation, <code>Cluster</code> for even distribution.</li>
-                    <li><strong>Use AWS Load Balancer Controller in production</strong> &mdash; IP-mode NLB targets give direct Pod routing with lower latency.</li>
+                    <li><strong>Use AWS Load Balancer Controller on EKS</strong> &mdash; IP-mode NLB targets give direct Pod routing with lower latency.</li>
                 </ol>
-                <aside class="notes">Four key takeaways. Services are the fundamental networking abstraction — always use them instead of direct Pod IPs. DNS via CoreDNS is the standard discovery mechanism. Choose your traffic policy based on whether you need source IP preservation or even distribution. And on EKS, always use the AWS Load Balancer Controller with IP-mode targets for the best performance. Topology-aware routing reduces cross-AZ costs.</aside>
+                <aside class="notes">Services are the fundamental networking abstraction. DNS is the standard discovery mechanism. Choose traffic policy based on source IP needs. On EKS, use the AWS Load Balancer Controller with IP-mode targets.</aside>
             </section>
 
             <!-- Questions -->
@@ -918,7 +882,7 @@ kubectl logs -n kube-system -l k8s-app=kube-proxy --tail=50</code></pre>
                 <h2>&#10067; Questions &amp; Discussion</h2>
                 <p>Module 4: Services &amp; Service Discovery</p>
                 <p style="font-size: 0.9em; margin-top: 30px;">Up Next: Module 5 &mdash; Managing Application Configuration and Secrets</p>
-                <aside class="notes">Let's open up for questions. Common questions include: When should I use Ingress instead of LoadBalancer Services? How do I debug Services with no endpoints? What's the performance impact of IPVS vs iptables? When does a service mesh make sense? We'll address all of these before moving to Module 5.</aside>
+                <aside class="notes">Common questions: When to use Ingress vs LoadBalancer? How to debug empty endpoints? IPVS vs iptables performance? When does a service mesh make sense?</aside>
             </section>
 
         </div>

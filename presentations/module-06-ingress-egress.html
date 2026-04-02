@@ -78,7 +78,7 @@
                     <div class="step"></div>
                     <div class="step"></div>
                 </div>
-                <aside class="notes">Welcome to Module 6. We'll explore how traffic gets into and out of your Kubernetes cluster. This is fundamental for any application that serves external users — from NGINX Ingress to the newer Gateway API, and understanding egress controls for security.</aside>
+                <aside class="notes">Module 6 covers how traffic gets into and out of your cluster -- NGINX Ingress, Gateway API, and egress controls.</aside>
             </section>
 
             <!-- Agenda -->
@@ -93,7 +93,7 @@
                     <li class="fragment fade-up">Traffic Splitting and Canary Deployments</li>
                     <li class="fragment fade-up">Enterprise Integration &amp; Egress Controls</li>
                 </ul>
-                <aside class="notes">We have a packed module covering both Ingress and the newer Gateway API. We'll start with the established NGINX Ingress pattern, then show how Gateway API improves upon it, and finish with egress controls for outbound traffic management.</aside>
+                <aside class="notes">We start with NGINX Ingress, then show how Gateway API improves upon it, and finish with egress controls.</aside>
             </section>
 
             <!-- Why External Access -->
@@ -158,9 +158,9 @@ metadata: { name: nginx-internal }
 spec:
   controller: k8s.io/ingress-nginx-internal</code></pre>
                 <div class="key-point fragment fade-up">
-                    <strong>Production Pattern:</strong> The organization runs separate IngressClasses for external (internet-facing) and internal (VPC-only) traffic, each backed by its own controller deployment and load balancer.
+                    <strong>Recommended Pattern:</strong> Run separate IngressClasses for external (internet-facing) and internal (VPC-only) traffic, each with its own controller and load balancer.
                 </div>
-                <aside class="notes">IngressClass is mandatory in modern Kubernetes. It decouples the Ingress resource from the controller. By setting is-default-class, any Ingress without an explicit ingressClassName will be picked up by that controller. Running separate internal and external controllers is a common production pattern.</aside>
+                <aside class="notes">IngressClass is mandatory in modern Kubernetes. It decouples the Ingress resource from the controller. Setting is-default-class means any Ingress without an explicit ingressClassName gets picked up by that controller.</aside>
             </section>
 
             <!-- Ingress Resources -->
@@ -189,14 +189,13 @@ spec:
       - path: /
         pathType: Prefix
         backend: { service: { name: frontend-service, port: { number: 80 } } }</code></pre>
-                <aside class="notes">Path-based routing directs traffic to different services based on the URL path. The rewrite-target annotation strips the path prefix before forwarding to the backend. pathType can be Exact, Prefix, or ImplementationSpecific. Rules are evaluated in order of specificity — more specific paths match first.</aside>
+                <aside class="notes">rewrite-target strips the path prefix before forwarding. pathType can be Exact, Prefix, or ImplementationSpecific. More specific paths match first.</aside>
             </section>
 
             <section>
                 <h2>&#127760; Host-Based Routing</h2>
-                <pre class="fragment fade-up"><code class="language-yaml">apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata: { name: multi-host-ingress, namespace: mycompany-apps }
+                <pre class="fragment fade-up"><code class="language-yaml">kind: Ingress
+# ...
 spec:
   ingressClassName: nginx-external
   rules:
@@ -207,14 +206,10 @@ spec:
         pathType: Prefix
         backend: { service: { name: api-service, port: { number: 8080 } } }
   - host: dashboard.example.internal
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend: { service: { name: dashboard-service, port: { number: 3000 } } }
+    # ... same structure, different backend
   defaultBackend:
     service: { name: default-404-service, port: { number: 80 } }</code></pre>
-                <aside class="notes">Host-based routing uses the Host header to direct traffic. Each hostname maps to a different backend service. The defaultBackend handles requests that don't match any host rule — useful for returning a custom 404 page. In production, combine this with External DNS to automatically create DNS records.</aside>
+                <aside class="notes">Host-based routing uses the Host header to direct traffic. The defaultBackend handles requests that don't match any host rule. Combine with External DNS to auto-create DNS records.</aside>
             </section>
 
             <section>
@@ -253,18 +248,14 @@ spec:
 
             <section>
                 <h2>&#128295; Essential NGINX Ingress Annotations</h2>
-                <pre class="fragment fade-up"><code class="language-yaml">metadata:
-  name: production-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
-    nginx.ingress.kubernetes.io/limit-rps: "50"
-    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.example.com"</code></pre>
-                <aside class="notes">These are the most commonly used annotations in production. SSL redirect ensures all HTTP traffic is upgraded to HTTPS. proxy-body-size controls upload limits. Rate limiting protects your backends from overload. CORS headers are essential for APIs consumed by web frontends. Each annotation maps to an NGINX directive in the generated configuration.</aside>
+                <pre class="fragment fade-up"><code class="language-yaml">annotations:
+  nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+  nginx.ingress.kubernetes.io/limit-rps: "50"
+  nginx.ingress.kubernetes.io/enable-cors: "true"
+  nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.example.com"</code></pre>
+                <aside class="notes">Each annotation maps to an NGINX directive. SSL redirect upgrades HTTP to HTTPS. proxy-body-size controls upload limits. Rate limiting protects backends. CORS headers are needed for APIs consumed by web frontends.</aside>
             </section>
 
             <section>
@@ -304,24 +295,17 @@ spec:
 
             <section>
                 <h2>&#128274; TLS with Manual Certificates</h2>
-                <pre class="fragment fade-up"><code class="language-yaml">apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: secure-ingress
-  annotations: { nginx.ingress.kubernetes.io/ssl-redirect: "true" }
+                <pre class="fragment fade-up"><code class="language-yaml">kind: Ingress
+# ...
 spec:
   ingressClassName: nginx-external
   tls:
   - hosts: [api.example.internal, dashboard.example.internal]
-    secretName: app-tls
+    secretName: app-tls          # kubernetes.io/tls Secret
   rules:
   - host: api.example.internal
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend: { service: { name: api-service, port: { number: 8080 } } }</code></pre>
-                <aside class="notes">The tls block references a kubernetes.io/tls type Secret containing the certificate chain and private key. The hosts list must match the certificate's Subject Alternative Names. Multiple hosts can share the same certificate if it's a wildcard cert or has multiple SANs.</aside>
+    # ... routing rules as before</code></pre>
+                <aside class="notes">The tls block references a kubernetes.io/tls Secret with the cert chain and private key. Hosts must match the certificate's SANs. Wildcard certs can cover multiple hosts.</aside>
             </section>
 
             <section>
@@ -342,25 +326,19 @@ spec:
 
             <section>
                 <h2>&#9889; Ingress with Automated TLS</h2>
-                <pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
-kind: Ingress
+                <pre><code class="language-yaml">kind: Ingress
 metadata:
-  name: auto-tls-ingress
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # triggers auto-provisioning
+# ...
 spec:
-  ingressClassName: nginx-external
   tls:
   - hosts: [api.example.internal]
-    secretName: api-tls-auto
+    secretName: api-tls-auto     # created & managed by cert-manager
   rules:
   - host: api.example.internal
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend: { service: { name: api-service, port: { number: 8080 } } }</code></pre>
-                <aside class="notes">The cert-manager.io/cluster-issuer annotation triggers automatic certificate provisioning. The Secret referenced in secretName will be created and managed by cert-manager.</aside>
+    # ... routing rules as before</code></pre>
+                <aside class="notes">The cluster-issuer annotation triggers automatic certificate provisioning. cert-manager creates and manages the referenced Secret.</aside>
             </section>
 
             <!-- Gateway API -->
@@ -386,7 +364,7 @@ spec:
                         <tr class="fragment fade-up"><td>Status</td><td>Stable, feature-frozen</td><td>GA (HTTPRoute), evolving</td></tr>
                     </tbody>
                 </table>
-                <aside class="notes">Gateway API addresses every major pain point of Ingress. No more untyped annotations, explicit role separation, multi-protocol support, and native traffic management features. The Ingress API is feature-frozen — all innovation is happening in Gateway API.</aside>
+                <aside class="notes">Gateway API addresses the major pain points of Ingress: typed fields instead of annotations, role separation, multi-protocol support, and native traffic management. The Ingress API is feature-frozen.</aside>
             </section>
 
             <section>
@@ -415,9 +393,9 @@ spec:
                     </div>
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>Role Separation:</strong> Infrastructure teams manage GatewayClass and Gateway. Application teams create HTTPRoutes. This maps cleanly to the organization's team model.
+                    <strong>Role Separation:</strong> Infrastructure teams manage GatewayClass and Gateway. Application teams create HTTPRoutes. RBAC applies cleanly at each level.
                 </div>
-                <aside class="notes">The three-tier resource model is Gateway API's biggest architectural advantage. Infrastructure providers define GatewayClasses. Platform teams create Gateways. Application developers attach routes. Each role has clear boundaries and RBAC can be applied at each level. This is much cleaner than Ingress where one resource mixes all concerns.</aside>
+                <aside class="notes">The three-tier model is Gateway API's biggest advantage. Each role has clear boundaries and RBAC applies at each level, unlike Ingress where one resource mixes all concerns.</aside>
             </section>
 
             <section>
@@ -444,7 +422,7 @@ spec:
       namespaces:
         from: Selector
         selector: { matchLabels: { gateway-access: "true" } }</code></pre>
-                <aside class="notes">The Gateway resource defines listeners with protocols, ports, and TLS configuration. The allowedRoutes field controls which namespaces can attach routes — this is the RBAC model. Using a namespace selector with labels gives platform teams fine-grained control over which application namespaces can use the gateway.</aside>
+                <aside class="notes">The Gateway defines listeners with protocols, ports, and TLS. The allowedRoutes field controls which namespaces can attach routes. Namespace selectors give platform teams fine-grained access control.</aside>
             </section>
 
             <section>
@@ -464,7 +442,7 @@ spec:
   - matches:
     - path: { type: PathPrefix, value: /v2/dns }
     backendRefs: [{ name: dns-service-v2, port: 8080 }]</code></pre>
-                <aside class="notes">HTTPRoute is where application developers define their routing rules. Notice how matches can include both path and header conditions natively — no annotations needed. The parentRefs field attaches this route to a specific Gateway listener. Each rule can have multiple matches and multiple backends.</aside>
+                <aside class="notes">HTTPRoute defines routing rules with native path and header matching -- no annotations needed. parentRefs attaches the route to a specific Gateway listener.</aside>
             </section>
 
             <!-- Traffic Splitting -->
@@ -476,13 +454,11 @@ spec:
 
             <section>
                 <h2>&#9878;&#65039; Canary Deployments with HTTPRoute</h2>
-                <pre class="fragment fade-up"><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata: { name: dns-service-canary, namespace: mycompany-apps }
+                <pre class="fragment fade-up"><code class="language-yaml">kind: HTTPRoute
+# ...
 spec:
   parentRefs:
   - { name: mycompany-gateway, namespace: gateway-system }
-  hostnames: ["dns.example.internal"]
   rules:
   - matches:
     - path: { type: PathPrefix, value: / }
@@ -493,28 +469,23 @@ spec:
                     <h4>Progressive Rollout Strategy</h4>
                     <p style="font-size: 0.85em;">Start at <strong>5%</strong> &rarr; Monitor metrics &rarr; <strong>25%</strong> &rarr; Verify &rarr; <strong>50%</strong> &rarr; Validate &rarr; <strong>100%</strong></p>
                 </div>
-                <aside class="notes">Weight-based traffic splitting is built into the HTTPRoute spec — no custom annotations or service meshes needed. This enables canary deployments where you gradually shift traffic from the stable to the canary version. Combined with metrics monitoring, this is a powerful deployment strategy. You simply update the weights to roll forward or back.</aside>
+                <aside class="notes">Weight-based splitting is built into HTTPRoute -- no annotations or service mesh needed. Update the weights to roll forward or back.</aside>
             </section>
 
             <section>
                 <h2>&#128202; Header-Based Canary Routing</h2>
-                <pre class="fragment fade-up"><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata: { name: dns-service-header-canary, namespace: mycompany-apps }
-spec:
-  parentRefs:
-  - { name: mycompany-gateway, namespace: gateway-system }
-  hostnames: ["dns.example.internal"]
-  rules:
-  - matches:
-    - headers: [{ name: X-Canary, value: "true" }]
-    backendRefs:
-    - { name: dns-service-canary, port: 8080 }
-  - matches:
-    - path: { type: PathPrefix, value: / }
-    backendRefs:
-    - { name: dns-service-stable, port: 8080 }</code></pre>
-                <aside class="notes">Tip: QA team sets X-Canary: true header to test new versions in production before enabling weight-based rollout. This lets you verify the canary in the real production environment before exposing it to all users.</aside>
+                <pre class="fragment fade-up"><code class="language-yaml">kind: HTTPRoute
+# ...
+rules:
+- matches:
+  - headers: [{ name: X-Canary, value: "true" }]
+  backendRefs:
+  - { name: dns-service-canary, port: 8080 }
+- matches:
+  - path: { type: PathPrefix, value: / }
+  backendRefs:
+  - { name: dns-service-stable, port: 8080 }</code></pre>
+                <aside class="notes">Tip: QA sets X-Canary: true to test new versions before enabling weight-based rollout for all users.</aside>
             </section>
 
             <!-- Enterprise Integration -->
@@ -549,8 +520,8 @@ spec:
                         </ul>
                     </div>
                 </div>
-                <p style="margin-top: 15px;"><strong>Workflow:</strong> HTTPRoute &rarr; Envoy configures proxy &rarr; External DNS creates Route53 record &rarr; cert-manager provisions TLS &rarr; App is live with HTTPS.</p>
-                <aside class="notes">This is the golden path at your organization. An application developer creates an HTTPRoute, and the platform automation handles everything else — DNS records, TLS certificates, and proxy configuration. This reduces the time from code to production and eliminates manual certificate and DNS management.</aside>
+                <p style="margin-top: 15px;"><strong>Workflow:</strong> HTTPRoute &rarr; Envoy configures proxy &rarr; External DNS creates Route53 record &rarr; cert-manager provisions TLS &rarr; App is live.</p>
+                <aside class="notes">The developer creates an HTTPRoute; automation handles DNS, TLS, and proxy configuration. No manual certificate or DNS management.</aside>
             </section>
 
             <!-- Egress Controls -->
@@ -580,7 +551,7 @@ spec:
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Egress controls are often overlooked but are critical for security. If an attacker compromises a pod, unrestricted egress lets them exfiltrate data or communicate with command-and-control servers. Network policies for egress are covered in depth in Module 7. Here we'll focus on the egress gateway and NAT patterns.</aside>
+                <aside class="notes">Unrestricted egress lets compromised pods exfiltrate data or reach command-and-control servers. Network policies for egress are covered in Module 7; here we focus on gateway and NAT patterns.</aside>
             </section>
 
             <section>
@@ -606,15 +577,12 @@ spec:
 volumes:
 - name: ca-certs
   secret: { secretName: external-ca-bundle }
-containers:
-- name: app
-  volumeMounts:
-  - { name: ca-certs, mountPath: /etc/ssl/custom, readOnly: true }
-  env:
-  - { name: SSL_CERT_DIR, value: /etc/ssl/custom }</code></pre>
+# ...
+volumeMounts:
+- { name: ca-certs, mountPath: /etc/ssl/custom, readOnly: true }</code></pre>
                     </div>
                 </div>
-                <aside class="notes">On EKS, pods egress through the VPC's NAT gateway by default, providing a fixed IP for external services that require IP allowlisting. For mTLS with external endpoints, mount custom CA certificates into your pods. The certificate management patterns we covered in the TLS section apply to egress connections as well.</aside>
+                <aside class="notes">On EKS, pods egress through the VPC's NAT gateway by default, providing a fixed IP for allowlisting. For mTLS with external endpoints, mount custom CA certificates into your pods.</aside>
             </section>
 
             <!-- Lab Callout -->
@@ -632,7 +600,7 @@ containers:
                 <div class="highlight-box" style="margin-top: 20px;">
                     <strong>Duration:</strong> ~60 minutes
                 </div>
-                <aside class="notes">This lab covers both the traditional Ingress approach and the modern Gateway API. Participants will see firsthand how Gateway API simplifies traffic management compared to Ingress annotations. The canary deployment exercise is particularly valuable for understanding production rollout strategies.</aside>
+                <aside class="notes">This lab covers both Ingress and Gateway API. The canary deployment exercise highlights how Gateway API simplifies traffic management versus annotation-driven Ingress.</aside>
             </section>
 
             <!-- Key Takeaways -->
@@ -645,7 +613,7 @@ containers:
                     <strong>2. Gateway API is the future</strong> &mdash; Typed resources, role separation, and native traffic management replace annotation-driven Ingress.
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>3. Automate TLS</strong> &mdash; Use cert-manager for certificate lifecycle. Never manage certificates manually in production.
+                    <strong>3. Automate TLS</strong> &mdash; Use cert-manager for certificate lifecycle. Avoid managing certificates manually.
                 </div>
                 <div class="key-point fragment fade-up">
                     <strong>4. Control egress too</strong> &mdash; Ingress is only half the story. Egress controls are critical for security and compliance.
@@ -658,7 +626,7 @@ containers:
                 <h2>&#10067; Questions &amp; Discussion</h2>
                 <p>Module 6: Accessing Your Applications from Outside &mdash; Ingress &amp; Egress</p>
                 <p style="font-size: 0.9em; margin-top: 30px;">Up Next: Module 7 &mdash; RBAC &amp; Security</p>
-                <aside class="notes">Let's discuss any questions. Common topics include: how to migrate from Ingress to Gateway API, how to handle WebSocket connections through Ingress, and how to implement mutual TLS at the gateway level.</aside>
+                <aside class="notes">Common topics: migrating from Ingress to Gateway API, WebSocket connections through Ingress, and mutual TLS at the gateway level.</aside>
             </section>
 
         </div>

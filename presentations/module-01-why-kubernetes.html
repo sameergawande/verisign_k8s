@@ -85,7 +85,7 @@
                     <div class="step"></div>
                     <div class="step"></div>
                 </div>
-                <aside class="notes">Welcome to the Intermediate Kubernetes course. This first module sets the foundation by exploring WHY Kubernetes exists from a developer's perspective — not just what it does, but why it matters for your daily workflow. We'll map every abstraction to a real developer need.</aside>
+                <aside class="notes">This module explores WHY Kubernetes exists from a developer's perspective — why it matters for your daily workflow, and how every abstraction maps to a real developer need.</aside>
             </section>
 
             <!-- Objectives -->
@@ -100,14 +100,14 @@
                     <li class="fragment fade-up">Connect 12-factor app principles to Kubernetes patterns</li>
                     <li class="fragment fade-up">Preview the full 16-module course roadmap</li>
                 </ul>
-                <aside class="notes">These objectives establish the mental model we'll use throughout the entire course. Every subsequent module builds on the "why" we establish here. Encourage participants to think about how their current workflow maps to these concepts.</aside>
+                <aside class="notes">Every subsequent module builds on the "why" we establish here. Encourage participants to think about how their current workflow maps to these concepts.</aside>
             </section>
 
             <!-- Section Divider: The Problem -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#129300; The Problem We're Solving</h2>
                 <h3>Why developers needed something better</h3>
-                <aside class="notes">Before we talk about Kubernetes, let's talk about the pain points that led to its creation. Every technology exists to solve a problem — understanding the problem makes the solution intuitive.</aside>
+                <aside class="notes">Understanding the pain points that led to Kubernetes makes the solution intuitive.</aside>
             </section>
 
             <!-- Before Kubernetes -->
@@ -133,7 +133,7 @@
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Ask the room: how many of you have experienced these pain points? Most developers have lived through at least some of these. The key insight is that these aren't just inconveniences — they directly impact velocity and reliability.</aside>
+                <aside class="notes">Ask the room: how many have experienced these? These aren't just inconveniences — they directly impact velocity and reliability.</aside>
             </section>
 
             <!-- After Kubernetes -->
@@ -159,7 +159,7 @@
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">The transformation is dramatic. Notice that every "after" item maps directly to a "before" pain point. Kubernetes doesn't just add features — it fundamentally changes the developer-to-infrastructure relationship.</aside>
+                <aside class="notes">Every "after" item maps directly to a "before" pain point. Kubernetes fundamentally changes the developer-to-infrastructure relationship.</aside>
             </section>
 
             <!-- Before/After Comparison Table -->
@@ -206,14 +206,14 @@
                         </tr>
                     </tbody>
                 </table>
-                <aside class="notes">This table is a great reference to come back to throughout the course. Each row represents a capability we'll explore in depth in later modules. The key takeaway: Kubernetes turns operational toil into declarative configuration.</aside>
+                <aside class="notes">Each row is a capability covered in later modules. Key takeaway: Kubernetes turns operational toil into declarative configuration.</aside>
             </section>
 
             <!-- Section Divider: Developer Workflow -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128736;&#65039; The Developer Workflow</h2>
                 <h3>From code to cluster</h3>
-                <aside class="notes">Now let's trace the actual workflow a developer follows to get code running in a Kubernetes cluster. Understanding this end-to-end flow is critical for everything that follows.</aside>
+                <aside class="notes">Understanding this end-to-end flow is critical for everything that follows.</aside>
             </section>
 
             <!-- Code to Cluster Pipeline -->
@@ -231,7 +231,7 @@
                         <li class="fragment fade-up"><strong>Observe &amp; Iterate</strong> — Logs, metrics, traces</li>
                     </ol>
                 </div>
-                <aside class="notes">This is the core loop every developer runs through. In practice, steps 2-5 are usually automated by a CI/CD pipeline, but developers need to understand each step. At your organization, this pipeline typically uses ECR for the registry and EKS for the cluster.</aside>
+                <aside class="notes">In practice, steps 2-5 are usually automated by CI/CD, but developers need to understand each step.</aside>
             </section>
 
             <!-- What Developers Own -->
@@ -258,14 +258,14 @@
                 <div class="highlight-box warning" style="margin-top: 20px;">
                     <strong>Key Insight:</strong> Developers define <em>what</em> they need. The platform provides <em>how</em> it's delivered.
                 </div>
-                <aside class="notes">This is the critical boundary. Developers own the application and its Kubernetes resource definitions. They don't need to know which physical node their pod runs on, how networking is implemented, or how storage is provisioned — they just declare what they need.</aside>
+                <aside class="notes">Developers own the application and its K8s resource definitions. They declare what they need; the platform handles the rest.</aside>
             </section>
 
             <!-- Section Divider: The Contract -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#129309; The Developer-Platform Contract</h2>
                 <h3>Clear boundaries, clear responsibilities</h3>
-                <aside class="notes">One of the most powerful aspects of Kubernetes is how it creates a clear contract between developers and platform teams. Let's define that contract explicitly.</aside>
+                <aside class="notes">Kubernetes creates a clear contract between developers and platform teams.</aside>
             </section>
 
             <!-- Developer vs Platform Responsibilities -->
@@ -309,7 +309,7 @@
                         </tr>
                     </tbody>
                 </table>
-                <aside class="notes">This table is the contract. When both sides honor it, the result is a highly productive system. Developers get self-service capabilities, and platform teams get consistent, manageable workloads. At your organization with EKS, AWS manages the control plane, further simplifying the platform team's scope.</aside>
+                <aside class="notes">When both sides honor this contract, developers get self-service capabilities and platform teams get consistent, manageable workloads.</aside>
             </section>
 
             <!-- The API as Contract -->
@@ -317,7 +317,7 @@
                 <h2>&#128220; The Kubernetes API — Your Contract Interface</h2>
                 <div class="concept-box">
                     <h4>The API Server is the single point of interaction</h4>
-                    <p>Every interaction flows through the API server — <code>kubectl</code>, CI/CD pipelines, controllers, and the scheduler all speak the same API.</p>
+                    <p><code>kubectl</code>, CI/CD pipelines, controllers, and the scheduler all speak the same API.</p>
                 </div>
                 <div class="fragment fade-up">
                     <pre><code class="language-bash"># Every developer action is an API call
@@ -327,15 +327,15 @@ kubectl logs my-pod                 # GET to /api/v1/pods/my-pod/log
 kubectl port-forward svc/myapp 8080 # Upgrade to SPDY/WebSocket</code></pre>
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>Why this matters:</strong> The API is versioned, documented, and consistent. Your manifests from today will work on future clusters because Kubernetes guarantees API compatibility.
+                    <strong>Why this matters:</strong> The API is versioned and consistent. Your manifests work on future clusters thanks to API compatibility guarantees.
                 </div>
-                <aside class="notes">The API server is the front door to everything in Kubernetes. Understanding that kubectl is just an HTTP client helps developers reason about what's happening under the hood. The versioned API is a stability guarantee — you're writing against a contract, not an implementation.</aside>
+                <aside class="notes">kubectl is just an HTTP client. The versioned API is a stability guarantee — you write against a contract, not an implementation.</aside>
             </section>
 
             <!-- Self-Service Infrastructure -->
             <section>
                 <h2>&#127381; Self-Service Infrastructure</h2>
-                <p>Kubernetes transforms infrastructure requests into API calls developers can make <strong>without filing tickets</strong>:</p>
+                <p>Infrastructure requests become API calls -- no tickets required:</p>
                 <div class="two-columns fragment fade-up">
                     <div class="card">
                         <h4>I need...</h4>
@@ -358,14 +358,14 @@ kubectl port-forward svc/myapp 8080 # Upgrade to SPDY/WebSocket</code></pre>
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">This is perhaps the most transformative aspect of Kubernetes for developer productivity. What used to take days of ticket-driven processes now takes a YAML file and a kubectl apply. The platform team pre-configures what's allowed (via RBAC, quotas, policies), and developers operate within those guardrails.</aside>
+                <aside class="notes">What used to take days of ticket-driven processes now takes a YAML file and kubectl apply. The platform team sets guardrails (RBAC, quotas, policies), and developers operate within them.</aside>
             </section>
 
             <!-- Section Divider: Core Abstractions -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128230; Core Abstractions Review</h2>
                 <h3>Pods, Deployments, and Services — the developer lens</h3>
-                <aside class="notes">Let's review the three foundational abstractions. Even if you've seen these before, we're going to look at them through a developer-centric lens — focusing on why each exists, not just what it does.</aside>
+                <aside class="notes">Reviewing the three foundational abstractions through a developer-centric lens — why each exists, not just what it does.</aside>
             </section>
 
             <!-- Abstraction to Need Mapping -->
@@ -417,7 +417,7 @@ kubectl port-forward svc/myapp 8080 # Upgrade to SPDY/WebSocket</code></pre>
                         </tr>
                     </tbody>
                 </table>
-                <aside class="notes">This table is your Rosetta Stone. Every time you encounter a new Kubernetes resource type, ask: what developer need does this serve? If you can't answer that question, you probably don't need it yet.</aside>
+                <aside class="notes">For every new K8s resource type, ask: what developer need does this serve? If you can't answer that, you probably don't need it yet.</aside>
             </section>
 
             <!-- Pods -->
@@ -434,49 +434,34 @@ kubectl port-forward svc/myapp 8080 # Upgrade to SPDY/WebSocket</code></pre>
                         </ul>
                     </div>
                     <div>
-                        <pre><code class="language-yaml">apiVersion: v1
-kind: Pod
-metadata:
-  name: myapp
-  labels: { app: myapp, version: v1.2.3 }
+                        <pre><code class="language-yaml">kind: Pod
 spec:
   containers:
   - name: myapp
-    image: 123456789.dkr.ecr.us-east-2.amazonaws.com/myapp:v1.2.3
+    image: ecr-repo/myapp:v1.2.3
     ports: [{ containerPort: 8080 }]
     resources:
       requests: { cpu: "250m", memory: "256Mi" }
-      limits:   { cpu: "500m", memory: "512Mi" }
-    livenessProbe:
-      httpGet: { path: /healthz, port: 8080 }
-    readinessProbe:
-      httpGet: { path: /ready, port: 8080 }</code></pre>
+    # ... livenessProbe, readinessProbe</code></pre>
                     </div>
                 </div>
-                <aside class="notes">Tip: Never depend on a specific pod existing. Design for ephemerality. The pod spec is the most important manifest a developer writes. Notice the key elements: container image with a specific tag (never use :latest in production), resource requests and limits, and health probes. Every one of these is a developer responsibility.</aside>
+                <aside class="notes">Never depend on a specific pod existing. Key elements: image with a specific tag (avoid :latest), resource requests/limits, and health probes. All are developer responsibilities.</aside>
             </section>
 
             <!-- Deployments -->
             <section>
                 <h2>&#9881;&#65039; Deployments — Desired State Management</h2>
-                <pre><code class="language-yaml">apiVersion: apps/v1
-kind: Deployment
-metadata: { name: myapp, labels: { app: myapp } }
+                <pre><code class="language-yaml">kind: Deployment
 spec:
   replicas: 3
-  selector: { matchLabels: { app: myapp } }
   strategy:
-    type: RollingUpdate
     rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
   template:
-    metadata: { labels: { app: myapp, version: v1.2.3 } }
     spec:
       containers:
-      - name: myapp
-        image: ecr-repo/myapp:v1.2.3
-        ports: [{ containerPort: 8080 }]
-        # ... resources, probes (same as Pod)</code></pre>
-                <aside class="notes">Developer value: You declare "I want 3 healthy copies of my app running at all times" and Kubernetes makes it happen — and keeps it that way. The Deployment is the workhorse resource for developers. Key things to note: replicas controls availability, the strategy section controls how updates happen (maxUnavailable: 0 means zero-downtime deploys), and the selector must match the pod template labels. The Deployment controller continuously reconciles actual state to desired state.</aside>
+      - image: ecr-repo/myapp:v1.2.3
+        # ... ports, resources, probes</code></pre>
+                <aside class="notes">You declare "I want 3 healthy copies" and Kubernetes makes it happen. replicas controls availability, strategy controls update behavior (maxUnavailable: 0 = zero-downtime deploys). The controller continuously reconciles actual state to desired state.</aside>
             </section>
 
             <!-- Services -->
@@ -484,17 +469,12 @@ spec:
                 <h2>&#128279; Services — Stable Networking</h2>
                 <div class="two-columns">
                     <div>
-                        <pre><code class="language-yaml">apiVersion: v1
-kind: Service
-metadata:
-  name: myapp
+                        <pre><code class="language-yaml">kind: Service
 spec:
-  selector:
-    app: myapp
+  selector: { app: myapp }
   ports:
   - port: 80
     targetPort: 8080
-    protocol: TCP
   type: ClusterIP</code></pre>
                     </div>
                     <div>
@@ -511,14 +491,14 @@ spec:
                         </div>
                     </div>
                 </div>
-                <aside class="notes">The Service is how pods find and talk to each other. The selector is the glue — it matches labels on pods. Kubernetes automatically updates the endpoints as pods come and go. This is the foundation of service discovery, which we'll cover in depth in Module 4.</aside>
+                <aside class="notes">The selector matches labels on pods. Kubernetes updates endpoints as pods come and go. Covered in depth in Module 4.</aside>
             </section>
 
             <!-- Section Divider: Declarative -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128220; Declarative vs. Imperative</h2>
                 <h3>The most important mental shift</h3>
-                <aside class="notes">This is arguably the most important conceptual shift for developers coming to Kubernetes. Let's make it crystal clear.</aside>
+                <aside class="notes">The most important conceptual shift for developers coming to Kubernetes.</aside>
             </section>
 
             <!-- Declarative vs Imperative -->
@@ -526,7 +506,7 @@ spec:
                 <h2>&#128260; Two Ways to Interact with Kubernetes</h2>
                 <div class="two-columns">
                     <div class="card">
-                        <h4>&#128680; Imperative (Avoid in Production)</h4>
+                        <h4>&#128680; Imperative (Not Recommended)</h4>
                         <pre><code class="language-bash"># Step-by-step commands
 kubectl create deployment myapp \
   --image=myapp:v1
@@ -549,7 +529,7 @@ git diff deployment.yaml</code></pre>
                         <p style="font-size: 0.85em;">Tells Kubernetes <em>what you want</em> — it figures out how.</p>
                     </div>
                 </div>
-                <aside class="notes">The declarative approach is fundamental to Kubernetes' power. With imperative commands, you lose the ability to audit, diff, review, and version control your infrastructure. Declarative manifests are code — they go in Git, they get reviewed in PRs, and they serve as documentation of your system's desired state.</aside>
+                <aside class="notes">With imperative commands, you lose auditability and version control. Declarative manifests go in Git, get reviewed in PRs, and document your system's desired state.</aside>
             </section>
 
             <!-- Why Declarative Wins -->
@@ -578,14 +558,14 @@ git diff deployment.yaml</code></pre>
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">Tip: The reconciliation loop is the superpower — Kubernetes continuously compares desired state (your YAML) to actual state (what's running) and takes action to converge. If a pod crashes, the controller sees the discrepancy and creates a new one. This is self-healing infrastructure, driven by your declarative manifests.</aside>
+                <aside class="notes">The reconciliation loop continuously compares desired state (YAML) to actual state (running) and converges. If a pod crashes, the controller creates a new one -- self-healing driven by your manifests.</aside>
             </section>
 
             <!-- Section Divider: Environment Parity -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#127760; Environment Parity</h2>
                 <h3>Same image, same behavior, everywhere</h3>
-                <aside class="notes">Environment parity is one of the core promises of containerized workloads on Kubernetes. Let's explore how Kubernetes delivers on this promise.</aside>
+                <aside class="notes">Environment parity is a core promise of containerized workloads on Kubernetes.</aside>
             </section>
 
             <!-- Environment Parity -->
@@ -613,7 +593,7 @@ git diff deployment.yaml</code></pre>
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">This is a direct implementation of the 12-factor app principle of dev/prod parity. The image is your immutable artifact — it's the same bytes in every environment. Only the configuration changes. Kubernetes makes this natural with ConfigMaps and Secrets.</aside>
+                <aside class="notes">The image is your immutable artifact -- same bytes everywhere. Only configuration changes, via ConfigMaps and Secrets.</aside>
             </section>
 
             <!-- Kustomize Example -->
@@ -637,14 +617,14 @@ k8s/
 kubectl apply -k k8s/overlays/dev/
 kubectl apply -k k8s/overlays/staging/
 kubectl apply -k k8s/overlays/prod/</code></pre>
-                <aside class="notes">Kustomize is built into kubectl and is the standard approach for managing environment-specific configurations. The base contains the common definition, and overlays patch only what differs. This ensures environments stay in sync while allowing necessary differences like replica counts and resource limits.</aside>
+                <aside class="notes">Kustomize is built into kubectl. The base contains the common definition; overlays patch only what differs per environment (replica counts, resource limits, etc.).</aside>
             </section>
 
             <!-- Section Divider: 12-Factor -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#127919; 12-Factor App Principles</h2>
                 <h3>How Kubernetes embodies modern application design</h3>
-                <aside class="notes">The 12-factor app methodology predates Kubernetes, but Kubernetes was essentially designed to run 12-factor apps. Let's map the principles to Kubernetes features.</aside>
+                <aside class="notes">The 12-factor methodology predates Kubernetes, but Kubernetes was designed to run 12-factor apps.</aside>
             </section>
 
             <!-- 12-Factor Mapping -->
@@ -691,7 +671,7 @@ kubectl apply -k k8s/overlays/prod/</code></pre>
                         </tr>
                     </tbody>
                 </table>
-                <aside class="notes">This is the first half of the 12 factors. Notice how each one maps cleanly to a Kubernetes concept. This isn't a coincidence — Kubernetes was designed by people who deeply understood these principles. If your application follows 12-factor design, it will thrive on Kubernetes.</aside>
+                <aside class="notes">Each factor maps cleanly to a K8s concept. If your application follows 12-factor design, it will thrive on Kubernetes.</aside>
             </section>
 
             <!-- 12-Factor Continued -->
@@ -741,7 +721,7 @@ kubectl apply -k k8s/overlays/prod/</code></pre>
                 <div class="key-point fragment fade-up">
                     <strong>Design implication:</strong> Applications that follow these principles are "Kubernetes-native" — they leverage the platform fully and avoid fighting it.
                 </div>
-                <aside class="notes">Factor IX — Disposability — is particularly important. Kubernetes will kill and reschedule your pods. If your application can't handle graceful shutdown (SIGTERM), you'll have problems. Factor XI — Logs — means your app should never write to log files inside the container. Write to stdout/stderr and let the platform handle collection.</aside>
+                <aside class="notes">Factor IX: Kubernetes will kill and reschedule pods -- handle SIGTERM gracefully. Factor XI: never write to log files inside the container; write to stdout/stderr.</aside>
             </section>
 
             <!-- Graceful Shutdown Example -->
@@ -751,24 +731,20 @@ kubectl apply -k k8s/overlays/prod/</code></pre>
   terminationGracePeriodSeconds: 30
   containers:
   - name: myapp
-    image: myapp:v1.2.3
     lifecycle:
       preStop:
         exec:
           command: ["/bin/sh", "-c", "sleep 5"]
-    # Pod termination sequence:
-    # 1. Marked Terminating → removed from endpoints
-    # 2. preStop hook runs → SIGTERM sent
-    # 3. Wait terminationGracePeriodSeconds
-    # 4. SIGKILL if still running</code></pre>
-                <aside class="notes">Tip: Not handling SIGTERM is a common mistake — in-flight requests will be dropped if your process doesn't gracefully shut down. The pod termination lifecycle is critical for zero-downtime deployments. The preStop sleep of 5 seconds gives kube-proxy and ingress controllers time to update their routing tables before the pod stops accepting traffic.</aside>
+    # 1. Removed from endpoints → preStop runs → SIGTERM
+    # 2. Wait terminationGracePeriodSeconds → SIGKILL</code></pre>
+                <aside class="notes">The preStop sleep gives kube-proxy and ingress controllers time to update routing before the pod stops accepting traffic. Not handling SIGTERM means dropped in-flight requests.</aside>
             </section>
 
             <!-- Section Divider: EKS Context -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#9729;&#65039; Kubernetes on EKS</h2>
                 <h3>Your enterprise platform</h3>
-                <aside class="notes">Let's ground everything we've discussed in the specific platform you'll be working with — Amazon EKS.</aside>
+                <aside class="notes">Grounding everything in the platform you'll use: Amazon EKS.</aside>
             </section>
 
             <!-- EKS Overview -->
@@ -795,7 +771,7 @@ kubectl apply -k k8s/overlays/prod/</code></pre>
                 <div class="highlight-box success fragment fade-up">
                     <strong>EKS advantage:</strong> The control plane is someone else's problem. You focus on workloads.
                 </div>
-                <aside class="notes">EKS is a managed Kubernetes service, which means the hardest part of running Kubernetes — the control plane — is handled by AWS. This lets the platform team focus on worker node management and developer enablement, and lets developers focus entirely on their applications.</aside>
+                <aside class="notes">EKS is managed Kubernetes -- AWS handles the control plane, so the platform team focuses on worker nodes and developer enablement.</aside>
             </section>
 
             <!-- EKS Developer Workflow -->
@@ -818,14 +794,14 @@ kubectl get pods -w
 # 5. Check logs and debug
 kubectl logs -l app=myapp --tail=100 -f
 kubectl describe pod myapp-abc123</code></pre>
-                <aside class="notes">This is the daily workflow for developers on EKS. The aws eks update-kubeconfig command configures your local kubectl to authenticate with the EKS cluster using IAM. From there, it's standard Kubernetes commands. Namespaces are typically used to isolate team workloads.</aside>
+                <aside class="notes">aws eks update-kubeconfig configures kubectl to authenticate via IAM. From there, standard K8s commands. Namespaces isolate team workloads.</aside>
             </section>
 
             <!-- Section Divider: Enterprise Architecture Patterns -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#127959;&#65039; Enterprise Architecture Patterns</h2>
                 <h3>Mapping N-tier applications to Kubernetes primitives</h3>
-                <aside class="notes">Now that we understand Kubernetes core abstractions and EKS, let's see how a real N-tier application maps to Kubernetes resources — and how the organization's platform builds on top of these patterns.</aside>
+                <aside class="notes">How an N-tier application maps to Kubernetes resources.</aside>
             </section>
 
             <!-- N-Tier Application on Kubernetes -->
@@ -857,8 +833,8 @@ kubectl describe pod myapp-abc123</code></pre>
                         </ul>
                     </div>
                 </div>
-                <p class="fragment fade-up" style="margin-top: 20px; text-align: center; font-style: italic;">Every tier maps to a small set of primitives — master these and you can model any architecture.</p>
-                <aside class="notes">This is the mental model for the entire course. A typical N-tier app uses fewer than ten Kubernetes resource types. Frontend is stateless (Deployment + Ingress). API tier needs config injection (ConfigMaps, Secrets). Data layer needs stable identity and persistent storage (StatefulSets, PVCs). Each resource type is covered in dedicated modules.</aside>
+                <p class="fragment fade-up" style="margin-top: 20px; text-align: center; font-style: italic;">Every tier maps to a small set of primitives -- master these and you can model any architecture.</p>
+                <aside class="notes">A typical N-tier app uses fewer than ten K8s resource types. Each is covered in a dedicated module.</aside>
             </section>
 
             <!-- Enterprise Architecture on EKS -->
@@ -873,7 +849,7 @@ kubectl describe pod myapp-abc123</code></pre>
                     <li class="fragment fade-up"><strong>Observability</strong> — Prometheus, Grafana, Splunk</li>
                 </ul>
                 <p class="fragment fade-up" style="margin-top: 20px; font-style: italic;">Each pattern is covered hands-on in Modules 5-13.</p>
-                <aside class="notes">This slide is the architecture roadmap for the course. DNS-critical infrastructure drives patterns like PDBs and multi-AZ constraints. Dual ingress separates internal from external traffic. FluxCD automates cluster reconciliation. Vault replaces native Secrets. ECR provides image scanning. Prometheus/Grafana/Splunk cover observability. Students get hands-on with each system throughout the course.</aside>
+                <aside class="notes">Each pattern is covered hands-on in later modules.</aside>
             </section>
 
             <!-- Course Roadmap -->
@@ -936,7 +912,7 @@ kubectl describe pod myapp-abc123</code></pre>
                         </tr>
                     </tbody>
                 </table>
-                <aside class="notes">Modules 9-13 focus on production readiness and operational excellence. These are the skills that separate someone who can deploy to Kubernetes from someone who can run production workloads reliably. Module 13 ties everything together with end-to-end CI/CD and GitOps pipelines.</aside>
+                <aside class="notes">Modules 9-13 focus on operational excellence and real-world readiness. Module 13 ties everything together with end-to-end CI/CD and GitOps.</aside>
             </section>
 
             <!-- Lab Callout -->
@@ -954,7 +930,7 @@ kubectl describe pod myapp-abc123</code></pre>
                 <div class="highlight-box">
                     <strong>Duration:</strong> ~45 minutes
                 </div>
-                <aside class="notes">This lab establishes the baseline workflow. Everyone should be comfortable with kubectl, cluster connectivity, and basic resource creation before we proceed. Circulate and help anyone with authentication issues — those are the most common blockers.</aside>
+                <aside class="notes">Everyone should be comfortable with kubectl, cluster connectivity, and basic resource creation before proceeding. Authentication issues are the most common blocker.</aside>
             </section>
 
             <!-- Summary -->
@@ -972,7 +948,7 @@ kubectl describe pod myapp-abc123</code></pre>
                         <li class="fragment fade-up"><strong>N-tier apps map cleanly to K8s primitives</strong> — Deployment, Service, StatefulSet, Ingress cover most architectures</li>
                     </ul>
                 </div>
-                <aside class="notes">These seven takeaways form the mental model for the rest of the course. Every subsequent module builds on these foundations. If participants can articulate these points, they have the right framework for everything that follows.</aside>
+                <aside class="notes">If participants can articulate these points, they have the right framework for everything that follows.</aside>
             </section>
 
             <!-- Questions -->
@@ -980,7 +956,7 @@ kubectl describe pod myapp-abc123</code></pre>
                 <h2>&#10067; Questions &amp; Discussion</h2>
                 <p>What aspects of your current workflow would you most like Kubernetes to improve?</p>
                 <p style="font-size: 0.9em; margin-top: 30px;">Up Next: Module 2 &mdash; Scaling Your Applications</p>
-                <aside class="notes">Open the floor for questions. This is a good time to understand the audience's current experience level and pain points. Their answers will help you tailor emphasis in later modules. Common questions: How does this work with our existing CI/CD? How do we handle database migrations? What about local development?</aside>
+                <aside class="notes">Open the floor for questions. Common topics: CI/CD integration, database migrations, local development.</aside>
             </section>
 
         </div>

@@ -78,7 +78,7 @@
                     <div class="step"></div>
                     <div class="step"></div>
                 </div>
-                <aside class="notes">Module 11 covers deployment strategies — how to release new versions of your applications safely and with confidence. We'll move from the built-in rolling update to more sophisticated patterns like blue-green, canary, and progressive delivery.</aside>
+                <aside class="notes">Module 11 covers deployment strategies for releasing new application versions safely. We start with rolling updates, then cover blue-green, canary, and progressive delivery patterns.</aside>
             </section>
 
             <!-- Slide 2: Agenda -->
@@ -104,14 +104,14 @@
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">We'll start with what Kubernetes gives you out of the box — rolling updates — then progressively move to more advanced strategies. Each strategy has trade-offs in complexity, risk, and infrastructure cost. By the end, you'll know when to use each one.</aside>
+                <aside class="notes">We start with rolling updates, then move to more advanced strategies. Each has trade-offs in complexity, risk, and cost.</aside>
             </section>
 
             <!-- Slide 3: Section — Rolling Updates -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128260; Rolling Updates</h2>
                 <h3>The Default Deployment Strategy</h3>
-                <aside class="notes">Rolling updates are the default strategy for Kubernetes Deployments. They incrementally replace old pods with new ones, maintaining availability throughout the process. Let's understand the mechanics and configuration options.</aside>
+                <aside class="notes">Rolling updates are the default Deployment strategy. They incrementally replace old pods with new ones while maintaining availability.</aside>
             </section>
 
             <!-- Slide 4: How Rolling Updates Work -->
@@ -141,16 +141,13 @@
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">The two knobs controlling rolling updates are maxSurge and maxUnavailable. maxSurge controls how many extra pods can exist beyond the desired count — it determines how fast you scale up the new version. maxUnavailable controls how many pods can be down simultaneously. Both default to 25%. For a 4-replica deployment, that means 1 extra pod and 1 pod allowed to be unavailable at a time.</aside>
+                <aside class="notes">maxSurge controls extra pods beyond desired count; maxUnavailable controls how many can be down simultaneously. Both default to 25%. For 4 replicas, that means 1 extra pod and 1 unavailable at a time.</aside>
             </section>
 
             <!-- Slide 5: Rolling Update YAML Configuration -->
             <section>
                 <h2>&#128221; Rolling Update Configuration</h2>
-                <pre><code class="language-yaml">apiVersion: apps/v1
-kind: Deployment
-metadata: { name: api-server, namespace: production }
-spec:
+                <pre><code class="language-yaml">spec:
   replicas: 4
   strategy:
     type: RollingUpdate
@@ -159,11 +156,8 @@ spec:
       maxUnavailable: 0    # Zero downtime
   revisionHistoryLimit: 10
   minReadySeconds: 10      # Wait 10s before Ready
-  template:
-    metadata:
-      labels: { app: api-server, version: v2.1.0 }
-    # ... container spec, readinessProbe ...</code></pre>
-                <aside class="notes">This configuration is conservative: maxUnavailable 0 means we never drop below the desired count, and maxSurge 1 means we create one new pod at a time. The minReadySeconds setting adds a buffer — even after the readiness probe passes, the pod must stay healthy for 10 seconds before the rollout proceeds. This catches pods that crash shortly after startup. revisionHistoryLimit controls how many old ReplicaSets are retained for rollback.</aside>
+  # ... template, container spec, readinessProbe ...</code></pre>
+                <aside class="notes">maxUnavailable 0 means we never drop below desired count; maxSurge 1 creates one new pod at a time. minReadySeconds adds a buffer -- the pod must stay healthy for 10s before the rollout proceeds. revisionHistoryLimit controls how many old ReplicaSets are retained for rollback.</aside>
             </section>
 
             <!-- Slide 6: Monitoring Rollout Progress -->
@@ -190,7 +184,7 @@ kubectl rollout resume deployment/api-server -n production</code></pre>
                 <div class="key-point fragment fade-up">
                     <strong>Pause is powerful:</strong> Pausing a rollout mid-way creates a partial canary — some pods run the old version, some the new. Use this for manual verification before resuming.
                 </div>
-                <aside class="notes">kubectl rollout status blocks until the rollout completes or fails — useful in CI/CD scripts. The pause and resume commands are underused but powerful. You can pause mid-rollout, verify the new version is behaving correctly with partial traffic, then resume. This gives you basic canary functionality without additional tooling.</aside>
+                <aside class="notes">kubectl rollout status blocks until completion or failure -- useful in CI/CD scripts. Pause and resume let you verify the new version with partial traffic before proceeding, giving basic canary functionality without extra tooling.</aside>
             </section>
 
             <!-- Slide 7: Rollback -->
@@ -215,14 +209,14 @@ kubectl annotate deployment/api-server \
                         <strong>Database Caveat:</strong> Rollback reverts pods but not database migrations. Always ensure backward-compatible schema changes.
                     </div>
                 </div>
-                <aside class="notes">Rollback is one of Kubernetes' strongest features. Because it retains old ReplicaSets, reverting is essentially just scaling the old one up and the new one down. The change-cause annotation is critical for production — without it, rollout history shows blank descriptions, making it impossible to know which revision to roll back to. Always annotate in your CI/CD pipeline. The database caveat is important: if your new version ran a schema migration, rolling back the deployment doesn't undo the migration.</aside>
+                <aside class="notes">Rollback reuses old ReplicaSets, so it scales the old one up and new one down. The change-cause annotation is important -- without it, rollout history shows blank descriptions. Always annotate in CI/CD. Note: rolling back the deployment does not undo database migrations.</aside>
             </section>
 
             <!-- Slide 8: Section — Blue-Green Deployments -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128309;&#128994; Blue-Green Deployments</h2>
                 <h3>Instant Cutover with Full Rollback</h3>
-                <aside class="notes">Blue-green deployments maintain two complete environments. Traffic switches atomically from the old version (blue) to the new version (green). This eliminates the mixed-version state of rolling updates but requires double the resources during transition.</aside>
+                <aside class="notes">Blue-green maintains two complete environments. Traffic switches atomically from blue to green, eliminating mixed versions but requiring double resources during transition.</aside>
             </section>
 
             <!-- Slide 9: Blue-Green Concept and Architecture -->
@@ -251,35 +245,28 @@ kubectl annotate deployment/api-server \
                     </div>
                 </div>
                 <div class="highlight-box fragment fade-up">
-                    <strong>Best for:</strong> Critical production services, compliance-heavy environments, APIs with strict SLAs, and when rollback speed is paramount.
+                    <strong>Best for:</strong> Critical services, compliance-heavy environments, APIs with strict SLAs, and when rollback speed is paramount.
                 </div>
-                <aside class="notes">Blue-green is the simplest deployment strategy to reason about. The trade-off is resource cost — you need capacity for two full copies of the application simultaneously. For the organization's DNS-critical services, the instant rollback capability can justify the extra cost. The database challenge applies here too: both blue and green must work with the same database schema.</aside>
+                <aside class="notes">Blue-green is the simplest strategy to reason about. The trade-off is resource cost -- two full copies running simultaneously. Both blue and green must work with the same database schema.</aside>
             </section>
 
             <!-- Slide 10: Blue-Green — Blue Deployment -->
             <section>
                 <h2>&#128280; Blue-Green: Deployment Setup</h2>
                 <h4>Blue Deployment (current)</h4>
-                <pre><code class="language-yaml">apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: api-blue
+                <pre><code class="language-yaml"># Deployment: api-blue (current version)
 spec:
   replicas: 4
   selector:
-    matchLabels:
-      app: api-server
-      slot: blue
+    matchLabels: { app: api-server, slot: blue }
   template:
     metadata:
-      labels:
-        app: api-server
-        slot: blue
-        version: v2.0.0</code></pre>
+      labels: { app: api-server, slot: blue, version: v2.0.0 }
+    # ... container spec ...</code></pre>
                 <div class="highlight-box">
-                    <strong>Pattern:</strong> Both blue and green Deployments share the <code>app: api-server</code> label. The <code>slot</code> label differentiates them for the Service selector.
+                    <strong>Pattern:</strong> Both Deployments share <code>app: api-server</code>. The <code>slot</code> label differentiates them for the Service selector.
                 </div>
-                <aside class="notes">This is the simplest blue-green implementation. You create two identical Deployments, each with a different slot label (blue or green). The green Deployment is deployed and validated beforehand.</aside>
+                <aside class="notes">Two identical Deployments with different slot labels (blue or green). The green Deployment is deployed and validated before switching traffic.</aside>
             </section>
 
             <!-- Slide 10b: Blue-Green — Service Switch -->
@@ -304,38 +291,33 @@ kubectl patch svc api-server \
                 <div class="key-point fragment fade-up">
                     <strong>Atomic switch:</strong> Changing the Service selector instantly redirects all new connections to green pods. Existing connections to blue pods drain naturally.
                 </div>
-                <aside class="notes">The Service acts as the traffic switch — patching its selector from blue to green redirects all traffic. To roll back, patch the selector back to blue. Both Deployments remain running until you're confident in the new version.</aside>
+                <aside class="notes">The Service is the traffic switch. Patch its selector from blue to green to redirect traffic. To roll back, patch back to blue.</aside>
             </section>
 
             <!-- Slide 11: Blue-Green with Ingress / Gateway API -->
             <section>
                 <h2>&#128256; Blue-Green with Ingress / Gateway API</h2>
-                <pre><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata: { name: api-route, namespace: production }
+                <pre><code class="language-yaml"># HTTPRoute (Gateway API)
 spec:
-  parentRefs: [{ name: production-gateway }]
-  hostnames: ["api.example.com"]
   rules:
     - backendRefs:
-        # Blue-green: 100% to one backend
         - name: api-blue
           port: 80
-          weight: 100
+          weight: 100       # Flip weights for cutover
         - name: api-green
           port: 80
-          weight: 0       # Flip to 100 for cutover</code></pre>
+          weight: 0</code></pre>
                 <div class="highlight-box fragment fade-up">
                     <strong>Gateway API advantage:</strong> Weight-based routing enables gradual cutover (90/10 &rarr; 50/50 &rarr; 0/100) rather than all-or-nothing. Blurs the line between blue-green and canary.
                 </div>
-                <aside class="notes">The Gateway API provides a more sophisticated blue-green implementation. Instead of binary switching via Service selectors, you control traffic weights. This lets you do a gradual cutover — send 10% to green, verify metrics, then increase to 100%. The Gateway API is the future of Kubernetes ingress routing and supports this natively. On EKS, the AWS Gateway API Controller works with ALB to provide this functionality.</aside>
+                <aside class="notes">The Gateway API lets you control traffic weights instead of binary switching. Send 10% to green, verify metrics, then increase to 100%. On EKS, the AWS Gateway API Controller works with ALB for this.</aside>
             </section>
 
             <!-- Slide 12: Section — Canary Deployments -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128038; Canary Deployments</h2>
-                <h3>Test in Production with Controlled Risk</h3>
-                <aside class="notes">Canary deployments route a small percentage of production traffic to the new version. If metrics are healthy, traffic gradually increases. If problems appear, the canary is killed with minimal blast radius. Named after the canary in the coal mine — an early warning system.</aside>
+                <h3>Controlled Risk with Gradual Traffic Shifting</h3>
+                <aside class="notes">Canary deployments route a small percentage of traffic to the new version. If metrics are healthy, traffic increases. If problems appear, the canary is killed with minimal blast radius.</aside>
             </section>
 
             <!-- Slide 13: Canary Concept and Traffic Splitting -->
@@ -365,84 +347,61 @@ spec:
                         </ul>
                     </div>
                 </div>
-                <aside class="notes">The canary pattern is about controlled risk. Instead of exposing all users to a new version at once, you start with a small percentage and watch closely. The key is having good observability — you need real-time metrics to make promotion or rollback decisions. Without metrics, canary deployments are just slow rolling updates.</aside>
+                <aside class="notes">Start with a small percentage of traffic and watch closely. Good observability is essential -- without metrics, canary deployments are just slow rolling updates.</aside>
             </section>
 
             <!-- Slide 14: Manual Canary — Stable Deployment -->
             <section>
                 <h2>&#128295; Manual Canary: Stable Deployment</h2>
                 <h4>Stable (4 replicas)</h4>
-                <pre><code class="language-yaml">apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: api-stable
+                <pre><code class="language-yaml"># Deployment: api-stable
 spec:
   replicas: 4
   selector:
-    matchLabels:
-      app: api-server
-      track: stable
+    matchLabels: { app: api-server, track: stable }
   template:
     metadata:
-      labels:
-        app: api-server
-        track: stable</code></pre>
+      labels: { app: api-server, track: stable }
+    # ... container spec ...</code></pre>
                 <div class="highlight-box">
-                    <strong>The Service selects on <code>app: api-server</code></strong>, which matches both stable and canary pods. Traffic is split proportionally by pod count.
+                    <strong>The Service selects on <code>app: api-server</code></strong>, matching both stable and canary pods. Traffic splits proportionally by pod count.
                 </div>
-                <aside class="notes">The simplest canary approach uses two Deployments behind one Service. The Service selects on app: api-server, which matches both stable and canary pods. To promote, scale up canary and scale down stable. To abort, delete the canary Deployment.</aside>
+                <aside class="notes">Two Deployments behind one Service. To promote, scale up canary and scale down stable. To abort, delete the canary Deployment.</aside>
             </section>
 
             <!-- Slide 14b: Manual Canary — Canary Deployment -->
             <section>
                 <h2>&#128295; Manual Canary: Canary Deployment</h2>
                 <h4>Canary (1 replica)</h4>
-                <pre><code class="language-yaml">apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: api-canary
+                <pre><code class="language-yaml"># Deployment: api-canary
 spec:
-  replicas: 1
+  replicas: 1              # ~20% traffic (1 of 5 total pods)
   selector:
-    matchLabels:
-      app: api-server
-      track: canary
+    matchLabels: { app: api-server, track: canary }
   template:
     metadata:
-      labels:
-        app: api-server
-        track: canary</code></pre>
+      labels: { app: api-server, track: canary }
+    # ... same container spec, different image tag ...</code></pre>
                 <div class="highlight-box warning fragment fade-up">
                     <strong>Limitation:</strong> Traffic split is tied to pod ratio (1/5 = 20%). For finer-grained control (e.g., 5%), you need ingress-level traffic splitting.
                 </div>
-                <aside class="notes">Traffic split is proportional to pod count — with 4 stable and 1 canary, about 20% goes to the canary. This is crude but works without any extra tooling.</aside>
+                <aside class="notes">With 4 stable and 1 canary, about 20% of traffic goes to the canary. Crude but works without extra tooling.</aside>
             </section>
 
             <!-- Slide 15: Canary with Ingress Annotations -->
             <section>
                 <h2>&#128736;&#65039; Canary with NGINX Ingress Annotations</h2>
-                <pre><code class="language-yaml"># Canary Ingress — references same host as primary Ingress
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+                <pre><code class="language-yaml"># Canary Ingress — references same host as primary
 metadata:
-  name: api-ingress-canary
   annotations:
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "10"
-    # Also available: canary-by-header, canary-by-cookie
+    # Also: canary-by-header, canary-by-cookie
 spec:
   rules:
     - host: api.example.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: api-canary
-                port:
-                  number: 80</code></pre>
-                <aside class="notes">NGINX Ingress Controller supports canary annotations natively. The canary-weight annotation sends a precise percentage of traffic to the canary backend. You can also use canary-by-header to route specific users or canary-by-cookie for session-based routing. This gives much finer control than pod-ratio canaries — you can send just 1% of traffic to the canary regardless of replica count.</aside>
+      # ... paths route to api-canary Service</code></pre>
+                <aside class="notes">NGINX Ingress supports canary annotations natively. canary-weight sends a precise percentage to the canary. canary-by-header routes specific users; canary-by-cookie enables session-based routing. Much finer control than pod-ratio canaries.</aside>
             </section>
 
             <!-- Slide 16: Progressive Delivery — Argo Rollouts -->
@@ -468,7 +427,7 @@ spec:
                 <div class="highlight-box">
                     <strong>Argo Rollouts</strong> replaces Deployments with a custom <code>Rollout</code> CRD. It provides built-in canary steps, analysis templates, and service mesh integration.
                 </div>
-                <aside class="notes">Argo Rollouts provides a custom Rollout resource with built-in canary steps, analysis templates, and integration with various service meshes. It integrates with Prometheus for metric-driven promotion decisions.</aside>
+                <aside class="notes">Argo Rollouts replaces Deployments with a Rollout CRD providing built-in canary steps and Prometheus integration for metric-driven promotions.</aside>
             </section>
 
             <!-- Slide 16b: Progressive Delivery — Flagger -->
@@ -496,32 +455,27 @@ spec:
                 <div class="key-point fragment fade-up">
                     <strong>Key difference:</strong> Flagger wraps <em>existing</em> Deployments and automates canary analysis based on metrics. No CRD replacement needed.
                 </div>
-                <aside class="notes">Flagger takes a different approach from Argo Rollouts — it watches standard Deployments and automatically manages canary progression based on metrics. Both tools integrate with Prometheus for metric-driven promotion decisions.</aside>
+                <aside class="notes">Flagger watches standard Deployments and automates canary progression based on metrics. No CRD replacement needed -- it wraps existing resources.</aside>
             </section>
 
             <!-- Slide 17: Section — Advanced Strategies -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128161; Advanced Strategies</h2>
                 <h3>A/B Testing, Shadow Launches &amp; Feature Flags</h3>
-                <aside class="notes">Beyond the core deployment strategies, there are several advanced patterns that give you even more control over how users experience new code. These techniques are often used together with the deployment strategies we've already covered.</aside>
+                <aside class="notes">Advanced patterns for more control over how users experience new code. Often combined with the core strategies covered earlier.</aside>
             </section>
 
             <!-- Slide 18: A/B Testing with Header-Based Routing -->
             <section>
                 <h2>&#128300; A/B Testing with Header-Based Routing</h2>
-                <pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
-kind: Ingress
+                <pre><code class="language-yaml"># NGINX Ingress: header-based routing
 metadata:
-  name: api-ab-test
   annotations:
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-by-header: "X-Test-Group"
     nginx.ingress.kubernetes.io/canary-by-header-value: "experiment-b"
 ---
-# Gateway API equivalent
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata: { name: api-ab-route }
+# Gateway API: header match
 spec:
   rules:
     - matches:
@@ -531,7 +485,7 @@ spec:
         - { name: api-experiment-b, port: 80 }
     - backendRefs:
         - { name: api-control, port: 80 }</code></pre>
-                <aside class="notes">Tip: Route testers or beta users to the experimental version using custom headers set by a load balancer upstream. A/B testing differs from canary in intent. Canary validates operational health — error rates and latency. A/B testing validates business outcomes — conversion rates and user engagement. Header-based routing lets you deterministically route specific users to a specific version, which is essential for statistically valid experiments. The upstream application or CDN sets the header based on user segmentation.</aside>
+                <aside class="notes">A/B testing differs from canary in intent. Canary validates operational health (error rates, latency). A/B validates business outcomes (conversion, engagement). Header-based routing deterministically routes specific users to a version.</aside>
             </section>
 
             <!-- Slide 19: Shadow / Dark Launches -->
@@ -539,28 +493,21 @@ spec:
                 <h2>&#128065;&#65039; Shadow / Dark Launches</h2>
                 <div class="concept-box">
                     <h4>Traffic Mirroring</h4>
-                    <p>Duplicate production traffic to the new version without affecting responses. The shadow version processes requests but its responses are discarded.</p>
+                    <p>Duplicate live traffic to the new version. The shadow processes requests but its responses are discarded.</p>
                 </div>
-                <pre><code class="language-yaml"># Istio traffic mirroring example
-apiVersion: networking.istio.io/v1beta1
-kind: VirtualService
-metadata:
-  name: api-server
+                <pre><code class="language-yaml"># Istio VirtualService — traffic mirroring
 spec:
-  hosts:
-    - api-server
   http:
     - route:
-        - destination:
-            host: api-stable
+        - destination: { host: api-stable }
       mirror:
         host: api-shadow
       mirrorPercentage:
         value: 100.0</code></pre>
                 <div class="highlight-box success fragment fade-up">
-                    <strong>Zero risk to users:</strong> Shadow receives real traffic patterns but responses go nowhere. Ideal for validating performance, correctness, and resource consumption before any user exposure.
+                    <strong>Zero risk to users:</strong> Shadow receives real traffic patterns but responses are discarded. Validates performance and correctness before any user exposure.
                 </div>
-                <aside class="notes">Shadow launches are the safest way to test with production traffic. The new version sees real request patterns, real data shapes, and real load. You can compare response times, error rates, and even response bodies between the stable and shadow versions. This is particularly valuable for database migration testing or API refactoring where you want to verify correctness without user impact. Istio makes this straightforward with its mirror configuration.</aside>
+                <aside class="notes">The new version sees real request patterns and load. Compare response times and error rates between stable and shadow. Valuable for migration testing or API refactoring without user impact.</aside>
             </section>
 
             <!-- Slide 20: Feature Flags vs Deployment Strategies -->
@@ -589,16 +536,16 @@ spec:
                     </div>
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>Best practice:</strong> Combine both. Use deployment strategies for safe infrastructure changes and feature flags for safe feature activation. Deploy dark (flag off), then enable progressively.
+                    <strong>Recommended pattern:</strong> Combine both. Use deployment strategies for infrastructure changes and feature flags for feature activation. Deploy dark (flag off), then enable progressively.
                 </div>
-                <aside class="notes">This is not an either/or choice. The most resilient systems use both. Deploy the new code with features behind flags. The deployment strategy handles the infrastructure risk — will the new binary run correctly? Feature flags handle the product risk — will users respond well to the new feature? This separation lets you deploy frequently with low risk and decouple deployment from release.</aside>
+                <aside class="notes">Not either/or. Deployment strategies handle infrastructure risk; feature flags handle product risk. This separation decouples deployment from release.</aside>
             </section>
 
             <!-- Slide 21: Section — Deployment Safety -->
             <section data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)" class="section-divider">
                 <h2>&#128737;&#65039; Deployment Safety</h2>
-                <h3>Guardrails for Production Releases</h3>
-                <aside class="notes">No matter which deployment strategy you choose, you need safety mechanisms to prevent bad deployments from causing outages. Let's look at the tools Kubernetes provides to make deployments safer.</aside>
+                <h3>Guardrails for Safe Releases</h3>
+                <aside class="notes">Regardless of strategy, you need safety mechanisms to prevent bad deployments from causing outages.</aside>
             </section>
 
             <!-- Slide 22: Pod Disruption Budgets -->
@@ -626,7 +573,7 @@ spec:
                 <div class="key-point fragment fade-up">
                     <strong>During deployments:</strong> PDBs interact with rolling updates. A PDB of <code>minAvailable: 3</code> on a 4-replica Deployment effectively forces <code>maxUnavailable: 1</code>, regardless of the Deployment's own strategy configuration.
                 </div>
-                <aside class="notes">PDBs are essential for production workloads. During a rolling update, the Deployment controller respects PDBs. But PDBs really shine during node maintenance — kubectl drain will refuse to evict pods if doing so would violate the PDB. For EKS managed node groups, PDBs prevent the cluster autoscaler from being too aggressive. Always define PDBs for your critical services.</aside>
+                <aside class="notes">The Deployment controller respects PDBs during rolling updates. kubectl drain refuses to evict pods if it would violate the PDB. On EKS, PDBs prevent the cluster autoscaler from being too aggressive. Define PDBs for critical services.</aside>
             </section>
 
             <!-- Slide 23: Deployment Conditions and Failure Detection -->
@@ -650,7 +597,7 @@ kubectl get deployment api-server -o json | \
                 <div class="highlight-box danger fragment fade-up">
                     <strong>Stuck rollouts:</strong> If a new pod fails readiness probes repeatedly, the rollout stalls. <code>progressDeadlineSeconds</code> marks it as failed after the deadline, enabling automated alerting and rollback.
                 </div>
-                <aside class="notes">progressDeadlineSeconds is your safety net for stuck rollouts. Without it, a broken deployment can stall indefinitely with some pods running the old version and some pods crash-looping on the new version. The Progressing condition switches to False after the deadline, which you can use as a trigger for automated rollback in your CI/CD pipeline. minReadySeconds prevents false positives — a pod that starts and immediately crashes won't count as progress.</aside>
+                <aside class="notes">Without progressDeadlineSeconds, a broken deployment can stall indefinitely. The Progressing condition switches to False after the deadline, triggering automated rollback in CI/CD. minReadySeconds prevents false positives from pods that crash shortly after starting.</aside>
             </section>
 
             <!-- Slide 24: CI/CD Pipeline Integration Patterns -->
@@ -658,7 +605,7 @@ kubectl get deployment api-server -o json | \
                 <h2>&#128640; CI/CD Pipeline Integration Patterns</h2>
                 <div class="concept-box">
                     <h4>Deployment Pipeline Flow</h4>
-                    <p>Build &rarr; Test &rarr; Image Push &rarr; Deploy to Staging &rarr; Integration Tests &rarr; Deploy to Production &rarr; Verify &rarr; Promote or Rollback</p>
+                    <p>Build &rarr; Test &rarr; Image Push &rarr; Deploy to Staging &rarr; Integration Tests &rarr; Deploy &rarr; Verify &rarr; Promote or Rollback</p>
                 </div>
                 <pre><code class="language-bash"># GitOps deployment pattern (ArgoCD / Flux)
 # 1. Update image tag in Git repo
@@ -678,7 +625,7 @@ curl -sf https://api.example.com/healthz || \
                 <div class="key-point fragment fade-up">
                     <strong>GitOps principle:</strong> Git is the single source of truth. All deployment changes go through Git, enabling audit trails, approvals, and automated rollback to any previous commit.
                 </div>
-                <aside class="notes">CI/CD integration is where deployment strategies come to life. In a GitOps model, you never kubectl apply directly — you update manifests in Git and let ArgoCD or Flux reconcile. The pipeline includes automated verification: rollout status checks, smoke tests, and metric validation. If any step fails, the pipeline triggers a rollback. For canary deployments with Argo Rollouts, the analysis step is built into the Rollout resource itself.</aside>
+                <aside class="notes">In GitOps, update manifests in Git and let ArgoCD or Flux reconcile. The pipeline includes rollout status checks, smoke tests, and metric validation. If any step fails, trigger a rollback.</aside>
             </section>
 
             <!-- Slide 25: EKS Deployment Best Practices -->
@@ -713,7 +660,7 @@ curl -sf https://api.example.com/healthz || \
                 <div class="highlight-box fragment fade-up">
                     <strong>EKS tip:</strong> When using ALB Ingress Controller for canary deployments, configure <code>alb.ingress.kubernetes.io/actions.weighted-routing</code> for precise traffic splitting at the load balancer level.
                 </div>
-                <aside class="notes">EKS adds some specific considerations. Managed node groups handle node updates, but you need PDBs to ensure pods are drained safely. ECR image scanning should be part of your CI/CD gate — block deployments if critical vulnerabilities are found. Karpenter is valuable during deployments because canary and blue-green strategies temporarily need more capacity. For observability during canary, CloudWatch Container Insights and X-Ray give you the metrics needed for promotion decisions.</aside>
+                <aside class="notes">Managed node groups handle node updates but need PDBs for safe draining. ECR scanning should gate CI/CD. Karpenter helps with temporary capacity needs during canary and blue-green deployments.</aside>
             </section>
 
             <!-- Slide 26: Strategy Comparison -->
@@ -770,18 +717,18 @@ curl -sf https://api.example.com/healthz || \
                 <div class="key-point fragment fade-up">
                     <strong>Choosing a strategy:</strong> Start with rolling updates. Add canary for critical services. Use blue-green when instant rollback is non-negotiable. Layer in feature flags for granular control.
                 </div>
-                <aside class="notes">This comparison helps you choose the right strategy for each service. Not every service needs canary or blue-green. Low-risk internal services are fine with rolling updates. Customer-facing APIs with strict SLAs benefit from blue-green or canary. Reserve shadow launches for major refactoring or migration projects where you need to validate with real traffic before any user exposure.</aside>
+                <aside class="notes">Not every service needs canary or blue-green. Internal services work fine with rolling updates. Customer-facing APIs with strict SLAs benefit from blue-green or canary.</aside>
             </section>
 
             <!-- Slide 27: Module Summary -->
             <section>
                 <h2>&#128203; Module Summary</h2>
                 <ul>
-                    <li>Rolling updates provide zero-downtime deployments with tunable maxSurge and maxUnavailable</li>
-                    <li>Blue-green deployments enable instant rollback by switching Service selectors</li>
-                    <li>Canary deployments reduce blast radius with gradual traffic shifting and metric validation</li>
-                    <li>Pod Disruption Budgets protect availability during voluntary disruptions</li>
-                    <li>progressDeadlineSeconds detects stuck rollouts and enables automated recovery</li>
+                    <li>Rolling updates: zero-downtime with tunable maxSurge/maxUnavailable</li>
+                    <li>Blue-green: instant rollback via Service selector switching</li>
+                    <li>Canary: reduced blast radius with gradual traffic shifting</li>
+                    <li>PDBs protect availability during voluntary disruptions</li>
+                    <li>progressDeadlineSeconds catches stuck rollouts</li>
                 </ul>
             </section>
 
@@ -800,22 +747,22 @@ curl -sf https://api.example.com/healthz || \
                 <div class="highlight-box" style="margin-top: 20px;">
                     <strong>Duration:</strong> ~45 minutes
                 </div>
-                <aside class="notes">This lab covers the practical implementation of all major strategies discussed. Participants will deploy applications using rolling updates, blue-green, and canary patterns. The rollback exercise is intentionally designed to simulate a production incident. The PDB exercise demonstrates how disruption budgets interact with node maintenance and rolling updates.</aside>
+                <aside class="notes">Hands-on with rolling updates, blue-green, and canary patterns. The rollback exercise simulates an incident. The PDB exercise shows how disruption budgets interact with node maintenance.</aside>
             </section>
 
             <!-- Slide 29: Key Takeaways -->
             <section>
                 <h2>&#127919; Key Takeaways</h2>
                 <div class="key-point fragment fade-up">
-                    <strong>1. Rolling updates are your baseline.</strong> Tune <code>maxSurge</code>, <code>maxUnavailable</code>, and <code>minReadySeconds</code> for your availability needs. Add canary for critical services.
+                    <strong>1. Rolling updates are the baseline.</strong> Tune <code>maxSurge</code>, <code>maxUnavailable</code>, and <code>minReadySeconds</code>. Add canary for critical services.
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>2. Blue-green provides instant rollback.</strong> Worth the 2x resource cost for critical services. Canary reduces blast radius with metric-driven promotions via Argo Rollouts or Flagger.
+                    <strong>2. Blue-green provides instant rollback.</strong> Worth 2x resource cost for critical services. Canary reduces blast radius with metric-driven promotions.
                 </div>
                 <div class="key-point fragment fade-up">
-                    <strong>3. Safety mechanisms are not optional.</strong> PDBs, <code>progressDeadlineSeconds</code>, readiness probes, and <code>revisionHistoryLimit</code> are essential. Combine strategies with feature flags to decouple deployment from release risk.
+                    <strong>3. Safety mechanisms are not optional.</strong> PDBs, <code>progressDeadlineSeconds</code>, readiness probes, and <code>revisionHistoryLimit</code> should be on every Deployment. Combine with feature flags to decouple deployment from release.
                 </div>
-                <aside class="notes">Five key takeaways. Start simple with rolling updates and add complexity only when the risk profile demands it. Safety mechanisms should be on every Deployment regardless of strategy. And the combination of deployment strategies with feature flags gives you the most resilient release process possible.</aside>
+                <aside class="notes">Start simple with rolling updates. Add complexity only when the risk profile demands it. Safety mechanisms belong on every Deployment regardless of strategy.</aside>
             </section>
 
             <!-- Slide 29: Questions -->
@@ -823,7 +770,7 @@ curl -sf https://api.example.com/healthz || \
                 <h2>&#10067; Questions &amp; Discussion</h2>
                 <p>Module 11: Deployment Strategies</p>
                 <p style="font-size: 0.9em; margin-top: 30px;">Up Next: Module 12 &mdash; Helm &amp; Templating</p>
-                <aside class="notes">Open the floor for questions. Common discussion topics include: how to choose between canary and blue-green for specific services, integrating deployment strategies with existing CI/CD pipelines, and how to handle database migrations across deployment strategies.</aside>
+                <aside class="notes">Open for questions. Common topics: choosing between canary and blue-green, CI/CD integration, and database migrations across strategies.</aside>
             </section>
 
         </div>
