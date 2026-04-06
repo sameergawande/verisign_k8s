@@ -390,9 +390,10 @@ helm pull bitnami/postgresql --version 12.5.0 --untar</code></pre>
                 <aside class="notes">Repos are HTTP servers hosting an index.yaml and chart tarballs. Always pin chart versions to avoid unexpected upgrades.</aside>
             </section>
 
-            <!-- Slide 18: helm template -->
+            <!-- Slide 18: Debugging & Validation -->
             <section>
-                <h2>Debugging: <code>helm template</code></h2>
+                <h2>Debugging &amp; Validation</h2>
+                <h4>helm template</h4>
                 <pre><code class="language-bash"># Render templates locally
 helm template my-release ./mychart
 
@@ -402,15 +403,7 @@ helm template my-release ./mychart \
 
 # Show only a specific template
 helm template my-release ./mychart -s templates/deployment.yaml</code></pre>
-                <div class="highlight-box fragment">
-                    <strong>Key development tool:</strong> Renders locally without touching the cluster. Use in CI to catch errors early.
-                </div>
-                <aside class="notes">Renders locally without cluster access. Essential for CI pipelines.</aside>
-            </section>
-
-            <!-- Slide 18b: helm lint -->
-            <section>
-                <h2>Validation: <code>helm lint</code></h2>
+                <h4>helm lint</h4>
                 <pre><code class="language-bash"># Check chart for issues
 helm lint ./mychart
 
@@ -419,7 +412,7 @@ helm lint ./mychart -f env-values.yaml --strict</code></pre>
                 <div class="highlight-box fragment">
                     <strong>Use in CI:</strong> <code>helm lint</code> + <code>helm template</code> form the first line of defense in chart validation.
                 </div>
-                <aside class="notes">lint checks structure and best practices. Pair with helm template for full validation.</aside>
+                <aside class="notes">helm template renders locally without cluster access. helm lint checks structure and best practices. Pair them for full validation in CI.</aside>
             </section>
 
             <!-- Slide 19: Release Management and History -->
@@ -525,13 +518,14 @@ cache:  # uses alias
                 <aside class="notes">Dependencies download into charts/ as .tgz files. Subchart values are scoped under the dependency name.</aside>
             </section>
 
-            <!-- Slide 23: Creating Library Charts -->
+            <!-- Slide 23: Library Charts -->
             <section>
-                <h2>Creating Library Charts</h2>
+                <h2>Library Charts</h2>
                 <div class="concept-box">
                     <h4>What are Library Charts?</h4>
                     <p>Charts that provide <strong>only named templates</strong> &mdash; no rendered manifests. They define common patterns shared across multiple application charts.</p>
                 </div>
+                <h4>Creating</h4>
                 <pre><code class="language-yaml"># Chart.yaml — type: library (no rendered manifests)
 apiVersion: v2
 name: common-lib
@@ -542,12 +536,7 @@ type: library
 {{- define "common.deployment" -}}
 # ... standard Deployment with shared labels, security context, etc.
 {{- end -}}</code></pre>
-                <aside class="notes">type: library distinguishes it from application charts. Define patterns once, consume everywhere.</aside>
-            </section>
-
-            <!-- Slide 23b: Consuming Library Charts -->
-            <section>
-                <h2>Consuming Library Charts</h2>
+                <h4>Consuming</h4>
                 <pre><code class="language-yaml"># Chart.yaml dependency
 dependencies:
   - name: common-lib
@@ -559,37 +548,27 @@ dependencies:
                 <div class="highlight-box success">
                     <strong>Use case:</strong> Enforce org-wide standards for labels, security contexts, and resource structures across services.
                 </div>
-                <div class="key-point fragment">
-                    <strong>Example:</strong> Bitnami's <code>common</code> chart is a well-known library chart that provides reusable templates for labels, names, and common Kubernetes patterns.
-                </div>
-                <aside class="notes">Bitnami's common chart is a well-known library chart example.</aside>
+                <aside class="notes">type: library distinguishes it from application charts. Define patterns once, consume everywhere. Bitnami's common chart is a well-known example.</aside>
             </section>
 
-            <!-- Slide 24: Helm Testing — Test Pod -->
+            <!-- Slide 24: Helm Testing -->
             <section>
-                <h2>Helm Testing: Test Definition</h2>
+                <h2>Helm Testing</h2>
+                <h4>Test Definition</h4>
                 <pre><code class="language-yaml"># templates/tests/test-connection.yaml
 metadata:
   name: {{ .Release.Name }}-test-connection
   annotations:
     "helm.sh/hook": test
 # ... Pod spec that verifies connectivity</code></pre>
-                <div class="highlight-box">
-                    <strong>Helm tests</strong> are Pods with the <code>helm.sh/hook: test</code> annotation. They verify your release is functioning correctly after install or upgrade.
-                </div>
-                <aside class="notes">Tests are Pods with helm.sh/hook: test. They verify connectivity, data, or run integration checks.</aside>
-            </section>
-
-            <!-- Slide 24b: Helm Testing — Running Tests -->
-            <section>
-                <h2>Helm Testing: Running Tests</h2>
+                <h4>Running Tests</h4>
                 <pre><code class="language-bash"># Run tests after install/upgrade
 helm test my-release
 helm test my-release --logs  # include pod logs in output</code></pre>
                 <div class="key-point fragment">
                     <strong>CI/CD integration:</strong> Include <code>helm test</code> in your pipeline after every deployment to catch issues before they reach users.
                 </div>
-                <aside class="notes">Tests run as pods in the cluster, verifying actual connectivity and functionality.</aside>
+                <aside class="notes">Tests are Pods with helm.sh/hook: test annotation. Run helm test after install/upgrade to verify connectivity and functionality.</aside>
             </section>
 
             <!-- Slide 25: OCI Registry Support -->

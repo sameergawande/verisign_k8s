@@ -798,14 +798,16 @@ kubectl describe pvc data-postgres-0 | grep Conditions</code></pre>
                 <aside class="notes">EBS supports online expansion — no pod restart needed. Volumes can only grow, never shrink. Two stages: cloud provider resizes the block device, then kubelet resizes the filesystem.</aside>
             </section>
 
-            <!-- Slide 31: Volume Snapshots — Creating -->
+            <!-- Slide 31: Volume Snapshots -->
             <section>
-                <h2>&#128248; Volume Snapshots — Create</h2>
+                <h2>&#128248; Volume Snapshots</h2>
+                <h4>VolumeSnapshotClass</h4>
                 <pre><code class="language-yaml"># VolumeSnapshotClass — defines the snapshot provisioner
 kind: VolumeSnapshotClass
 metadata: { name: ebs-snapclass }
 driver: ebs.csi.aws.com
 deletionPolicy: Retain</code></pre>
+                <h4>Create Snapshot</h4>
                 <pre class="fragment fade-up"><code class="language-yaml"># VolumeSnapshot — take a snapshot of a PVC
 kind: VolumeSnapshot
 metadata: { name: postgres-snap-20260313 }
@@ -813,13 +815,8 @@ spec:
   volumeSnapshotClassName: ebs-snapclass
   source:
     persistentVolumeClaimName: data-postgres-0</code></pre>
-                <aside class="notes">Volume snapshots map directly to EBS snapshots on AWS. VolumeSnapshotClass configures how; VolumeSnapshot triggers the actual snapshot.</aside>
-            </section>
-
-            <!-- Slide 31b: Volume Snapshots — Restoring -->
-            <section>
-                <h2>&#128248; Volume Snapshots — Restore</h2>
-                <pre><code class="language-yaml"># Restore from snapshot — create a new PVC with dataSource
+                <h4>Restore from Snapshot</h4>
+                <pre class="fragment fade-up"><code class="language-yaml"># Restore from snapshot — create a new PVC with dataSource
 kind: PersistentVolumeClaim
 metadata: { name: postgres-restored }
 spec:
@@ -830,10 +827,7 @@ spec:
     name: postgres-snap-20260313
     kind: VolumeSnapshot
     apiGroup: snapshot.storage.k8s.io</code></pre>
-                <div class="highlight-box success fragment fade-up">
-                    <strong>Snapshot workflow:</strong> SnapshotClass configures <em>how</em>, VolumeSnapshot triggers <em>when</em>, PVC with <code>dataSource</code> restores <em>from</em> it.
-                </div>
-                <aside class="notes">Useful for pre-upgrade backups, disaster recovery, and cloning environments.</aside>
+                <aside class="notes">Volume snapshots map directly to EBS snapshots on AWS. VolumeSnapshotClass configures how; VolumeSnapshot triggers the actual snapshot. Useful for pre-upgrade backups, disaster recovery, and cloning environments.</aside>
             </section>
 
             <!-- Slide 32: Storage Best Practices for EKS -->

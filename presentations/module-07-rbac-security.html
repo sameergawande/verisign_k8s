@@ -213,10 +213,13 @@
                 <aside class="notes">The separation allows reuse — a single ClusterRole can be bound to different users in different namespaces via multiple RoleBindings.</aside>
             </section>
 
-            <!-- Slide 8: Role YAML Example -->
+            <!-- Slide 8: Role vs ClusterRole -->
             <section>
-                <h2>&#128196; Role — Namespace-Scoped Permissions</h2>
-                <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+                <h2>Role vs ClusterRole</h2>
+                <div style="display:flex;gap:2rem">
+                    <div>
+                        <h4>Role (Namespace)</h4>
+                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   namespace: development
@@ -228,13 +231,10 @@ rules:
 - apiGroups: [""]
   resources: ["pods/log"]
   verbs: ["get"]</code></pre>
-                <aside class="notes">This Role only grants permissions within the development namespace. Empty string apiGroup = core API group. Sub-resources like pods/log are also supported.</aside>
-            </section>
-
-            <!-- Slide 9: ClusterRole YAML Example -->
-            <section>
-                <h2>&#127760; ClusterRole — Cluster-Wide Permissions</h2>
-                <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+                    </div>
+                    <div>
+                        <h4>ClusterRole (Cluster-Wide)</h4>
+                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: node-viewer
@@ -247,13 +247,18 @@ rules:
   verbs: ["get", "list"]
 - nonResourceURLs: ["/healthz", "/readyz"]
   verbs: ["get"]</code></pre>
-                <aside class="notes">ClusterRoles can reference nonResourceURLs (Roles cannot). They also serve as reusable templates bound per-namespace via RoleBindings.</aside>
+                    </div>
+                </div>
+                <aside class="notes">Roles are namespace-scoped. ClusterRoles can reference nonResourceURLs (Roles cannot) and serve as reusable templates bound per-namespace via RoleBindings.</aside>
             </section>
 
-            <!-- Slide 10: RoleBinding YAML Example -->
+            <!-- Slide 10: RoleBinding vs ClusterRoleBinding -->
             <section>
-                <h2>&#128279; RoleBinding — Granting Namespace Access</h2>
-                <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+                <h2>RoleBinding vs ClusterRoleBinding</h2>
+                <div style="display:flex;gap:2rem">
+                    <div>
+                        <h4>RoleBinding</h4>
+                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: read-pods-dev
@@ -265,16 +270,10 @@ roleRef:
   kind: Role
   name: pod-reader
   apiGroup: rbac.authorization.k8s.io</code></pre>
-                <div class="key-point">
-                    <strong>Subjects</strong> can be Users, Groups, or ServiceAccounts. <strong>roleRef</strong> can point to a Role or ClusterRole.
-                </div>
-                <aside class="notes">A RoleBinding can reference a ClusterRole — granting its permissions only within the RoleBinding's namespace. Define once, reuse across namespaces.</aside>
-            </section>
-
-            <!-- Slide 11: ClusterRoleBinding YAML Example -->
-            <section>
-                <h2>&#127758; ClusterRoleBinding — Cluster-Wide Access</h2>
-                <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+                    </div>
+                    <div>
+                        <h4>ClusterRoleBinding</h4>
+                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: cluster-node-viewers
@@ -289,7 +288,12 @@ roleRef:
   kind: ClusterRole
   name: node-viewer
   apiGroup: rbac.authorization.k8s.io</code></pre>
-                <aside class="notes">ClusterRoleBindings grant permissions across ALL namespaces — use sparingly. A ClusterRoleBinding to cluster-admin gives full cluster access.</aside>
+                    </div>
+                </div>
+                <div class="key-point">
+                    <strong>Subjects</strong> can be Users, Groups, or ServiceAccounts. <strong>roleRef</strong> can point to a Role or ClusterRole. ClusterRoleBindings grant permissions across ALL namespaces -- use sparingly.
+                </div>
+                <aside class="notes">A RoleBinding can reference a ClusterRole — granting its permissions only within the RoleBinding's namespace. Define once, reuse across namespaces. A ClusterRoleBinding to cluster-admin gives full cluster access.</aside>
             </section>
 
             <!-- Slide 12: Verbs and Resources Matrix -->
@@ -646,12 +650,7 @@ ENTRYPOINT ["/app"]</code></pre>
                 <div class="key-point">
                     <strong>Recommendation:</strong> Target <strong>Restricted</strong> for application workloads. Use <strong>Baseline</strong> as a transition step. Reserve <strong>Privileged</strong> for infrastructure components only.
                 </div>
-                <aside class="notes">Pod Security Standards replace the deprecated PodSecurityPolicy. Most workloads should target Restricted; Baseline is useful during migration. Enforced by the Pod Security Admission controller, covered next.</aside>
-            </section>
-
-            <!-- Slide 23: Pod Security Admission Controller -->
-            <section>
-                <h2>&#128680; Pod Security Admission Controller</h2>
+                <h4>Enforcing via Namespace Labels</h4>
                 <pre><code class="language-yaml">apiVersion: v1
 kind: Namespace
 metadata:
@@ -661,7 +660,7 @@ metadata:
     pod-security.kubernetes.io/enforce-version: latest
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted</code></pre>
-                <aside class="notes">enforce rejects violations; audit/warn logs them without rejecting. Migration path: warn, then audit, then enforce. Built into K8s since 1.25 — namespace labels only, no install needed.</aside>
+                <aside class="notes">Pod Security Standards replace the deprecated PodSecurityPolicy. Most workloads should target Restricted; Baseline is useful during migration. enforce rejects violations; audit/warn logs them without rejecting. Migration path: warn, then audit, then enforce. Built into K8s since 1.25 — namespace labels only, no install needed.</aside>
             </section>
 
             <!-- Slide 24: Section Divider — Security Best Practices -->

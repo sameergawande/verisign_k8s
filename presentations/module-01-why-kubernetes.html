@@ -451,7 +451,9 @@ spec:
             <!-- Deployments -->
             <section>
                 <h2>&#9881;&#65039; Deployments — Desired State Management</h2>
-                <pre><code class="language-yaml">kind: Deployment
+                <div class="two-columns">
+                    <div>
+                        <pre><code class="language-yaml">kind: Deployment
 spec:
   replicas: 3
   strategy:
@@ -461,6 +463,17 @@ spec:
       containers:
       - image: ecr-repo/myapp:v1.2.3
         # ... ports, resources, probes</code></pre>
+                    </div>
+                    <div>
+                        <h4>What Deployments provide:</h4>
+                        <ul>
+                            <li class="fragment fade-up"><strong>Desired state</strong> — declare replica count and Kubernetes reconciles continuously</li>
+                            <li class="fragment fade-up"><strong>Rolling updates</strong> — new pods start before old ones terminate (<code>maxUnavailable: 0</code>)</li>
+                            <li class="fragment fade-up"><strong>Rollback</strong> — instantly revert to a previous revision with <code>kubectl rollout undo</code></li>
+                            <li class="fragment fade-up"><strong>Self-healing</strong> — failed pods are automatically replaced to match the desired count</li>
+                        </ul>
+                    </div>
+                </div>
                 <aside class="notes">You declare "I want 3 healthy copies" and Kubernetes makes it happen. replicas controls availability, strategy controls update behavior (maxUnavailable: 0 = zero-downtime deploys). The controller continuously reconciles actual state to desired state.</aside>
             </section>
 
@@ -727,7 +740,9 @@ kubectl apply -k k8s/overlays/prod/</code></pre>
             <!-- Graceful Shutdown Example -->
             <section>
                 <h2>&#128683; Factor IX Deep Dive — Disposability</h2>
-                <pre><code class="language-yaml">spec:
+                <div class="two-columns">
+                    <div>
+                        <pre><code class="language-yaml">spec:
   terminationGracePeriodSeconds: 30
   containers:
   - name: myapp
@@ -737,6 +752,17 @@ kubectl apply -k k8s/overlays/prod/</code></pre>
           command: ["/bin/sh", "-c", "sleep 5"]
     # 1. Removed from endpoints → preStop runs → SIGTERM
     # 2. Wait terminationGracePeriodSeconds → SIGKILL</code></pre>
+                    </div>
+                    <div>
+                        <h4>Graceful shutdown sequence:</h4>
+                        <ul>
+                            <li class="fragment fade-up">Pod is removed from Service endpoints — no new traffic is routed</li>
+                            <li class="fragment fade-up"><strong>preStop hook</strong> runs first — the <code>sleep 5</code> allows in-flight requests to drain</li>
+                            <li class="fragment fade-up"><strong>SIGTERM</strong> is sent to the container process — the app should finish work and exit</li>
+                            <li class="fragment fade-up">After <code>terminationGracePeriodSeconds</code>, Kubernetes sends <strong>SIGKILL</strong> to force termination</li>
+                        </ul>
+                    </div>
+                </div>
                 <aside class="notes">The preStop sleep gives kube-proxy and ingress controllers time to update routing before the pod stops accepting traffic. Not handling SIGTERM means dropped in-flight requests.</aside>
             </section>
 

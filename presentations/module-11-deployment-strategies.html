@@ -250,11 +250,13 @@ kubectl annotate deployment/api-server \
                 <aside class="notes">Blue-green is the simplest strategy to reason about. The trade-off is resource cost -- two full copies running simultaneously. Both blue and green must work with the same database schema.</aside>
             </section>
 
-            <!-- Slide 10: Blue-Green — Blue Deployment -->
+            <!-- Slide 10: Blue-Green Setup (combined) -->
             <section>
-                <h2>&#128280; Blue-Green: Deployment Setup</h2>
-                <h4>Blue Deployment (current)</h4>
-                <pre><code class="language-yaml"># Deployment: api-blue (current version)
+                <h2>&#128280; Blue-Green Setup</h2>
+                <div class="two-column">
+                    <div class="card">
+                        <h4>Blue Deployment</h4>
+                        <pre><code class="language-yaml"># Deployment: api-blue (current version)
 spec:
   replicas: 4
   selector:
@@ -263,17 +265,13 @@ spec:
     metadata:
       labels: { app: api-server, slot: blue, version: v2.0.0 }
     # ... container spec ...</code></pre>
-                <div class="highlight-box">
-                    <strong>Pattern:</strong> Both Deployments share <code>app: api-server</code>. The <code>slot</code> label differentiates them for the Service selector.
-                </div>
-                <aside class="notes">Two identical Deployments with different slot labels (blue or green). The green Deployment is deployed and validated before switching traffic.</aside>
-            </section>
-
-            <!-- Slide 10b: Blue-Green — Service Switch -->
-            <section>
-                <h2>&#128280; Blue-Green: Service Label Switching</h2>
-                <h4>Service (the traffic switch)</h4>
-                <pre><code class="language-yaml">apiVersion: v1
+                        <div class="highlight-box">
+                            <strong>Pattern:</strong> Both Deployments share <code>app: api-server</code>. The <code>slot</code> label differentiates them.
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h4>Service Switch</h4>
+                        <pre><code class="language-yaml">apiVersion: v1
 kind: Service
 metadata:
   name: api-server
@@ -284,14 +282,16 @@ spec:
   ports:
     - port: 80
       targetPort: 8080</code></pre>
-                <pre><code class="language-bash"># Atomic cutover
+                        <pre><code class="language-bash"># Atomic cutover
 kubectl patch svc api-server \
   -p '{"spec":{"selector":{"slot":"green"}}}' \
   -n production</code></pre>
-                <div class="key-point fragment fade-up">
-                    <strong>Atomic switch:</strong> Changing the Service selector instantly redirects all new connections to green pods. Existing connections to blue pods drain naturally.
+                    </div>
                 </div>
-                <aside class="notes">The Service is the traffic switch. Patch its selector from blue to green to redirect traffic. To roll back, patch back to blue.</aside>
+                <div class="key-point fragment fade-up">
+                    <strong>Atomic switch:</strong> Changing the Service selector instantly redirects all new connections to green pods. Existing connections drain naturally.
+                </div>
+                <aside class="notes">Two identical Deployments with different slot labels. The Service selector is the traffic switch -- patch it to cut over or roll back.</aside>
             </section>
 
             <!-- Slide 11: Blue-Green with Ingress / Gateway API -->
@@ -350,11 +350,13 @@ spec:
                 <aside class="notes">Start with a small percentage of traffic and watch closely. Good observability is essential -- without metrics, canary deployments are just slow rolling updates.</aside>
             </section>
 
-            <!-- Slide 14: Manual Canary — Stable Deployment -->
+            <!-- Slide 14: Manual Canary Deployments (combined) -->
             <section>
-                <h2>&#128295; Manual Canary: Stable Deployment</h2>
-                <h4>Stable (4 replicas)</h4>
-                <pre><code class="language-yaml"># Deployment: api-stable
+                <h2>&#128295; Manual Canary Deployments</h2>
+                <div class="two-column">
+                    <div class="card">
+                        <h4>Stable (4 replicas)</h4>
+                        <pre><code class="language-yaml"># Deployment: api-stable
 spec:
   replicas: 4
   selector:
@@ -363,17 +365,13 @@ spec:
     metadata:
       labels: { app: api-server, track: stable }
     # ... container spec ...</code></pre>
-                <div class="highlight-box">
-                    <strong>The Service selects on <code>app: api-server</code></strong>, matching both stable and canary pods. Traffic splits proportionally by pod count.
-                </div>
-                <aside class="notes">Two Deployments behind one Service. To promote, scale up canary and scale down stable. To abort, delete the canary Deployment.</aside>
-            </section>
-
-            <!-- Slide 14b: Manual Canary — Canary Deployment -->
-            <section>
-                <h2>&#128295; Manual Canary: Canary Deployment</h2>
-                <h4>Canary (1 replica)</h4>
-                <pre><code class="language-yaml"># Deployment: api-canary
+                        <div class="highlight-box">
+                            <strong>The Service selects on <code>app: api-server</code></strong>, matching both stable and canary pods.
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h4>Canary (1 replica)</h4>
+                        <pre><code class="language-yaml"># Deployment: api-canary
 spec:
   replicas: 1              # ~20% traffic (1 of 5 total pods)
   selector:
@@ -381,11 +379,13 @@ spec:
   template:
     metadata:
       labels: { app: api-server, track: canary }
-    # ... same container spec, different image tag ...</code></pre>
-                <div class="highlight-box warning fragment fade-up">
-                    <strong>Limitation:</strong> Traffic split is tied to pod ratio (1/5 = 20%). For finer-grained control (e.g., 5%), you need ingress-level traffic splitting.
+    # ... different image tag ...</code></pre>
+                        <div class="highlight-box warning fragment fade-up">
+                            <strong>Limitation:</strong> Traffic split is tied to pod ratio (1/5 = 20%). For finer control, use ingress-level splitting.
+                        </div>
+                    </div>
                 </div>
-                <aside class="notes">With 4 stable and 1 canary, about 20% of traffic goes to the canary. Crude but works without extra tooling.</aside>
+                <aside class="notes">Two Deployments behind one Service. Traffic splits proportionally by pod count. To promote, scale up canary and scale down stable. To abort, delete the canary Deployment.</aside>
             </section>
 
             <!-- Slide 15: Canary with Ingress Annotations -->

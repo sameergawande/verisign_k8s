@@ -399,9 +399,10 @@ spec:
                 <aside class="notes">Always use autoscaling/v2 (replaced v2beta2). Supports multiple metrics, custom metrics, and behavior policies. With multiple metrics, HPA uses the highest result.</aside>
             </section>
 
-            <!-- Custom Metrics HPA -->
+            <!-- Custom Metrics HPA + Behavior Policies -->
             <section>
-                <h2>&#128202; HPA with Custom Metrics</h2>
+                <h2>&#128202; HPA: Custom Metrics &amp; Behavior Policies</h2>
+                <h4>Custom Metrics</h4>
                 <pre><code class="language-yaml"># Key section: metrics (inside HPA spec)
   metrics:
   - type: Resource          # Standard CPU metric
@@ -416,12 +417,7 @@ spec:
     external:
       metric: { name: sqs_queue_length }
       target: { type: Value, value: "100" }</code></pre>
-                <aside class="notes">Pods type: metric from pods themselves (via Prometheus adapter). External type: metrics from outside the cluster (e.g., SQS queue depth). Requires a custom metrics adapter. Highest replica count across all metrics wins.</aside>
-            </section>
-
-            <!-- Behavior Policies -->
-            <section>
-                <h2>&#9881;&#65039; HPA Behavior Policies</h2>
+                <h4>Behavior Policies</h4>
                 <pre><code class="language-yaml"># Key section: behavior (inside HPA spec)
   behavior:
     scaleUp:
@@ -431,7 +427,7 @@ spec:
       - { type: Pods, value: 10, periodSeconds: 60 }
       selectPolicy: Max
     # scaleDown: ...</code></pre>
-                <aside class="notes">Key pattern: scale UP aggressively, scale DOWN conservatively. Scale-down stabilizationWindowSeconds prevents flapping on bursty workloads.</aside>
+                <aside class="notes">Pods type: metric from pods themselves (via Prometheus adapter). External type: metrics from outside the cluster. Highest replica count across all metrics wins. Key pattern: scale UP aggressively, scale DOWN conservatively.</aside>
             </section>
 
             <!-- Stabilization Windows Explained -->
@@ -573,11 +569,7 @@ $ kubectl get events --field-selector involvedObject.name=myapp-hpa</code></pre>
                         </tr>
                     </tbody>
                 </table>
-                <aside class="notes">Start with Off mode to observe recommendations. Do NOT use VPA Auto mode with HPA on the same CPU/memory metrics — they will conflict.</aside>
-            </section>
-
-            <section>
-                <h2>&#9881;&#65039; VPA Configuration Example</h2>
+                <h4>Example Configuration</h4>
                 <pre class="fragment fade-up"><code class="language-yaml"># Key section: VPA spec
 spec:
   targetRef: { apiVersion: apps/v1, kind: Deployment, name: myapp }
@@ -588,7 +580,7 @@ spec:
     - containerName: myapp
       minAllowed: { cpu: "100m", memory: "128Mi" }
       maxAllowed: { cpu: "2", memory: "4Gi" }</code></pre>
-                <aside class="notes">minAllowed/maxAllowed prevent unreasonable values. You can combine VPA with HPA if HPA uses custom metrics and VPA manages CPU/memory.</aside>
+                <aside class="notes">Start with Off mode to observe recommendations. Do NOT use VPA Auto mode with HPA on the same CPU/memory metrics — they will conflict. minAllowed/maxAllowed prevent unreasonable values.</aside>
             </section>
 
             <!-- VPA + HPA -->
@@ -716,11 +708,7 @@ spec:
                         </tr>
                     </tbody>
                 </table>
-                <aside class="notes">Compare current vs. desired replica counts to understand scaling decisions over time.</aside>
-            </section>
-
-            <section>
-                <h2>&#128202; Prometheus Metrics — PromQL Examples</h2>
+                <h4>PromQL Example</h4>
                 <pre class="fragment fade-up"><code class="language-promql"># CPU utilization as percentage of request
 sum(rate(container_cpu_usage_seconds_total{
   pod=~"myapp.*"}[5m])) by (pod)
@@ -728,7 +716,7 @@ sum(rate(container_cpu_usage_seconds_total{
 sum(kube_pod_container_resource_requests{
   resource="cpu",pod=~"myapp.*"}) by (pod)
 * 100</code></pre>
-                <aside class="notes">This PromQL calculates CPU utilization as a percentage of requests — matching what HPA computes internally.</aside>
+                <aside class="notes">Compare current vs. desired replica counts to understand scaling decisions over time. This PromQL calculates CPU utilization as a percentage of requests — matching what HPA computes internally.</aside>
             </section>
 
             <!-- Best Practices -->

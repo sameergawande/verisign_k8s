@@ -294,8 +294,9 @@ spec:
             </section>
 
             <section>
-                <h2>&#128274; TLS with Manual Certificates</h2>
-                <pre class="fragment fade-up"><code class="language-yaml">kind: Ingress
+                <h2>&#128274; TLS Termination</h2>
+                <h4>Manual Certificate</h4>
+                <pre><code class="language-yaml">kind: Ingress
 # ...
 spec:
   ingressClassName: nginx-external
@@ -305,11 +306,7 @@ spec:
   rules:
   - host: api.example.internal
     # ... routing rules as before</code></pre>
-                <aside class="notes">The tls block references a kubernetes.io/tls Secret with the cert chain and private key. Hosts must match the certificate's SANs. Wildcard certs can cover multiple hosts.</aside>
-            </section>
-
-            <section>
-                <h2>&#9889; ClusterIssuer for Let's Encrypt</h2>
+                <h4>ClusterIssuer (cert-manager)</h4>
                 <pre><code class="language-yaml">apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata: { name: letsencrypt-prod }
@@ -321,11 +318,7 @@ spec:
     solvers:
     - http01:
         ingress: { class: nginx-external }</code></pre>
-                <aside class="notes">cert-manager watches for Ingress resources with its annotation, automatically requests certificates, stores them in the referenced Secret, and handles renewals before expiry.</aside>
-            </section>
-
-            <section>
-                <h2>&#9889; Ingress with Automated TLS</h2>
+                <h4>Automated TLS Ingress</h4>
                 <pre><code class="language-yaml">kind: Ingress
 metadata:
   annotations:
@@ -338,7 +331,7 @@ spec:
   rules:
   - host: api.example.internal
     # ... routing rules as before</code></pre>
-                <aside class="notes">The cluster-issuer annotation triggers automatic certificate provisioning. cert-manager creates and manages the referenced Secret.</aside>
+                <aside class="notes">TLS termination at the Ingress controller: manual certificates reference a kubernetes.io/tls Secret; cert-manager automates provisioning and renewal via ClusterIssuer.</aside>
             </section>
 
             <!-- Gateway API -->
@@ -453,7 +446,8 @@ spec:
             </section>
 
             <section>
-                <h2>&#9878;&#65039; Canary Deployments with HTTPRoute</h2>
+                <h2>&#9878;&#65039; Canary Routing with HTTPRoute</h2>
+                <h4>Weight-Based</h4>
                 <pre class="fragment fade-up"><code class="language-yaml">kind: HTTPRoute
 # ...
 spec:
@@ -465,15 +459,7 @@ spec:
     backendRefs:
     - { name: dns-service-stable, port: 8080, weight: 90 }
     - { name: dns-service-canary, port: 8080, weight: 10 }</code></pre>
-                <div class="concept-box fragment fade-up">
-                    <h4>Progressive Rollout Strategy</h4>
-                    <p style="font-size: 0.85em;">Start at <strong>5%</strong> &rarr; Monitor metrics &rarr; <strong>25%</strong> &rarr; Verify &rarr; <strong>50%</strong> &rarr; Validate &rarr; <strong>100%</strong></p>
-                </div>
-                <aside class="notes">Weight-based splitting is built into HTTPRoute -- no annotations or service mesh needed. Update the weights to roll forward or back.</aside>
-            </section>
-
-            <section>
-                <h2>&#128202; Header-Based Canary Routing</h2>
+                <h4>Header-Based</h4>
                 <pre class="fragment fade-up"><code class="language-yaml">kind: HTTPRoute
 # ...
 rules:
@@ -485,7 +471,7 @@ rules:
   - path: { type: PathPrefix, value: / }
   backendRefs:
   - { name: dns-service-stable, port: 8080 }</code></pre>
-                <aside class="notes">Tip: QA sets X-Canary: true to test new versions before enabling weight-based rollout for all users.</aside>
+                <aside class="notes">Weight-based splitting is built into HTTPRoute. Header-based routing lets QA test canary versions (X-Canary: true) before enabling weight-based rollout for all users.</aside>
             </section>
 
             <!-- Enterprise Integration -->

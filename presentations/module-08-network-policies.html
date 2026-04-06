@@ -269,19 +269,14 @@ spec:
                         <p style="font-size: 0.8em; margin-top: 10px;">Covers all ports from 8000 to 9000 inclusive.</p>
                     </div>
                 </div>
-                <aside class="notes">Specify individual ports or port ranges (K8s 1.25+).</aside>
-            </section>
-
-            <section>
-                <h2>&#128274; Port-Level Controls — Egress Example</h2>
-                <div class="concept-box">
+                <div class="concept-box fragment fade-up" style="margin-top: 15px;">
                     <h4>Named Ports</h4>
                     <pre><code class="language-yaml">ports:
   - protocol: TCP
     port: http    # Matches the named port in the target pod spec</code></pre>
                     <p style="font-size: 0.85em;">Named ports reference the <code>containerPort</code> name, decoupling policy from hard-coded numbers.</p>
                 </div>
-                <aside class="notes">Named ports decouple the policy from the actual port number -- if the port changes, only the pod spec needs updating.</aside>
+                <aside class="notes">Specify individual ports or port ranges (K8s 1.25+). Named ports decouple the policy from the actual port number -- if the port changes, only the pod spec needs updating.</aside>
             </section>
 
             <!-- Slide 12: Section — Policy Patterns -->
@@ -291,36 +286,35 @@ spec:
                 <aside class="notes">Now let's look at the most common patterns. These templates cover the majority of use cases.</aside>
             </section>
 
-            <!-- Slide 13: Default Deny All Ingress -->
+            <!-- Slide 13: Default Deny Policies -->
             <section>
-                <h2>&#128683; Default Deny All Ingress</h2>
-                <pre><code class="language-yaml"># kind: NetworkPolicy
+                <h2>&#128683; Default Deny Policies</h2>
+                <div style="display:flex;gap:2rem">
+                    <div style="flex:1">
+                        <h4>Deny All Ingress</h4>
+                        <pre><code class="language-yaml"># kind: NetworkPolicy
 # metadata: { name: default-deny-ingress, namespace: production }
 spec:
   podSelector: {}       # Selects ALL pods in namespace
   policyTypes:
     - Ingress
   # No ingress rules = deny all inbound traffic</code></pre>
-                <div class="key-point fragment fade-up">
-                    <strong>Best Practice:</strong> Apply default-deny-ingress to every namespace first, then layer on allow rules.
-                </div>
-                <aside class="notes">This is the foundational policy. Empty podSelector = all pods. Declaring Ingress with no ingress rules means all inbound traffic is denied. Apply this first to every namespace, then add targeted allow rules.</aside>
-            </section>
-
-            <!-- Slide 14: Default Deny All Egress -->
-            <section>
-                <h2>&#128683; Default Deny All Egress</h2>
-                <pre><code class="language-yaml"># kind: NetworkPolicy
+                    </div>
+                    <div style="flex:1">
+                        <h4>Deny All Egress</h4>
+                        <pre><code class="language-yaml"># kind: NetworkPolicy
 # metadata: { name: default-deny-egress, namespace: production }
 spec:
   podSelector: {}
   policyTypes:
     - Egress
   # No egress rules = deny all outbound traffic</code></pre>
-                <div class="highlight-box warning fragment fade-up">
-                    <strong>Caution:</strong> Denying all egress breaks DNS. Always pair with a DNS allow policy (next slide).
+                    </div>
                 </div>
-                <aside class="notes">Egress deny is equally important but must be paired with a DNS allow policy or nothing in the namespace will work.</aside>
+                <div class="key-point fragment fade-up">
+                    <strong>Best Practice:</strong> Apply both default-deny policies to every namespace first, then layer on allow rules. Denying egress breaks DNS -- always pair with a DNS allow policy.
+                </div>
+                <aside class="notes">These are the foundational policies. Empty podSelector = all pods. Apply both to every namespace first. Egress deny must be paired with a DNS allow policy or nothing will work.</aside>
             </section>
 
             <!-- Slide 14b: DNS Allow Policy -->

@@ -439,7 +439,7 @@
                 <aside class="notes">Exec probes run any command inside the container. This example checks a file exists and was modified within the last minute. Be aware exec probes spawn a process each time, so low periodSeconds can cause PID exhaustion.</aside>
             </section>
 
-            <!-- Slide 17: gRPC Probes — Concept -->
+            <!-- Slide 17: gRPC Probes -->
             <section>
                 <h2>&#128752; gRPC Probes</h2>
                 <div class="concept-box">
@@ -451,12 +451,7 @@
                     <li class="fragment fade-up">App must implement the <code>grpc.health.v1.Health</code> service</li>
                     <li class="fragment fade-up">Returns <code>SERVING</code>, <code>NOT_SERVING</code>, or <code>UNKNOWN</code></li>
                 </ul>
-                <aside class="notes">Before this feature, you needed exec probes with grpc_health_probe or a sidecar. Now Kubernetes natively speaks the gRPC health protocol. Your app just needs to implement grpc.health.v1.Health.</aside>
-            </section>
-
-            <!-- Slide 17b: gRPC Probes — Configuration -->
-            <section>
-                <h2>&#128752; gRPC Probe Configuration</h2>
+                <h4>Configuration</h4>
                 <pre><code class="language-yaml">livenessProbe:
   grpc:
     port: 50051
@@ -466,10 +461,7 @@ readinessProbe:
   grpc:
     port: 50051             # omit service = overall status
   periodSeconds: 5</code></pre>
-                <div class="highlight-box">
-                    <strong>Tip:</strong> The optional <code>service</code> field lets you check specific services within a multi-service gRPC server.
-                </div>
-                <aside class="notes">Liveness checks a specific service; readiness checks overall server status by omitting the service field.</aside>
+                <aside class="notes">Before this feature, you needed exec probes with grpc_health_probe or a sidecar. Now Kubernetes natively speaks the gRPC health protocol. Your app just needs to implement grpc.health.v1.Health. The optional service field lets you check specific services within a multi-service gRPC server.</aside>
             </section>
 
             <!-- Slide 18: Section — Probe Best Practices -->
@@ -629,7 +621,7 @@ kubectl exec my-app -- wget -qO- http://localhost:8080/ready</code></pre>
                 <aside class="notes">Describe the pod to see events, check logs (use --previous for crashed containers), then exec into the pod to test health endpoints manually. Common issues: misconfigured port, wrong path, or 503 during initialization.</aside>
             </section>
 
-            <!-- Slide 24: Graceful Shutdown — Concept -->
+            <!-- Slide 24: Graceful Shutdown & preStop Hooks -->
             <section>
                 <h2>&#128721; Graceful Shutdown &amp; preStop Hooks</h2>
                 <div class="concept-box">
@@ -641,12 +633,7 @@ kubectl exec my-app -- wget -qO- http://localhost:8080/ready</code></pre>
                     <li class="fragment fade-up"><strong>Race condition:</strong> Add a <code>sleep 5</code> in preStop to let endpoints propagate</li>
                     <li class="fragment fade-up"><strong>terminationGracePeriodSeconds:</strong> Must exceed preStop + drain time</li>
                 </ul>
-                <aside class="notes">When Kubernetes terminates a pod, endpoint removal and the preStop hook run simultaneously. Kube-proxy might still route traffic briefly after termination starts.</aside>
-            </section>
-
-            <!-- Slide 24b: Graceful Shutdown — Configuration -->
-            <section>
-                <h2>&#128721; preStop Hook Configuration</h2>
+                <h4>preStop Hook</h4>
                 <pre><code class="language-yaml">terminationGracePeriodSeconds: 60
 containers:
 - name: app
@@ -656,10 +643,7 @@ containers:
       exec:
         command: ["/bin/sh", "-c",
           "curl -s localhost:8080/shutdown; sleep 15"]</code></pre>
-                <div class="highlight-box">
-                    <strong>Key rule:</strong> Set <code>terminationGracePeriodSeconds</code> &ge; preStop duration + app drain time.
-                </div>
-                <aside class="notes">The sleep in preStop ensures existing connections drain before shutdown. Set terminationGracePeriodSeconds high enough to cover preStop plus drain time.</aside>
+                <aside class="notes">When Kubernetes terminates a pod, endpoint removal and the preStop hook run simultaneously. Kube-proxy might still route traffic briefly after termination starts. The sleep in preStop ensures existing connections drain before shutdown. Set terminationGracePeriodSeconds high enough to cover preStop plus drain time.</aside>
             </section>
 
             <!-- Slide 25: Pod Disruption Budgets — Configuration -->

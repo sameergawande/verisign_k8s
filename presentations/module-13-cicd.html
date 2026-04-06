@@ -942,26 +942,20 @@ spec:
                 <aside class="notes">Branch-based promotion leads to merge conflicts over time. Directory-based with Kustomize overlays on a single branch is the recommended approach. Promote by updating image tags via automated PRs.</aside>
             </section>
 
-            <!-- Slide 27: Secrets Management in CI/CD -->
+            <!-- Slide 27: Secrets Management -->
             <section>
-                <h2>Secrets Management in CI/CD</h2>
-                <div class="card">
-                    <h4>Sealed Secrets</h4>
-                    <ul>
-                        <li class="fragment">Encrypt with public key</li>
-                        <li class="fragment">Decrypt only in-cluster</li>
-                        <li class="fragment">Safe to commit to Git</li>
-                    </ul>
-                    <pre><code class="language-bash">kubeseal --format yaml \
+                <h2>Secrets Management</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>Sealed Secrets</h4>
+                        <ul>
+                            <li class="fragment">Encrypt with public key; decrypt only in-cluster</li>
+                            <li class="fragment">Safe to commit to Git</li>
+                        </ul>
+                        <pre><code class="language-bash">kubeseal --format yaml \
   < secret.yaml \
   > sealed-secret.yaml</code></pre>
-                </div>
-                <aside class="notes">Tip: Never store plain-text secrets in Git, even in private repos. Sealed Secrets encrypts with a cluster-specific key.</aside>
-            </section>
-
-            <section>
-                <h2>Secrets in GitOps Workflows</h2>
-                <div class="two-columns">
+                    </div>
                     <div class="card">
                         <h4>External Secrets Operator</h4>
                         <ul>
@@ -974,19 +968,15 @@ spec:
   secretStoreRef: { name: aws-secrets }
   target: { name: db-creds }</code></pre>
                     </div>
-                    <div class="card">
-                        <h4>SOPS</h4>
-                        <ul>
-                            <li class="fragment">Encrypts values, not keys</li>
-                            <li class="fragment">KMS / PGP / age encryption</li>
-                        </ul>
-                        <pre><code class="language-bash">sops --encrypt \
-  --kms arn:aws:kms:... \
-  secrets.yaml > \
-  secrets.enc.yaml</code></pre>
-                    </div>
                 </div>
-                <aside class="notes">ESO syncs from AWS Secrets Manager or Vault, keeping secrets out of Git. SOPS encrypts values within YAML while leaving keys readable. For AWS, ESO with Secrets Manager is a strong choice.</aside>
+                <div class="card fragment">
+                    <h4>SOPS</h4>
+                    <ul>
+                        <li>Encrypts values, not keys -- KMS / PGP / age</li>
+                    </ul>
+                    <pre><code class="language-bash">sops --encrypt --kms arn:aws:kms:... secrets.yaml > secrets.enc.yaml</code></pre>
+                </div>
+                <aside class="notes">Never store plain-text secrets in Git. Sealed Secrets encrypts with a cluster-specific key. ESO syncs from AWS Secrets Manager or Vault. SOPS encrypts values within YAML while leaving keys readable.</aside>
             </section>
 
             <!-- Slide 28: Rollback Strategies -->
